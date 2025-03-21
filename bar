@@ -1,0 +1,39 @@
+#!/usr/bin/bash
+
+
+CMD="kitty +kitten panel"
+PREFIX="/home/harsh/Development/kitty-bar"
+BAR="$PREFIX/kitty-bar"
+
+
+OPTS=(
+  --lines=1
+  --config="$PREFIX/kitty.conf"
+  --focus-policy=on-demand
+)
+KITTY_OPTS=(
+  allow_remote_control=yes
+  font_size=12
+  cursor_trail=0
+  paste_actions=replace-dangerous-control-codes
+)
+
+opts=""
+for i in "${OPTS[@]}";
+do
+  opts+=" $i"
+done
+for i in "${KITTY_OPTS[@]}";
+do
+  opts+=" -o $i"
+done
+
+CMD+=" $opts $BAR"
+
+
+
+if [ "$1" = "-d" ];then
+  CMD+=" $(tty)"
+fi
+
+$CMD
