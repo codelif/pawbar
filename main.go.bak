@@ -1,0 +1,155 @@
+package main
+
+import (
+	"errors"
+	"github.com/gdamore/tcell/v2"
+	"io/fs"
+	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
+	"time"
+)
+
+var device string = ""
+var Fd *os.File
+
+func main() {
+	if len(os.Args) > 1 {
+		fi, err := os.Lstat(os.Args[1])
+		if err != nil {
+			print("There is an error with the char device")
+			os.Exit(1)
+		}
+		if fi.Mode()&fs.ModeCharDevice == 0 {
+			print("The given path is not a char device")
+			os.Exit(1)
+		}
+
+		device = os.Args[1]
+		Fd, _ = os.OpenFile(device, os.O_WRONLY, 0620)
+		defer Fd.Close()
+	}
+	Application()
+}
+
+func GetScreen() tcell.Screen {
+	scr, err := tcell.NewScreen()
+	if err != nil {
+		panic(err)
+	}
+
+	err = scr.Init()
+	if err != nil {
+		panic(err)
+	}
+
+	return scr
+}
+
+var renders map[int]*RenderableBlock
+
+func Application() {
+	// set_font_size(6)
+	// exec.Command("kitty @ resize-os-window --unit=cells --height=1").Run()
+	scr := GetScreen()
+	defer func() {
+		maybePanic := recover()
+		scr.Fini()
+		if maybePanic != nil {
+			panic(maybePanic)
+		}
+	}()
+
+	scr.EnableMouse()
+	style := tcell.StyleDefault
+	w, h := scr.Size()
+	print(strconv.Itoa(w) + ", " + strconv.Itoa(h))
+	//  print(strconv.Itoa(os.Getppid()))
+	scr.SetStyle(style)
+	scr.Clear()
+
+	scr.SetContent(w-1, h-1, '*', nil, style)
+
+	c := make(chan os.Signal, 3)
+	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
+	go func(c chan os.Signal) {
+		for i := range c {
+			print(i.String())
+			event := tcell.NewEventError(errors.New("Exit!"))
+			scr.PostEvent(event)
+		}
+	}(c)
+
+	go func() {
+		for {
+			time.Sleep(time.Second)
+			e := tcell.NewEventInterrupt(NewUpdate("clock", ""))
+			scr.PostEvent(e)
+		}
+	}()
+
+	go HyprThread(scr)
+
+	var time, title string
+	var hypr_ws []*RenderableBlock
+	renders = make(map[int]*RenderableBlock)
+mainloop:
+	for {
+		scr.Show()
+		ev := scr.PollEvent()
+		switch ev := ev.(type) {
+
+		case *tcell.EventError:
+			break mainloop
+		case *tcell.EventInterrupt:
+			inter := ev.Data().(UpdateEvent)
+			switch inter.Category() {
+			case "clock":
+				time = clock()
+			case "title":
+				title = inter.Data()
+			case "hypr-ws":
+				hypr_ws = inter.RBlocks()
+			}
+		case *tcell.EventResize:
+			w, h = scr.Size()
+		case *tcell.EventKey:
+			if ev.Key() == tcell.KeyCtrlC {
+				break mainloop
+			}
+		case *tcell.EventMouse:
+			btns := ev.Buttons()
+			x, y := ev.Position()
+			if y == 0 && btns == tcell.Button1 {
+				r, ok := renders[x]
+				if ok {
+					GoToWorkspace(r.metadata)
+				}
+			}
+
+		}
+
+		update_status_bar(scr, title, time)
+		set_module(scr, hypr_ws)
+	}
+}
+
+func clock() string {
+	return time.Now().Format("2006-01-02 15:04:05")
+}
+
+func set_module(scr tcell.Screen, r []*RenderableBlock) {
+	// w, _ := scr.Size()
+	for i, t := range r {
+		scr.SetContent(i, 0, t.c, nil, t.style)
+		renders[i] = t
+	}
+}
+
+func update_status_bar(scr tcell.Screen, title, time string) {
+	w, _ := scr.Size()
+	FillHorizontal(scr, 0, 0, tcell.StyleDefault, ' ', w)
+	DrawHorizontal(scr, (w-len(title))/2, 0, tcell.StyleDefault, title)
+	DrawHorizontal(scr, w-len(time), 0, tcell.StyleDefault, time)
+}
