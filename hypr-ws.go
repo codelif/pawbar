@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"slices"
 	"strconv"
 	"strings"
@@ -16,11 +17,11 @@ type WS struct {
 }
 
 func NewHyprWorkspaces() Module {
-	return &HyprWorkspaces{hypr: hypr}
+	return &HyprWorkspaces{}
 }
 
 type HyprWorkspaces struct {
-	hypr      *Hypr
+	hypr      *HyprService
 	receive   chan bool
 	send      chan Event
 	hevent    chan HyprEvent
@@ -34,7 +35,16 @@ func (hyprws *HyprWorkspaces) Name() string {
 	return "hypr-ws"
 }
 
+func (hypews *HyprWorkspaces) Dependencies() []string {
+	return []string{"hypr"}
+}
+
 func (hyprws *HyprWorkspaces) Run() (<-chan bool, chan<- Event, error) {
+	service, ok := serviceRegistry["hypr"].(*HyprService)
+	if !ok {
+		return nil, nil, errors.New("Hypr service not available")
+	}
+  hyprws.hypr = service
 
 	hyprws.receive = make(chan bool)
 	hyprws.send = make(chan Event)

@@ -1,20 +1,32 @@
 package main
 
-import "strings"
+import (
+	"errors"
+	"strings"
+)
 
 func NewHyprTitle() Module {
-	return &HyprTitle{hypr: hypr}
+	return &HyprTitle{}
 }
 
 type HyprTitle struct {
-	hypr    *Hypr
+	hypr    *HyprService
 	receive chan bool
 	send    chan Event
 	hevent  chan HyprEvent
 	title   string
 }
 
+func (ht *HyprTitle) Dependencies() []string {
+    return []string{"hypr"}
+}
 func (hyprtitle *HyprTitle) Run() (<-chan bool, chan<- Event, error) {
+	service, ok := serviceRegistry["hypr"].(*HyprService)
+	if !ok {
+		return nil, nil, errors.New("Hypr service not available")
+	}
+  hyprtitle.hypr = service
+
 	hyprtitle.receive = make(chan bool)
 	hyprtitle.send = make(chan Event)
 	hyprtitle.hevent = make(chan HyprEvent)
@@ -39,8 +51,8 @@ func (hyprtitle *HyprTitle) Run() (<-chan bool, chan<- Event, error) {
 func (hyprtitle *HyprTitle) Render() []EventCell {
 	rstring := " " + hyprtitle.title
 	r := make([]EventCell, len(rstring))
-	for i := range len(rstring) {
-		r[i] = EventCell{rune(rstring[i]), DEFAULT, "", hyprtitle}
+	for i, ch := range rstring {
+		r[i] = EventCell{ch, DEFAULT, "", hyprtitle}
 	}
 
 	return r

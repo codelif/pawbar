@@ -15,6 +15,10 @@ type Clock struct {
 	send    chan Event
 }
 
+func (c *Clock) Dependencies() []string {
+  return nil
+}
+
 func (c *Clock) Run() (<-chan bool, chan<- Event, error) {
 	c.receive = make(chan bool)
 	c.send = make(chan Event)
@@ -26,13 +30,13 @@ func (c *Clock) Run() (<-chan bool, chan<- Event, error) {
 			case <-t.C:
 				c.receive <- true
 			case e := <-c.send:
-        switch ev := e.e.(type) {
-        case *tcell.EventMouse:
-          if ev.Buttons() != 0{
-            x, y := ev.Position()
-            logger.Printf("Clock: Got click event: %d, %d, Mod: %d, Button: %d\n", x, y, ev.Modifiers(), ev.Buttons())
-          }
-      }
+				switch ev := e.e.(type) {
+				case *tcell.EventMouse:
+					if ev.Buttons() != 0 {
+						x, y := ev.Position()
+						logger.Printf("Clock: Got click event: %d, %d, Mod: %d, Button: %d\n", x, y, ev.Modifiers(), ev.Buttons())
+					}
+				}
 			}
 		}
 	}()
@@ -43,8 +47,8 @@ func (c *Clock) Run() (<-chan bool, chan<- Event, error) {
 func (c *Clock) Render() []EventCell {
 	rstring := time.Now().Format("2006-01-02 15:04:05")
 	r := make([]EventCell, len(rstring))
-	for i := range len(rstring){
-    r[i] = EventCell{rune(rstring[i]), DEFAULT, "", c}
+	for i, ch := range rstring {
+		r[i] = EventCell{ch, DEFAULT, "", c}
 	}
 
 	return r

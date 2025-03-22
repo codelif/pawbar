@@ -7,10 +7,59 @@ import (
 	"os"
 	"path"
 	"strings"
-
 )
 
-var hypr *Hypr
+type HyprService struct {
+	callbacks map[string][]chan<- HyprEvent
+	running   bool
+}
+
+func MakeHypr() *HyprService {
+	h := HyprService{}
+	h.callbacks = make(map[string][]chan<- HyprEvent)
+	return &h
+}
+func (h *HyprService) Name() string { return "hypr" }
+
+func (h *HyprService) Start() error {
+	if h.running {
+		return nil
+	}
+  logger.Println("Hypr started")
+	h.callbacks = make(map[string][]chan<- HyprEvent)
+	go h.run()
+	h.running = true
+	return nil
+}
+func (h *HyprService) Stop() error {
+	return nil
+}
+
+func (h *HyprService) RegisterChannel(event string, ch chan<- HyprEvent) {
+	h.callbacks[event] = append(h.callbacks[event], ch)
+}
+
+func (h *HyprService) run() {
+	_, sockaddr2 := GetHyprSocketAddrs()
+
+	sock2, err := net.Dial("unix", sockaddr2)
+	if err != nil {
+		panic(err)
+	}
+	defer sock2.Close()
+
+	scanner := bufio.NewScanner(sock2)
+	for scanner.Scan() {
+		e := NewHyprEvent(scanner.Text())
+		c, ok := h.callbacks[e.event]
+    logger.Println("Hypr is active")
+		if ok {
+			for _, ch := range c {
+				ch <- e
+			}
+		}
+	}
+}
 
 func GetHyprSocketAddrs() (string, string) {
 	instance_signature := os.Getenv("HYPRLAND_INSTANCE_SIGNATURE")
@@ -28,66 +77,6 @@ type HyprEvent struct {
 func NewHyprEvent(s string) HyprEvent {
 	e, d, _ := strings.Cut(s, ">>")
 	return HyprEvent{e, strings.Trim(d, " \n")}
-}
-
-type Hypr struct {
-	callbacks map[string][]chan<- HyprEvent
-}
-
-func MakeHypr() *Hypr {
-  h := Hypr{}
-  h.callbacks = make(map[string][]chan<- HyprEvent)
-  return &h
-}
-func (h *Hypr) RegisterChannel(event string, ch chan<- HyprEvent){
-  h.callbacks[event] = append(h.callbacks[event], ch)
-}
-
-func (h *Hypr) Run() {
-	_, sockaddr2 := GetHyprSocketAddrs()
-
-	sock2, err := net.Dial("unix", sockaddr2)
-	if err != nil {
-		panic(err)
-	}
-	defer sock2.Close()
-
-	scanner := bufio.NewScanner(sock2)
-	for scanner.Scan() {
-		e := NewHyprEvent(scanner.Text())
-		c, ok := h.callbacks[e.event]
-		if ok {
-			for _, ch := range c {
-				ch <- e
-			}
-		}
-	}
-
-	// workspaces := GetWorkspaces()
-	// print(workspaces)
-	// active := GetActiveWorkspace()
-	// print(active)
-	//  clients := GetClients()
-	//  print(clients)
-
-	// ws := HyprWorkspaces{}
-	// ws.RefreshWS()
-	// scr.PostEvent(tcell.NewEventInterrupt(NewRBUpdate("hypr-ws", ws.Render())))
-
-	// scr.PostEvent(tcell.NewEventInterrupt(NewUpdate("title", active.Lastwindowtitle)))
-	// scanner := bufio.NewScanner(sock2)
-	// for scanner.Scan() {
-	// 	s := scanner.Text()
-	// 	if ws.HandleEvent(NewHyprEvent(s)) {
-
-	// 		scr.PostEvent(tcell.NewEventInterrupt(NewRBUpdate("hypr-ws", ws.Render())))
-	// 	}
-	// 	if ss, e := strings.CutPrefix(s, "activewindow>>"); e {
-	// 		_, title, _ := strings.Cut(ss, ",")
-	// 		e := tcell.NewEventInterrupt(NewUpdate("title", title))
-	// 		scr.PostEvent(e)
-	// 	}
-	// }
 }
 
 type Workspace struct {
