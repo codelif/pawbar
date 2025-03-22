@@ -1,4 +1,4 @@
-package services
+package hypr
 
 import (
 	"bufio"
@@ -8,21 +8,28 @@ import (
 	"path"
 	"strings"
 
+	"github.com/codelif/pawbar/internal/services"
 )
 
-type HyprService struct {
+func Register() {
+	services.StartService("hypr", &Service{})
+}
+
+func GetService() (*Service, bool) {
+	if s, ok := services.ServiceRegistry["hypr"].(*Service); ok {
+		return s, true
+	}
+	return nil, false
+}
+
+type Service struct {
 	callbacks map[string][]chan<- HyprEvent
 	running   bool
 }
 
-func MakeHypr() *HyprService {
-	h := HyprService{}
-	h.callbacks = make(map[string][]chan<- HyprEvent)
-	return &h
-}
-func (h *HyprService) Name() string { return "hypr" }
+func (h *Service) Name() string { return "hypr" }
 
-func (h *HyprService) Start() error {
+func (h *Service) Start() error {
 	if h.running {
 		return nil
 	}
@@ -31,15 +38,15 @@ func (h *HyprService) Start() error {
 	h.running = true
 	return nil
 }
-func (h *HyprService) Stop() error {
+func (h *Service) Stop() error {
 	return nil
 }
 
-func (h *HyprService) RegisterChannel(event string, ch chan<- HyprEvent) {
+func (h *Service) RegisterChannel(event string, ch chan<- HyprEvent) {
 	h.callbacks[event] = append(h.callbacks[event], ch)
 }
 
-func (h *HyprService) run() {
+func (h *Service) run() {
 	_, sockaddr2 := GetHyprSocketAddrs()
 
 	sock2, err := net.Dial("unix", sockaddr2)

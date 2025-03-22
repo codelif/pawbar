@@ -2,13 +2,15 @@ package config
 
 import (
 	"github.com/codelif/pawbar/internal/modules"
-	"github.com/codelif/pawbar/internal/services"
-	"github.com/codelif/pawbar/internal/utils"
+	"github.com/codelif/pawbar/internal/modules/clock"
+	"github.com/codelif/pawbar/internal/modules/hyprtitle"
+	"github.com/codelif/pawbar/internal/modules/hyprws"
+	"github.com/codelif/pawbar/internal/services/hypr"
 )
 
 func LoadModules() ([]modules.Module, []modules.Module) {
-	left_gen := [](func() modules.Module){modules.NewHyprWorkspaces, modules.NewHyprTitle}
-	right_gen := []func() modules.Module{modules.NewClock}
+	left_gen := [](func() modules.Module){hyprws.New, hyprtitle.New}
+	right_gen := []func() modules.Module{clock.New}
 
 	var left, right []modules.Module
 
@@ -24,7 +26,7 @@ func LoadModules() ([]modules.Module, []modules.Module) {
 
 func InitModules() (chan modules.Module, []modules.Module, []modules.Module) {
 	tleft, tright := LoadModules()
-	RunServices(append(tleft, tright...))
+	runServices(append(tleft, tright...))
 	modev := make(chan modules.Module)
 
 	var left []modules.Module
@@ -55,7 +57,7 @@ func runModuleEventLoop(mod modules.Module, rec <-chan bool, modev chan<- module
 	}
 }
 
-func RunServices(mods []modules.Module) {
+func runServices(mods []modules.Module) {
 	neededServices := make(map[string]bool)
 	for _, mod := range mods {
 		for _, dep := range mod.Dependencies() {
@@ -63,14 +65,11 @@ func RunServices(mods []modules.Module) {
 		}
 	}
 
-	// 2) Start each needed service
 	for dep := range neededServices {
-		svc, ok := services.ServiceRegistry[dep]
-		if !ok {
-			utils.Logger.Printf("Unknown service dependency: %s\n", dep)
-			continue
+		switch dep {
+		case "hypr":
+			hypr.Register()
+		default:
 		}
-		svc.Start() // handle errors etc.
 	}
 }
-

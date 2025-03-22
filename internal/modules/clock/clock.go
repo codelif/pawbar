@@ -1,28 +1,29 @@
-package modules
+package clock
 
 import (
 	"time"
 
+	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/utils"
 	"github.com/gdamore/tcell/v2"
 )
 
-func NewClock() Module {
+func New() modules.Module {
 	return &ClockModule{}
 }
 
 type ClockModule struct {
 	receive chan bool
-	send    chan Event
+	send    chan modules.Event
 }
 
 func (c *ClockModule) Dependencies() []string {
-  return nil
+	return nil
 }
 
-func (c *ClockModule) Run() (<-chan bool, chan<- Event, error) {
+func (c *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	c.receive = make(chan bool)
-	c.send = make(chan Event)
+	c.send = make(chan modules.Event)
 
 	go func() {
 		t := time.NewTicker(time.Second)
@@ -45,17 +46,17 @@ func (c *ClockModule) Run() (<-chan bool, chan<- Event, error) {
 	return c.receive, c.send, nil
 }
 
-func (c *ClockModule) Render() []EventCell {
+func (c *ClockModule) Render() []modules.EventCell {
 	rstring := time.Now().Format("2006-01-02 15:04:05")
-	r := make([]EventCell, len(rstring))
+	r := make([]modules.EventCell, len(rstring))
 	for i, ch := range rstring {
-		r[i] = EventCell{ch, DEFAULT, "", c}
+		r[i] = modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: c}
 	}
 
 	return r
 }
 
-func (c *ClockModule) Channels() (<-chan bool, chan<- Event) {
+func (c *ClockModule) Channels() (<-chan bool, chan<- modules.Event) {
 	return c.receive, c.send
 }
 
