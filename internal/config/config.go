@@ -6,7 +6,38 @@ import (
 	"github.com/codelif/pawbar/internal/modules/hyprtitle"
 	"github.com/codelif/pawbar/internal/modules/hyprws"
 	"github.com/codelif/pawbar/internal/services/hypr"
+	"github.com/codelif/pawbar/internal/utils"
 )
+
+func LoadModulesFromFile(configPath string) ([]modules.Module, []modules.Module, error) {
+	barConfig, err := LoadBarConfig(configPath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var left []modules.Module
+	for _, modName := range barConfig.Left {
+		factory, ok := moduleFactories[modName]
+		if !ok {
+			utils.Logger.Printf("Unknown module: '%s'\n", modName)
+			continue
+		}
+		left = append(left, factory())
+	}
+
+	// Build right modules
+	var right []modules.Module
+	for _, modName := range barConfig.Right {
+		factory, ok := moduleFactories[modName]
+		if !ok {
+			utils.Logger.Printf("Unknown module: '%s'\n", modName)
+			continue
+		}
+		right = append(right, factory())
+	}
+
+	return left, right, nil
+}
 
 func LoadModules() ([]modules.Module, []modules.Module) {
 	left_gen := [](func() modules.Module){hyprws.New, hyprtitle.New}
@@ -24,8 +55,13 @@ func LoadModules() ([]modules.Module, []modules.Module) {
 	return left, right
 }
 
-func InitModules() (chan modules.Module, []modules.Module, []modules.Module) {
-	tleft, tright := LoadModules()
+func InitModules(configPath string) (chan modules.Module, []modules.Module, []modules.Module, error) {
+	tleft, tright, err := LoadModulesFromFile(configPath)
+  if err != nil {
+    return nil, nil, nil, err
+  }
+
+
 	runServices(append(tleft, tright...))
 	modev := make(chan modules.Module)
 
@@ -48,7 +84,7 @@ func InitModules() (chan modules.Module, []modules.Module, []modules.Module) {
 		}
 	}
 
-	return modev, left, right
+	return modev, left, right, nil
 }
 
 func runModuleEventLoop(mod modules.Module, rec <-chan bool, modev chan<- modules.Module) {

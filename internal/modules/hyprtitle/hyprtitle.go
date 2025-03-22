@@ -50,7 +50,7 @@ func (hyprtitle *HyprTitle) Run() (<-chan bool, chan<- modules.Event, error) {
 }
 
 func (hyprtitle *HyprTitle) Render() []modules.EventCell {
-	rstring := " " + hyprtitle.title
+	rstring := hyprtitle.title
 	r := make([]modules.EventCell, len(rstring))
 	for i, ch := range rstring {
 		r[i] = modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: hyprtitle}
