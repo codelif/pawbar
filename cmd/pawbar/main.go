@@ -105,4 +105,3 @@ func mainLoop() int {
 
 	return 0
 }
-

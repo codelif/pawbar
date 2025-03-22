@@ -15,7 +15,7 @@ type EventCell struct {
 	C        rune
 	Style    tcell.Style
 	Metadata string
-	Mod        Module
+	Mod      Module
 }
 
 type StaticCell struct {
@@ -32,7 +32,6 @@ type Module interface {
 }
 
 type Event struct {
-	Cell EventCell
+	Cell       EventCell
 	TcellEvent tcell.Event
 }
-
