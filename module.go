@@ -25,9 +25,8 @@ type Module interface {
 	Render() []EventCell
 	Run() (<-chan bool, chan<- Event, error)
 	Channels() (<-chan bool, chan<- Event)
-
-	// Returns printable name
 	Name() string
+	Dependencies() []string
 }
 
 type Event struct {
@@ -42,15 +41,28 @@ func modevloop(mod Module, rec <-chan bool, modev chan<- Module) {
 	}
 }
 
+func RunServices(mods []Module) {
+	neededServices := make(map[string]bool)
+	for _, mod := range mods {
+		for _, dep := range mod.Dependencies() {
+			neededServices[dep] = true
+		}
+	}
 
-func RunServices(){
-  hypr = MakeHypr()
-  go hypr.Run()
+	// 2) Start each needed service
+	for dep := range neededServices {
+		svc, ok := serviceRegistry[dep]
+		if !ok {
+			logger.Printf("Unknown service dependency: %s\n", dep)
+			continue
+		}
+		svc.Start() // handle errors etc.
+	}
 }
 
 func StartModules() (chan Module, []Module, []Module) {
-  RunServices()
 	tleft, tright := modules()
+  RunServices(append(tleft, tright...))
 	modev := make(chan Module)
 
 	var left []Module

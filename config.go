@@ -4,7 +4,7 @@ package main
 
 func modules() ([]Module, []Module){
   left_gen := [](func() Module){NewHyprWorkspaces, NewHyprTitle}
-  right_gen := [](func() Module){NewClock}
+  right_gen := []func() Module{NewClock}
 
 
   var left, right []Module
