@@ -1,39 +1,33 @@
 #!/usr/bin/bash
 
+kittyCmd="kitty +kitten panel"
+barDir="/home/harsh/Development/pawbar"
+barExecutable="$barDir/pawbar"
 
-CMD="kitty +kitten panel"
-PREFIX="/home/harsh/Development/kitty-bar"
-BAR="$PREFIX/kitty-bar"
-
-
-OPTS=(
+panelOpts=(
   --lines=1
-  --config="$PREFIX/kitty.conf"
+  --config="$barDir/kitty.conf"
   --focus-policy=on-demand
 )
-KITTY_OPTS=(
+kittyOpts=(
   allow_remote_control=yes
   font_size=12
   cursor_trail=0
   paste_actions=replace-dangerous-control-codes
 )
 
-opts=""
-for i in "${OPTS[@]}";
-do
-  opts+=" $i"
+compiledOpts=""
+for opt in "${panelOpts[@]}"; do
+  compiledOpts+=" $opt"
 done
-for i in "${KITTY_OPTS[@]}";
-do
-  opts+=" -o $i"
+for opt in "${kittyOpts[@]}"; do
+  compiledOpts+=" -o $opt"
 done
 
-CMD+=" $opts $BAR"
+kittyCmd+=" $compiledOpts $barExecutable"
 
-
-
-if [ "$1" = "-d" ];then
-  CMD+=" $(tty)"
+if [ "$1" = "-d" ]; then
+  kittyCmd+=" $(tty)"
 fi
 
-$CMD
+$kittyCmd

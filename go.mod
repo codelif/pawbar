@@ -1,4 +1,4 @@
-module github.com/codelif/kitty-bar
+module github.com/codelif/pawbar
 
 go 1.22.3
 
