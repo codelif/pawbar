@@ -1,4 +1,4 @@
-package modules
+package hyprws
 
 import (
 	"errors"
@@ -6,7 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/codelif/pawbar/internal/services"
+	"github.com/codelif/pawbar/internal/modules"
+	"github.com/codelif/pawbar/internal/services/hypr"
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -17,15 +18,14 @@ type WorkspaceState struct {
 	urgent bool
 }
 
-func NewHyprWorkspaces() Module {
+func New() modules.Module {
 	return &HyprWorkspaceModule{}
 }
 
 type HyprWorkspaceModule struct {
-	hypr      *services.HyprService
 	receive   chan bool
-	send      chan Event
-	hevent    chan services.HyprEvent
+	send      chan modules.Event
+	hevent    chan hypr.HyprEvent
 	ws        map[int]*WorkspaceState
 	activeId  int
 	specialId int
@@ -33,25 +33,24 @@ type HyprWorkspaceModule struct {
 }
 
 func (wsMod *HyprWorkspaceModule) Name() string {
-	return "hypr-ws"
+	return "hyprws"
 }
 
 func (wsMod *HyprWorkspaceModule) Dependencies() []string {
 	return []string{"hypr"}
 }
 
-func (wsMod *HyprWorkspaceModule) Run() (<-chan bool, chan<- Event, error) {
-	service, ok := services.ServiceRegistry["hypr"].(*services.HyprService)
+func (wsMod *HyprWorkspaceModule) Run() (<-chan bool, chan<- modules.Event, error) {
+	service, ok := hypr.GetService()
 	if !ok {
 		return nil, nil, errors.New("Hypr service not available")
 	}
-  wsMod.hypr = service
 
 	wsMod.receive = make(chan bool)
-	wsMod.send = make(chan Event)
-	wsMod.hevent = make(chan services.HyprEvent)
+	wsMod.send = make(chan modules.Event)
+	wsMod.hevent = make(chan hypr.HyprEvent)
 	for _, e := range []string{"workspacev2", "focusedmonv2", "createworkspacev2", "destroyworkspacev2", "activespecial", "renameworkspace", "urgent"} {
-		wsMod.hypr.RegisterChannel(e, wsMod.hevent)
+		service.RegisterChannel(e, wsMod.hevent)
 	}
 	wsMod.refreshWorkspaceCache()
 	go func() {
@@ -62,7 +61,7 @@ func (wsMod *HyprWorkspaceModule) Run() (<-chan bool, chan<- Event, error) {
 				case *tcell.EventMouse:
 					btns := ev.Buttons()
 					if btns == tcell.Button1 {
-						go services.GoToWorkspace(e.Cell.Metadata)
+						go hypr.GoToWorkspace(e.Cell.Metadata)
 					}
 				}
 			case h := <-wsMod.hevent:
@@ -79,15 +78,15 @@ func (wsMod *HyprWorkspaceModule) Run() (<-chan bool, chan<- Event, error) {
 	return wsMod.receive, wsMod.send, nil
 }
 
-func (wsMod *HyprWorkspaceModule) Channels() (<-chan bool, chan<- Event) {
+func (wsMod *HyprWorkspaceModule) Channels() (<-chan bool, chan<- modules.Event) {
 	return wsMod.receive, wsMod.send
 }
 
 func (wsMod *HyprWorkspaceModule) refreshWorkspaceCache() {
 	wsMod.ws = make(map[int]*WorkspaceState)
 
-	workspaces := services.GetWorkspaces()
-	active := services.GetActiveWorkspace()
+	workspaces := hypr.GetWorkspaces()
+	active := hypr.GetActiveWorkspace()
 
 	for _, ws := range workspaces {
 		wsMod.ws[ws.Id] = &WorkspaceState{ws.Id, ws.Name, ws.Id == active.Id, false}
@@ -101,7 +100,7 @@ func (wsMod *HyprWorkspaceModule) refreshWorkspaceCache() {
 	}
 }
 
-func (wsMod *HyprWorkspaceModule) validateHyprEvent(e services.HyprEvent) bool {
+func (wsMod *HyprWorkspaceModule) validateHyprEvent(e hypr.HyprEvent) bool {
 	switch e.Event {
 	case "workspacev2":
 		id, _ := strconv.Atoi(e.Data[:strings.IndexRune(e.Data, ',')])
@@ -170,7 +169,7 @@ func (wsMod *HyprWorkspaceModule) activateSpecialWorkspace(name string) {
 }
 
 func (wsMod *HyprWorkspaceModule) setWorkspaceUrgent(address string) {
-	clients := services.GetClients()
+	clients := hypr.GetClients()
 	for _, client := range clients {
 		client_address, _ := strings.CutPrefix(client.Address, "0x")
 		if client_address == address {
@@ -179,7 +178,7 @@ func (wsMod *HyprWorkspaceModule) setWorkspaceUrgent(address string) {
 	}
 }
 
-func (wsMod *HyprWorkspaceModule) handleHyprEvent(e services.HyprEvent) bool {
+func (wsMod *HyprWorkspaceModule) handleHyprEvent(e hypr.HyprEvent) bool {
 	switch e.Event {
 	case "workspacev2":
 		id, _ := strconv.Atoi(e.Data[:strings.IndexRune(e.Data, ',')])
@@ -201,7 +200,7 @@ func (wsMod *HyprWorkspaceModule) handleHyprEvent(e services.HyprEvent) bool {
 	return true
 }
 
-func (wsMod *HyprWorkspaceModule) Render() []EventCell {
+func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
 	var wss []int
 	for k := range wsMod.ws {
 		if k > 0 {
@@ -211,19 +210,19 @@ func (wsMod *HyprWorkspaceModule) Render() []EventCell {
 
 	slices.Sort(wss)
 
-	var r []EventCell
+	var r []modules.EventCell
 
 	if wsMod.isSpecialWorkspaceActive() {
-		var t1 EventCell
-		var t2 EventCell
-		var t3 EventCell
+		var t1 modules.EventCell
+		var t2 modules.EventCell
+		var t3 modules.EventCell
 		t1.C = ' '
 		t2.C = 'S'
 		t3.C = ' '
 
-		t1.Style = SPECIAL
-		t2.Style = SPECIAL
-		t3.Style = SPECIAL
+		t1.Style = modules.SPECIAL
+		t2.Style = modules.SPECIAL
+		t3.Style = modules.SPECIAL
 
 		t1.Mod = wsMod
 		t2.Mod = wsMod
@@ -232,21 +231,21 @@ func (wsMod *HyprWorkspaceModule) Render() []EventCell {
 	}
 
 	for _, id := range wss {
-		var t1 EventCell
-		var t2 EventCell
-		var t3 EventCell
+		var t1 modules.EventCell
+		var t2 modules.EventCell
+		var t3 modules.EventCell
 		t1.C = ' '
 		t2.C = rune(wsMod.ws[id].name[0])
 		t3.C = ' '
 		if wsMod.ws[id].active {
-			t1.Style = ACTIVE
-			t2.Style = ACTIVE
-			t3.Style = ACTIVE
+			t1.Style = modules.ACTIVE
+			t2.Style = modules.ACTIVE
+			t3.Style = modules.ACTIVE
 		}
 		if wsMod.ws[id].urgent {
-			t1.Style = URGENT
-			t2.Style = URGENT
-			t3.Style = URGENT
+			t1.Style = modules.URGENT
+			t2.Style = modules.URGENT
+			t3.Style = modules.URGENT
 		}
 
 		t1.Metadata = wsMod.ws[id].name
