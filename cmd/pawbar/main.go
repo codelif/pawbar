@@ -17,7 +17,7 @@ func main() {
 	_, Fd := utils.InitLogger()
 	defer Fd.Close()
 
-  configFile := os.Getenv("HOME") + "/.config/pawbar.yaml"
+  configFile := os.Getenv("HOME") + "/.config/pawbar/pawbar.yaml"
 	exitCode := mainLoop(configFile)
 
 	os.Exit(exitCode)
