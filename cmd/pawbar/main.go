@@ -16,12 +16,14 @@ import (
 func main() {
 	_, Fd := utils.InitLogger()
 	defer Fd.Close()
-	exitCode := mainLoop()
+
+  configFile := os.Getenv("HOME") + "/.config/pawbar.yaml"
+	exitCode := mainLoop(configFile)
 
 	os.Exit(exitCode)
 }
 
-func mainLoop() int {
+func mainLoop(cfgPath string) int {
 	scr, err := tcell.NewScreen()
 	if err != nil {
 		utils.Logger.Println("There was an error creating a Screen.")
@@ -53,7 +55,10 @@ func mainLoop() int {
 	exit_signal := make(chan os.Signal, 1)
 	signal.Notify(exit_signal, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 
-	modev, l, r := config.InitModules()
+	modev, l, r, err := config.InitModules(cfgPath)
+  if err != nil {
+    utils.Logger.Fatalln("Failed to init modules from config:", err)
+  }
 
 	screenEvents := make(chan tcell.Event)
 	quitEventsChan := make(chan struct{})
