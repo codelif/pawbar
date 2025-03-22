@@ -1,6 +1,9 @@
 # pawbar
 A kitten-panel based (uncustomisable) desktop panel for your desktop
 
+![image](https://github.com/user-attachments/assets/629f44b0-b759-4b3a-b69f-35258f6f28df)
+
+
 ## Installing
 A basic install script is there:
 ```sh
