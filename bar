@@ -1,12 +1,12 @@
-#!/usr/bin/bash
+#/usr/bin/bash
 
 kittyCmd="kitty +kitten panel"
-barDir="/home/harsh/Development/pawbar"
+barDir="$HOME/Development/pawbar"
 barExecutable="$barDir/pawbar"
 
 panelOpts=(
   --lines=1
-  --config="$barDir/kitty.conf"
+  --config="$HOME/.config/pawbar/kitty.conf"
   --focus-policy=on-demand
 )
 kittyOpts=(
