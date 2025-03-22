@@ -1,4 +1,4 @@
-package main
+package services
 
 
 type Service interface {
@@ -6,6 +6,6 @@ type Service interface {
     Stop() error
     Name() string
 }
-var serviceRegistry = map[string]Service{
+var ServiceRegistry = map[string]Service{
     "hypr": &HyprService{}, 
 }

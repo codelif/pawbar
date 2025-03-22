@@ -1,8 +1,10 @@
-package main
+package modules
 
 import (
 	"errors"
 	"strings"
+
+	"github.com/codelif/pawbar/internal/services"
 )
 
 func NewHyprTitle() Module {
@@ -10,10 +12,10 @@ func NewHyprTitle() Module {
 }
 
 type HyprTitle struct {
-	hypr    *HyprService
+	hypr    *services.HyprService
 	receive chan bool
 	send    chan Event
-	hevent  chan HyprEvent
+	hevent  chan services.HyprEvent
 	title   string
 }
 
@@ -21,7 +23,7 @@ func (ht *HyprTitle) Dependencies() []string {
     return []string{"hypr"}
 }
 func (hyprtitle *HyprTitle) Run() (<-chan bool, chan<- Event, error) {
-	service, ok := serviceRegistry["hypr"].(*HyprService)
+	service, ok := services.ServiceRegistry["hypr"].(*services.HyprService)
 	if !ok {
 		return nil, nil, errors.New("Hypr service not available")
 	}
@@ -29,15 +31,15 @@ func (hyprtitle *HyprTitle) Run() (<-chan bool, chan<- Event, error) {
 
 	hyprtitle.receive = make(chan bool)
 	hyprtitle.send = make(chan Event)
-	hyprtitle.hevent = make(chan HyprEvent)
-	hyprtitle.title = GetActiveWorkspace().Lastwindowtitle
+	hyprtitle.hevent = make(chan services.HyprEvent)
+	hyprtitle.title = services.GetActiveWorkspace().Lastwindowtitle
 	hyprtitle.hypr.RegisterChannel("activewindow", hyprtitle.hevent)
 
 	go func() {
 		for {
 			select {
 			case h := <-hyprtitle.hevent:
-				_, title, _ := strings.Cut(h.data, ",")
+				_, title, _ := strings.Cut(h.Data, ",")
 				hyprtitle.title = title
 				hyprtitle.receive <- true
 			case <-hyprtitle.send:

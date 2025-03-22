@@ -1,25 +1,26 @@
-package main
+package modules
 
 import (
 	"time"
 
+	"github.com/codelif/pawbar/internal/utils"
 	"github.com/gdamore/tcell/v2"
 )
 
 func NewClock() Module {
-	return &Clock{}
+	return &ClockModule{}
 }
 
-type Clock struct {
+type ClockModule struct {
 	receive chan bool
 	send    chan Event
 }
 
-func (c *Clock) Dependencies() []string {
+func (c *ClockModule) Dependencies() []string {
   return nil
 }
 
-func (c *Clock) Run() (<-chan bool, chan<- Event, error) {
+func (c *ClockModule) Run() (<-chan bool, chan<- Event, error) {
 	c.receive = make(chan bool)
 	c.send = make(chan Event)
 
@@ -30,11 +31,11 @@ func (c *Clock) Run() (<-chan bool, chan<- Event, error) {
 			case <-t.C:
 				c.receive <- true
 			case e := <-c.send:
-				switch ev := e.e.(type) {
+				switch ev := e.TcellEvent.(type) {
 				case *tcell.EventMouse:
 					if ev.Buttons() != 0 {
 						x, y := ev.Position()
-						logger.Printf("Clock: Got click event: %d, %d, Mod: %d, Button: %d\n", x, y, ev.Modifiers(), ev.Buttons())
+						utils.Logger.Printf("Clock: Got click event: %d, %d, Mod: %d, Button: %d\n", x, y, ev.Modifiers(), ev.Buttons())
 					}
 				}
 			}
@@ -44,7 +45,7 @@ func (c *Clock) Run() (<-chan bool, chan<- Event, error) {
 	return c.receive, c.send, nil
 }
 
-func (c *Clock) Render() []EventCell {
+func (c *ClockModule) Render() []EventCell {
 	rstring := time.Now().Format("2006-01-02 15:04:05")
 	r := make([]EventCell, len(rstring))
 	for i, ch := range rstring {
@@ -54,10 +55,10 @@ func (c *Clock) Render() []EventCell {
 	return r
 }
 
-func (c *Clock) Channels() (<-chan bool, chan<- Event) {
+func (c *ClockModule) Channels() (<-chan bool, chan<- Event) {
 	return c.receive, c.send
 }
 
-func (c *Clock) Name() string {
+func (c *ClockModule) Name() string {
 	return "clock"
 }

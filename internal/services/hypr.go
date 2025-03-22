@@ -1,4 +1,4 @@
-package main
+package services
 
 import (
 	"bufio"
@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strings"
+
 )
 
 type HyprService struct {
@@ -25,7 +26,6 @@ func (h *HyprService) Start() error {
 	if h.running {
 		return nil
 	}
-  logger.Println("Hypr started")
 	h.callbacks = make(map[string][]chan<- HyprEvent)
 	go h.run()
 	h.running = true
@@ -51,8 +51,7 @@ func (h *HyprService) run() {
 	scanner := bufio.NewScanner(sock2)
 	for scanner.Scan() {
 		e := NewHyprEvent(scanner.Text())
-		c, ok := h.callbacks[e.event]
-    logger.Println("Hypr is active")
+		c, ok := h.callbacks[e.Event]
 		if ok {
 			for _, ch := range c {
 				ch <- e
@@ -70,8 +69,8 @@ func GetHyprSocketAddrs() (string, string) {
 }
 
 type HyprEvent struct {
-	event string
-	data  string
+	Event string
+	Data  string
 }
 
 func NewHyprEvent(s string) HyprEvent {
