@@ -35,13 +35,13 @@ func main() {
 		logger = log.New(Fd, "", log.LstdFlags)
 		defer Fd.Close()
 	}
-	exit_code := run()
+	exit_code := MainLoop()
 	Fd.Close()
 
 	os.Exit(exit_code)
 }
 
-func run() int {
+func MainLoop() int {
 	scr, err := tcell.NewScreen()
 	if err != nil {
 		logger.Println("There was an error creating a Screen.")
@@ -79,8 +79,10 @@ func run() int {
 	quit := make(chan struct{})
 	go scr.ChannelEvents(screen_events, quit)
 
-	// renders := make(map[int]EventCell)
-
+	cells := make([]EventCell, w)
+	Refresh(scr, l, r, cells)
+	scr.Show()
+	// m := MakeIMap(w)
 	running := true
 	for running {
 		select {
@@ -94,16 +96,23 @@ func run() int {
 					exit_signal <- os.Interrupt
 				}
 			case *tcell.EventMouse:
-				mod := ev.Modifiers()
 				x, y := ev.Position()
-				button := ev.Buttons()
-				logger.Printf("Mouse: %d, %d, Mod: %d, Button: %d\n", x, y, mod, button)
+
+				if y != 0 {
+					continue
+				}
+				c := cells[x]
+				if c.m != nil {
+					_, send := c.m.Channels()
+					send <- Event{c, ev}
+				}
+
 			case *tcell.EventPaste:
 				logger.Printf("Paste: %t, %t\n", ev.Start(), ev.End())
 			}
 		case <-modev:
-			Refresh(scr, l, r)
-      scr.Show()
+			Refresh(scr, l, r, cells)
+			scr.Show()
 		case s := <-exit_signal:
 			logger.Printf("Received exit signal: %s\n", s.String())
 			quit <- struct{}{}
@@ -115,41 +124,34 @@ func run() int {
 	return 0
 }
 
-func Refresh(scr tcell.Screen, l []Module, r []Module) {
+func Refresh(scr tcell.Screen, l, r []Module, cells []EventCell) {
 	w, _ := scr.Size()
-	FillHorizontal(scr, 0, 0, tcell.StyleDefault, ' ', w)
 
-  s := make([]rune, w)
-  for i := range w {
-    s[i] = ' '
-  }
+	for i := range w {
+		cells[i] = EventCell{' ', DEFAULT, "", nil}
+		scr.SetContent(i, 0, ' ', nil, DEFAULT)
+	}
 
 	p := 0
 	for _, mod := range l {
 		for _, c := range mod.Render() {
+			// logger.Printf("%s: [%d]: '%c', '%s'\n", mod.Name(), p, c.c, c.m.Name())
 			scr.SetContent(p, 0, c.c, nil, c.style)
-      p++
+			cells[p] = c
+			p++
 		}
 	}
 
-  p = 0
-  for _, mod := range r {
-    mod_render := mod.Render()
-    len_mod := len(mod_render)
-    for i := range len_mod{
-      c := mod_render[len_mod-i-1]
-      scr.SetContent(w-p-1, 0, c.c, nil, c.style)
-      // s[w-p-1] = c.c 
-      p++
-    }
-  }
-  
-  // logger.Printf("Renderer is rendering '%s' onto the screen.\n", string(s))
-  
-}
+	p = 0
+	for _, mod := range r {
+		mod_render := mod.Render()
+		len_mod := len(mod_render)
+		for i := range len_mod {
+			c := mod_render[len_mod-i-1]
+			scr.SetContent(w-p-1, 0, c.c, nil, c.style)
+			cells[w-p-1] = c
+			p++
+		}
+	}
 
-func update_status_bar(scr tcell.Screen, time string) {
-	w, _ := scr.Size()
-	FillHorizontal(scr, 0, 0, tcell.StyleDefault, ' ', w)
-	DrawHorizontal(scr, w-len(time), 0, tcell.StyleDefault, time)
 }

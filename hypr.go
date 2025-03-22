@@ -8,8 +8,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/gdamore/tcell/v2"
 )
+
+var hypr *Hypr
 
 func GetHyprSocketAddrs() (string, string) {
 	instance_signature := os.Getenv("HYPRLAND_INSTANCE_SIGNATURE")
@@ -29,7 +30,20 @@ func NewHyprEvent(s string) HyprEvent {
 	return HyprEvent{e, strings.Trim(d, " \n")}
 }
 
-func HyprThread(scr tcell.Screen) {
+type Hypr struct {
+	callbacks map[string][]chan<- HyprEvent
+}
+
+func MakeHypr() *Hypr {
+  h := Hypr{}
+  h.callbacks = make(map[string][]chan<- HyprEvent)
+  return &h
+}
+func (h *Hypr) RegisterChannel(event string, ch chan<- HyprEvent){
+  h.callbacks[event] = append(h.callbacks[event], ch)
+}
+
+func (h *Hypr) Run() {
 	_, sockaddr2 := GetHyprSocketAddrs()
 
 	sock2, err := net.Dial("unix", sockaddr2)
@@ -38,31 +52,42 @@ func HyprThread(scr tcell.Screen) {
 	}
 	defer sock2.Close()
 
+	scanner := bufio.NewScanner(sock2)
+	for scanner.Scan() {
+		e := NewHyprEvent(scanner.Text())
+		c, ok := h.callbacks[e.event]
+		if ok {
+			for _, ch := range c {
+				ch <- e
+			}
+		}
+	}
+
 	// workspaces := GetWorkspaces()
 	// print(workspaces)
-	active := GetActiveWorkspace()
+	// active := GetActiveWorkspace()
 	// print(active)
 	//  clients := GetClients()
 	//  print(clients)
 
-	ws := WSModule{}
-	ws.RefreshWS()
-	scr.PostEvent(tcell.NewEventInterrupt(NewRBUpdate("hypr-ws", ws.Render())))
+	// ws := HyprWorkspaces{}
+	// ws.RefreshWS()
+	// scr.PostEvent(tcell.NewEventInterrupt(NewRBUpdate("hypr-ws", ws.Render())))
 
-	scr.PostEvent(tcell.NewEventInterrupt(NewUpdate("title", active.Lastwindowtitle)))
-	scanner := bufio.NewScanner(sock2)
-	for scanner.Scan() {
-		s := scanner.Text()
-		if ws.HandleEvent(NewHyprEvent(s)) {
+	// scr.PostEvent(tcell.NewEventInterrupt(NewUpdate("title", active.Lastwindowtitle)))
+	// scanner := bufio.NewScanner(sock2)
+	// for scanner.Scan() {
+	// 	s := scanner.Text()
+	// 	if ws.HandleEvent(NewHyprEvent(s)) {
 
-			scr.PostEvent(tcell.NewEventInterrupt(NewRBUpdate("hypr-ws", ws.Render())))
-		}
-		if ss, e := strings.CutPrefix(s, "activewindow>>"); e {
-			_, title, _ := strings.Cut(ss, ",")
-			e := tcell.NewEventInterrupt(NewUpdate("title", title))
-			scr.PostEvent(e)
-		}
-	}
+	// 		scr.PostEvent(tcell.NewEventInterrupt(NewRBUpdate("hypr-ws", ws.Render())))
+	// 	}
+	// 	if ss, e := strings.CutPrefix(s, "activewindow>>"); e {
+	// 		_, title, _ := strings.Cut(ss, ",")
+	// 		e := tcell.NewEventInterrupt(NewUpdate("title", title))
+	// 		scr.PostEvent(e)
+	// 	}
+	// }
 }
 
 type Workspace struct {
@@ -164,7 +189,7 @@ func GetClients() []Client {
 	return o
 }
 
-func GoToWorkspace(name string){
+func GoToWorkspace(name string) {
 	sockaddr1, _ := GetHyprSocketAddrs()
 	sock, err := net.Dial("unix", sockaddr1)
 	if err != nil {
@@ -174,4 +199,3 @@ func GoToWorkspace(name string){
 
 	sock.Write([]byte("/dispatch workspace " + name))
 }
-

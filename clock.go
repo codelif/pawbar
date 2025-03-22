@@ -2,6 +2,8 @@ package main
 
 import (
 	"time"
+
+	"github.com/gdamore/tcell/v2"
 )
 
 func NewClock() Module {
@@ -13,7 +15,7 @@ type Clock struct {
 	send    chan Event
 }
 
-func (c *Clock) Run() (<-chan bool, chan<- Event,  error) {
+func (c *Clock) Run() (<-chan bool, chan<- Event, error) {
 	c.receive = make(chan bool)
 	c.send = make(chan Event)
 
@@ -23,7 +25,14 @@ func (c *Clock) Run() (<-chan bool, chan<- Event,  error) {
 			select {
 			case <-t.C:
 				c.receive <- true
-			case <-c.send:
+			case e := <-c.send:
+        switch ev := e.e.(type) {
+        case *tcell.EventMouse:
+          if ev.Buttons() != 0{
+            x, y := ev.Position()
+            logger.Printf("Clock: Got click event: %d, %d, Mod: %d, Button: %d\n", x, y, ev.Modifiers(), ev.Buttons())
+          }
+      }
 			}
 		}
 	}()
@@ -34,18 +43,17 @@ func (c *Clock) Run() (<-chan bool, chan<- Event,  error) {
 func (c *Clock) Render() []EventCell {
 	rstring := time.Now().Format("2006-01-02 15:04:05")
 	r := make([]EventCell, len(rstring))
-	for _, char := range time.Now().Format("2006-01-02 15:04:05") {
-		r = append(r, EventCell{char, DEFAULT, c, ""})
+	for i := range len(rstring){
+    r[i] = EventCell{rune(rstring[i]), DEFAULT, "", c}
 	}
 
 	return r
 }
 
-func (c *Clock) Channels() (<-chan bool, chan<- Event){
-  return c.receive, c.send
+func (c *Clock) Channels() (<-chan bool, chan<- Event) {
+	return c.receive, c.send
 }
 
-// Returns printable name
 func (c *Clock) Name() string {
-  return "clock"
+	return "clock"
 }

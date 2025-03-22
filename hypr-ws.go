@@ -8,152 +8,191 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
-var (
-	URGENT  = tcell.StyleDefault.Background(tcell.ColorRed).Foreground(tcell.ColorBlack)
-	ACTIVE  = tcell.StyleDefault.Background(tcell.ColorWhite).Foreground(tcell.ColorBlack)
-	SPECIAL = tcell.StyleDefault.Background(tcell.ColorDarkGreen).Foreground(tcell.ColorWhite)
-	DEFAULT = tcell.StyleDefault
-)
-
-type WSModuleWS struct {
+type WS struct {
 	id     int
 	name   string
 	active bool
 	urgent bool
 }
 
-type WSModule struct {
-	ws        map[int]*WSModuleWS
+func NewHyprWorkspaces() Module {
+	return &HyprWorkspaces{hypr: hypr}
+}
+
+type HyprWorkspaces struct {
+	hypr      *Hypr
+	receive   chan bool
+	send      chan Event
+	hevent    chan HyprEvent
+	ws        map[int]*WS
 	activeId  int
 	specialId int
 	special   bool
 }
 
-func (wsm *WSModule) RefreshWS() {
-	wsm.ws = make(map[int]*WSModuleWS)
+func (hyprws *HyprWorkspaces) Name() string {
+	return "hypr-ws"
+}
+
+func (hyprws *HyprWorkspaces) Run() (<-chan bool, chan<- Event, error) {
+
+	hyprws.receive = make(chan bool)
+	hyprws.send = make(chan Event)
+	hyprws.hevent = make(chan HyprEvent)
+	for _, e := range []string{"workspacev2", "focusedmonv2", "createworkspacev2", "destroyworkspacev2", "activespecial", "renameworkspace", "urgent"} {
+		hyprws.hypr.RegisterChannel(e, hyprws.hevent)
+	}
+	hyprws.RefreshWS()
+	go func() {
+		for {
+			select {
+			case e := <-hyprws.send:
+				switch ev := e.e.(type) {
+				case *tcell.EventMouse:
+					btns := ev.Buttons()
+					if btns == tcell.Button1 {
+						go GoToWorkspace(e.c.metadata)
+					}
+				}
+			case h := <-hyprws.hevent:
+				if !hyprws.ValidateEvent(h) {
+					hyprws.RefreshWS()
+				}
+				if hyprws.HandleEvent(h) {
+					hyprws.receive <- true
+				}
+			}
+		}
+	}()
+
+	return hyprws.receive, hyprws.send, nil
+}
+
+func (hyprws *HyprWorkspaces) Channels() (<-chan bool, chan<- Event) {
+	return hyprws.receive, hyprws.send
+}
+
+func (hyprws *HyprWorkspaces) RefreshWS() {
+	hyprws.ws = make(map[int]*WS)
 
 	workspaces := GetWorkspaces()
 	active := GetActiveWorkspace()
 
 	for _, ws := range workspaces {
-		wsm.ws[ws.Id] = &WSModuleWS{ws.Id, ws.Name, ws.Id == active.Id, false}
+		hyprws.ws[ws.Id] = &WS{ws.Id, ws.Name, ws.Id == active.Id, false}
 		if ws.Name == "special:magic" {
-			wsm.specialId = ws.Id
-			wsm.special = true
+			hyprws.specialId = ws.Id
+			hyprws.special = true
 		}
 		if ws.Id == active.Id {
-			wsm.activeId = ws.Id
+			hyprws.activeId = ws.Id
 		}
 	}
 }
 
-func (wsm *WSModule) ValidateEvent(e HyprEvent) bool {
+func (hyprws *HyprWorkspaces) ValidateEvent(e HyprEvent) bool {
 	switch e.event {
 	case "workspacev2":
 		id, _ := strconv.Atoi(e.data[:strings.IndexRune(e.data, ',')])
-		_, ok := wsm.ws[id]
+		_, ok := hyprws.ws[id]
 		return ok
 
 	case "focusedmonv2":
 		id, _ := strconv.Atoi(e.data[strings.LastIndex(e.data, ",")+1:])
-		_, ok := wsm.ws[id]
+		_, ok := hyprws.ws[id]
 		return ok
 
 	case "createworkspacev2":
 		id, _ := strconv.Atoi(e.data[:strings.IndexRune(e.data, ',')])
-		_, ok := wsm.ws[id]
+		_, ok := hyprws.ws[id]
 		return !ok
 
 	case "destroyworkspacev2":
 		id, _ := strconv.Atoi(e.data[:strings.IndexRune(e.data, ',')])
-		_, ok := wsm.ws[id]
+		_, ok := hyprws.ws[id]
 		return ok
 
 	case "renameworkspace":
 		id, _ := strconv.Atoi(e.data[:strings.IndexRune(e.data, ',')])
-		_, ok := wsm.ws[id]
+		_, ok := hyprws.ws[id]
 		return ok
 	}
 
 	return true
 }
 
-func (wsm *WSModule) SetActive(id int) {
-	wsm.ws[wsm.activeId].active = false
-	wsm.ws[id].active = true
-	wsm.ws[id].urgent = false
-	wsm.activeId = id
+func (hyprws *HyprWorkspaces) SetActive(id int) {
+	hyprws.ws[hyprws.activeId].active = false
+	hyprws.ws[id].active = true
+	hyprws.ws[id].urgent = false
+	hyprws.activeId = id
 }
 
-func (wsm *WSModule) CreateWS(id int, name string) {
-	wsm.ws[id] = &WSModuleWS{id, name, false, false}
+func (hyprws *HyprWorkspaces) CreateWS(id int, name string) {
+	hyprws.ws[id] = &WS{id, name, false, false}
 	if name == "special:magic" {
-		wsm.specialId = id
-		wsm.special = true
+		hyprws.specialId = id
+		hyprws.special = true
 	}
 
 }
-func (wsm *WSModule) DestroyWS(id int) {
-	delete(wsm.ws, id)
-	if id == wsm.specialId {
-		wsm.special = false
+func (hyprws *HyprWorkspaces) DestroyWS(id int) {
+	delete(hyprws.ws, id)
+	if id == hyprws.specialId {
+		hyprws.special = false
 	}
 }
 
-func (wsm *WSModule) IsSpecialActive() bool {
-	if wsm.special {
-		return wsm.ws[wsm.specialId].active
+func (hyprws *HyprWorkspaces) IsSpecialActive() bool {
+	if hyprws.special {
+		return hyprws.ws[hyprws.specialId].active
 	}
 	return false
 }
 
-func (wsm *WSModule) Special(name string) {
+func (hyprws *HyprWorkspaces) Special(name string) {
 	if name == "" {
-		wsm.ws[wsm.specialId].active = false
+		hyprws.ws[hyprws.specialId].active = false
 	} else {
-		wsm.ws[wsm.specialId].active = true
+		hyprws.ws[hyprws.specialId].active = true
 	}
 }
 
-func (wsm *WSModule) Urgent(address string) {
+func (hyprws *HyprWorkspaces) Urgent(address string) {
 	clients := GetClients()
 	for _, client := range clients {
 		client_address, _ := strings.CutPrefix(client.Address, "0x")
 		if client_address == address {
-			wsm.ws[client.Workspace.Id].urgent = true
+			hyprws.ws[client.Workspace.Id].urgent = true
 		}
 	}
 }
 
-func (wsm *WSModule) HandleEvent(e HyprEvent) bool {
+func (hyprws *HyprWorkspaces) HandleEvent(e HyprEvent) bool {
 	switch e.event {
 	case "workspacev2":
 		id, _ := strconv.Atoi(e.data[:strings.IndexRune(e.data, ',')])
-		wsm.SetActive(id)
-		return true
+		hyprws.SetActive(id)
 	case "createworkspacev2":
 		id_str, name, _ := strings.Cut(e.data, ",")
 		id, _ := strconv.Atoi(id_str)
-		wsm.CreateWS(id, name)
-		return true
+		hyprws.CreateWS(id, name)
 	case "destroyworkspacev2":
 		id, _ := strconv.Atoi(e.data[:strings.IndexRune(e.data, ',')])
-		wsm.DestroyWS(id)
-		return true
+		hyprws.DestroyWS(id)
 	case "activespecial":
-		wsm.Special(e.data[:strings.IndexRune(e.data, ',')])
-		return true
+		hyprws.Special(e.data[:strings.IndexRune(e.data, ',')])
 	case "urgent":
-		wsm.Urgent(e.data)
-		return true
+		hyprws.Urgent(e.data)
+	default:
+		return false
 	}
-
-	return false
+	return true
 }
 
-func (wsm *WSModule) Render() []*EventCell {
+func (hyprws *HyprWorkspaces) Render() []EventCell {
 	var wss []int
-	for k := range wsm.ws {
+	for k := range hyprws.ws {
 		if k > 0 {
 			wss = append(wss, k)
 		}
@@ -161,9 +200,9 @@ func (wsm *WSModule) Render() []*EventCell {
 
 	slices.Sort(wss)
 
-	var r []*EventCell
+	var r []EventCell
 
-	if wsm.IsSpecialActive() {
+	if hyprws.IsSpecialActive() {
 		var t1 EventCell
 		var t2 EventCell
 		var t3 EventCell
@@ -175,7 +214,10 @@ func (wsm *WSModule) Render() []*EventCell {
 		t2.style = SPECIAL
 		t3.style = SPECIAL
 
-		r = append(r, &t1, &t2, &t3)
+		t1.m = hyprws
+		t2.m = hyprws
+		t3.m = hyprws
+		r = append(r, t1, t2, t3)
 	}
 
 	for _, id := range wss {
@@ -183,23 +225,26 @@ func (wsm *WSModule) Render() []*EventCell {
 		var t2 EventCell
 		var t3 EventCell
 		t1.c = ' '
-		t2.c = rune(wsm.ws[id].name[0])
+		t2.c = rune(hyprws.ws[id].name[0])
 		t3.c = ' '
-		if wsm.ws[id].active {
+		if hyprws.ws[id].active {
 			t1.style = ACTIVE
 			t2.style = ACTIVE
 			t3.style = ACTIVE
 		}
-		if wsm.ws[id].urgent {
+		if hyprws.ws[id].urgent {
 			t1.style = URGENT
 			t2.style = URGENT
 			t3.style = URGENT
 		}
 
-		t1.metadata = wsm.ws[id].name
-		t2.metadata = wsm.ws[id].name
-		t3.metadata = wsm.ws[id].name
-		r = append(r, &t1, &t2, &t3)
+		t1.metadata = hyprws.ws[id].name
+		t2.metadata = hyprws.ws[id].name
+		t3.metadata = hyprws.ws[id].name
+		t1.m = hyprws
+		t2.m = hyprws
+		t3.m = hyprws
+		r = append(r, t1, t2, t3)
 	}
 
 	return r
