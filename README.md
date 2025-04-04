@@ -26,9 +26,9 @@ bar
 ```
 
 
-By default the bar is configured with only a clock. You can add modules by editing `$HOME/.config/pawbar/pawbar.yaml`.
+By default the bar is configured with only a clock and a battery. You can add modules by editing `$HOME/.config/pawbar/pawbar.yaml`.
 
-It has 4 modules with two of them being hyprland specific:
+It has 6 modules with two of them being hyprland specific:
  - `clock`: A simple date-time module
  - `battery`: A battery module with dynamic icons and colors
  - `space`: A single space
