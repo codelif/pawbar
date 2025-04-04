@@ -220,9 +220,9 @@ func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
 		t2.C = 'S'
 		t3.C = ' '
 
-		t1.Style = modules.SPECIAL
-		t2.Style = modules.SPECIAL
-		t3.Style = modules.SPECIAL
+		t1.Style = modules.SPECIAL.Reverse(true)
+		t2.Style = modules.SPECIAL.Reverse(true)
+		t3.Style = modules.SPECIAL.Reverse(true)
 
 		t1.Mod = wsMod
 		t2.Mod = wsMod
@@ -238,14 +238,14 @@ func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
 		t2.C = rune(wsMod.ws[id].name[0])
 		t3.C = ' '
 		if wsMod.ws[id].active {
-			t1.Style = modules.ACTIVE
-			t2.Style = modules.ACTIVE
-			t3.Style = modules.ACTIVE
+			t1.Style = modules.ACTIVE.Reverse(true)
+			t2.Style = modules.ACTIVE.Reverse(true)
+			t3.Style = modules.ACTIVE.Reverse(true)
 		}
 		if wsMod.ws[id].urgent {
-			t1.Style = modules.URGENT
-			t2.Style = modules.URGENT
-			t3.Style = modules.URGENT
+			t1.Style = modules.URGENT.Reverse(true)
+			t2.Style = modules.URGENT.Reverse(true)
+			t3.Style = modules.URGENT.Reverse(true)
 		}
 
 		t1.Metadata = wsMod.ws[id].name
