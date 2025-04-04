@@ -217,7 +217,7 @@ func (b *Battery) GetSupplies() (string, string, error) {
 	}
 
 	if battery == "" || mains == "" {
-		return "", "", fmt.Errorf("Battery or mains not available.")
+		return "", "", fmt.Errorf("WARNING(battery): Battery or mains not available. Disabling.")
 	}
 	return battery, mains, nil
 }
