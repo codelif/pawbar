@@ -1,6 +1,8 @@
 package config
 
 import (
+	"slices"
+
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/modules/clock"
 	"github.com/codelif/pawbar/internal/modules/hyprtitle"
@@ -35,7 +37,7 @@ func LoadModulesFromFile(configPath string) ([]modules.Module, []modules.Module,
 		}
 		right = append(right, factory())
 	}
-
+  slices.Reverse(right)
 	return left, right, nil
 }
 
