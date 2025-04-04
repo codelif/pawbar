@@ -74,6 +74,8 @@ func InitModules(configPath string) (chan modules.Module, []modules.Module, []mo
 		if err == nil {
 			go runModuleEventLoop(mod, rec, modev)
 			left = append(left, mod)
+		} else {
+			utils.Logger.Println(err)
 		}
 	}
 
@@ -82,6 +84,8 @@ func InitModules(configPath string) (chan modules.Module, []modules.Module, []mo
 		if err == nil {
 			go runModuleEventLoop(mod, rec, modev)
 			right = append(right, mod)
+		} else {
+			utils.Logger.Println(err)
 		}
 	}
 
