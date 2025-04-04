@@ -26,7 +26,7 @@ func (c *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	c.send = make(chan modules.Event)
 
 	go func() {
-		t := time.NewTicker(time.Second)
+		t := time.NewTicker(5 * time.Second)
 		for {
 			select {
 			case <-t.C:
