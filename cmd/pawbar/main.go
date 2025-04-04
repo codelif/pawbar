@@ -17,7 +17,7 @@ func main() {
 	_, Fd := utils.InitLogger()
 	defer Fd.Close()
 
-  configFile := os.Getenv("HOME") + "/.config/pawbar/pawbar.yaml"
+	configFile := os.Getenv("HOME") + "/.config/pawbar/pawbar.yaml"
 	exitCode := mainLoop(configFile)
 
 	os.Exit(exitCode)
@@ -56,9 +56,9 @@ func mainLoop(cfgPath string) int {
 	signal.Notify(exit_signal, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 
 	modev, l, r, err := config.InitModules(cfgPath)
-  if err != nil {
-    utils.Logger.Fatalln("Failed to init modules from config:", err)
-  }
+	if err != nil {
+		utils.Logger.Fatalln("Failed to init modules from config:", err)
+	}
 
 	screenEvents := make(chan tcell.Event)
 	quitEventsChan := make(chan struct{})
@@ -97,8 +97,8 @@ func mainLoop(cfgPath string) int {
 			case *tcell.EventPaste:
 				utils.Logger.Printf("Paste: %t, %t\n", ev.Start(), ev.End())
 			}
-    case m:=<-modev:
-      utils.Logger.Println("Received render event from:", m.Name())
+		case m := <-modev:
+			utils.Logger.Println("Received render event from:", m.Name())
 			tui.RenderBar(scr, l, r, renderCells)
 			scr.Show()
 		case s := <-exit_signal:
