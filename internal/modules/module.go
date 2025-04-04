@@ -5,10 +5,13 @@ import (
 )
 
 var (
-	URGENT  = tcell.StyleDefault.Background(tcell.ColorRed).Foreground(tcell.ColorBlack)
-	ACTIVE  = tcell.StyleDefault.Background(tcell.ColorWhite).Foreground(tcell.ColorBlack)
-	SPECIAL = tcell.StyleDefault.Background(tcell.ColorDarkGreen).Foreground(tcell.ColorWhite)
 	DEFAULT = tcell.StyleDefault
+	URGENT  = DEFAULT.Foreground(tcell.ColorRed)
+	WARNING = DEFAULT.Foreground(tcell.ColorYellow)
+	GOOD    = DEFAULT.Foreground(tcell.ColorGreen)
+	ACTIVE  = DEFAULT.Foreground(tcell.ColorWhite)
+	COOL    = DEFAULT.Foreground(tcell.ColorLightBlue)
+	SPECIAL = DEFAULT.Foreground(tcell.ColorDarkGreen).Background(tcell.ColorWhite)
 )
 
 type EventCell struct {
