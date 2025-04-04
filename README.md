@@ -6,7 +6,7 @@ A kitten-panel based (uncustomisable) desktop panel for your desktop
 
 
 ## Installing
-A basic install script is there:
+A basic install script is there: 
 ```sh
 ./install.sh
 ```
@@ -17,6 +17,8 @@ Also if you want to you can compile pawbar yourself as well:
 go build ./cmd/pawbar
 ```
 
+> [!NOTE]
+> I will add other installation methods when I am satisfied with this project.
 ## Usage
 Run bar by calling the bar script after using the `install.sh` script:
 ```sh
@@ -28,18 +30,23 @@ By default the bar is configured with only a clock. You can add modules by editi
 
 It has 4 modules with two of them being hyprland specific:
  - `clock`: A simple date-time module
+ - `battery`: A battery module with dynamic icons and colors
  - `space`: A single space
+ - `sep`: A single full height vertical bar
  - `hyprws`: A dynamic workspace switcher (with mouse events)
- - `hyprtitle`: A simple window title bar display
+ - `hyprtitle`: A window class & title display
 
-A typical config looks like:
+A typical(my) config looks like:
 ```yaml
 left:
   - hyprws
-  - space
   - hyprtitle
 
 right:
+  - battery
+  - space
+  - sep
+  - space
   - clock
 ```
 
