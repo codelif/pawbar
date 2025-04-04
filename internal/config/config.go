@@ -37,7 +37,7 @@ func LoadModulesFromFile(configPath string) ([]modules.Module, []modules.Module,
 		}
 		right = append(right, factory())
 	}
-  slices.Reverse(right)
+	slices.Reverse(right)
 	return left, right, nil
 }
 
@@ -59,10 +59,9 @@ func LoadModules() ([]modules.Module, []modules.Module) {
 
 func InitModules(configPath string) (chan modules.Module, []modules.Module, []modules.Module, error) {
 	tleft, tright, err := LoadModulesFromFile(configPath)
-  if err != nil {
-    return nil, nil, nil, err
-  }
-
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	runServices(append(tleft, tright...))
 	modev := make(chan modules.Module)
