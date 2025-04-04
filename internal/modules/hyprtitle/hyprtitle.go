@@ -16,6 +16,7 @@ type HyprTitle struct {
 	receive chan bool
 	send    chan modules.Event
 	hevent  chan hypr.HyprEvent
+	class   string
 	title   string
 }
 
@@ -31,6 +32,16 @@ func (hyprtitle *HyprTitle) Run() (<-chan bool, chan<- modules.Event, error) {
 	hyprtitle.receive = make(chan bool)
 	hyprtitle.send = make(chan modules.Event)
 	hyprtitle.hevent = make(chan hypr.HyprEvent)
+	activews := hypr.GetActiveWorkspace()
+	clients := hypr.GetClients()
+
+	hyprtitle.class = ""
+	for _, c := range clients {
+		if c.Address == activews.Lastwindow {
+			hyprtitle.class = c.Class
+		}
+	}
+
 	hyprtitle.title = hypr.GetActiveWorkspace().Lastwindowtitle
 	service.RegisterChannel("activewindow", hyprtitle.hevent)
 
@@ -38,8 +49,7 @@ func (hyprtitle *HyprTitle) Run() (<-chan bool, chan<- modules.Event, error) {
 		for {
 			select {
 			case h := <-hyprtitle.hevent:
-				_, title, _ := strings.Cut(h.Data, ",")
-				hyprtitle.title = title
+				hyprtitle.class, hyprtitle.title, _ = strings.Cut(h.Data, ",")
 				hyprtitle.receive <- true
 			case <-hyprtitle.send:
 			}
@@ -50,10 +60,17 @@ func (hyprtitle *HyprTitle) Run() (<-chan bool, chan<- modules.Event, error) {
 }
 
 func (hyprtitle *HyprTitle) Render() []modules.EventCell {
-	rstring := hyprtitle.title
-	r := make([]modules.EventCell, len(rstring))
-	for i, ch := range rstring {
-		r[i] = modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: hyprtitle}
+	var r []modules.EventCell
+	if hyprtitle.class != "" {
+		r = append(r, modules.EventCell{C: ' ', Style: modules.COOL.Reverse(true), Metadata: "", Mod: hyprtitle})
+		for _, ch := range hyprtitle.class {
+			r = append(r, modules.EventCell{C: ch, Style: modules.COOL.Reverse(true), Metadata: "", Mod: hyprtitle})
+		}
+		r = append(r, modules.EventCell{C: ' ', Style: modules.COOL.Reverse(true), Metadata: "", Mod: hyprtitle})
+		r = append(r, modules.EventCell{C: ' ', Style: modules.DEFAULT, Metadata: "", Mod: hyprtitle})
+	}
+	for _, ch := range hyprtitle.title {
+		r = append(r, modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: hyprtitle})
 	}
 
 	return r
