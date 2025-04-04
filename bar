@@ -1,8 +1,14 @@
 #/usr/bin/bash
 
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 kittyCmd="kitty +kitten panel"
-barDir="$HOME/Development/pawbar"
+barDir="$SCRIPT_DIR"
 barExecutable="$barDir/pawbar"
+
+if [ ! -f "$barExecutable" ]; then
+  echo "ERROR: pawbar executable not found. Please put pawbar in same directory as this script."
+  exit
+fi
 
 panelOpts=(
   --lines=1
