@@ -97,7 +97,8 @@ func mainLoop(cfgPath string) int {
 			case *tcell.EventPaste:
 				utils.Logger.Printf("Paste: %t, %t\n", ev.Start(), ev.End())
 			}
-		case <-modev:
+    case m:=<-modev:
+      utils.Logger.Println("Received render event from:", m.Name())
 			tui.RenderBar(scr, l, r, renderCells)
 			scr.Show()
 		case s := <-exit_signal:
