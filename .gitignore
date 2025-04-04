@@ -11,6 +11,8 @@
 *.dll
 *.so
 *.dylib
+/pawbar
+!cmd/pawbar
 
 # Test binary, built with `go test -c`
 *.test
