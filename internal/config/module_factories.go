@@ -17,6 +17,6 @@ var moduleFactories = map[string]func() modules.Module{
 		return modules.NewStaticModule("space", []modules.EventCell{{C: ' ', Style: modules.DEFAULT}}, nil)
 	},
 	"sep": func() modules.Module {
-		return modules.NewStaticModule("space", []modules.EventCell{{C: '│', Style: modules.DEFAULT}}, nil)
+		return modules.NewStaticModule("sep", []modules.EventCell{{C: '│', Style: modules.DEFAULT}}, nil)
 	},
 }
