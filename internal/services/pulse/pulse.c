@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern void goSinkEventCallback(char* sink, double volume, int mute);
-
 static pa_threaded_mainloop *mloop = NULL;
 static pa_context *context = NULL;
 
