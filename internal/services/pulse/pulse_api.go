@@ -81,12 +81,11 @@ func goSinkEventCallback(cSink *C.char, volume C.double, muted C.int) {
 	sinkStr := C.GoString(cSink)
 	if sinkStr == "" || float64(volume) < 0 {
 		go func() {
-			p := PulseService{}
-			s, err := p.GetDefaultSink()
+			s, err := getDefaultSink()
 			if err != nil {
 				return
 			}
-			info, err := p.GetSinkInfo(s)
+			info, err := getSinkInfo(s)
 			if err != nil {
 				return
 			}
