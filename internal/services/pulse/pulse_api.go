@@ -11,6 +11,8 @@ import (
 	"unsafe"
 )
 
+
+
 type SinkInfo struct {
 	Volume float64
 	Muted  bool
@@ -74,15 +76,17 @@ func setMute(sink string, mute bool) error {
 
 var sinkEventChan chan SinkEvent
 
+//export goSinkEventCallback
 func goSinkEventCallback(cSink *C.char, volume C.double, muted C.int) {
 	sinkStr := C.GoString(cSink)
 	if sinkStr == "" || float64(volume) < 0 {
 		go func() {
-			s, err := GetDefaultSink()
+			p := PulseService{}
+			s, err := p.GetDefaultSink()
 			if err != nil {
 				return
 			}
-			info, err := GetSinkInfo(s)
+			info, err := p.GetSinkInfo(s)
 			if err != nil {
 				return
 			}
