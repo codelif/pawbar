@@ -1,12 +1,12 @@
 package cpu
 
-import{
+import(
 	"time"
 	"fmt"
 	
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/shirou/gopsutil/v3/cpu"
-}
+)
 
 func New() modules.Module {
 	return &RAM_Module{}
@@ -32,8 +32,8 @@ func (c *CPU_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 			select {
 			case <-t.C:
 					c.receive <- true
-				}
-			case  <-c.send:
+			case <-c.send:
+			}
 			}
 		}
 	}()
