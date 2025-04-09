@@ -6,6 +6,8 @@ import (
 	"github.com/codelif/pawbar/internal/modules/clock"
 	"github.com/codelif/pawbar/internal/modules/hyprtitle"
 	"github.com/codelif/pawbar/internal/modules/hyprws"
+	"github.com/codelif/pawbar/internal/modules/backlight"
+
 )
 
 var moduleFactories = map[string]func() modules.Module{
@@ -13,6 +15,7 @@ var moduleFactories = map[string]func() modules.Module{
 	"hyprtitle": hyprtitle.New,
 	"hyprws":    hyprws.New,
 	"battery":   battery.New,
+	"backlight": backlight.New,
 	"space": func() modules.Module {
 		return modules.NewStaticModule("space", []modules.EventCell{{C: ' ', Style: modules.DEFAULT}}, nil)
 	},
