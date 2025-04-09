@@ -7,13 +7,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/jochenvg/go-udev"
 )
 
-var ICONS_BACKLIGHT = []rune{'🌑', '🌒', '🌓', '🌔', '🌕'}
+var ICONS_BACKLIGHT = []rune{'󰃞', '󰃟', '󰃝', '󰃠'}
 
 type Backlight struct {
 	receive           chan bool
