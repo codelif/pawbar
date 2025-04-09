@@ -6,8 +6,6 @@ require (
 	github.com/gdamore/tcell/v2 v2.7.4
 	github.com/jochenvg/go-udev v0.0.0-20240801134859-b65ed646224b
 	gopkg.in/yaml.v3 v3.0.1
-	github.com/shirou/gopsutil/v3/cpu
-  github.com/shirou/gopsutil/v3/mem 
 )
 
 require (
