@@ -1,13 +1,13 @@
 package ram
 
-import{
+import(
 	"time"
 	"fmt"
 	
 	"github.com/codelif/pawbar/internal/modules"
   "github.com/shirou/gopsutil/v3/mem"
 
-}
+)
 
 func New() modules.Module {
 	return &RAM_Module{}
@@ -33,8 +33,9 @@ func (r *RAM_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 			select {
 			case <-t.C:
 					r.receive <- true
-				}
+				
 			case  <-r.send:
+			}
 			}
 		}
 	}()
