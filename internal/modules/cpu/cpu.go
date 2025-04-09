@@ -3,7 +3,8 @@ package cpu
 import{
 	"time"
 	"fmt"
-
+	
+	"github.com/codelif/pawbar/internal/modules"
 	"github.com/shirou/gopsutil/v3/cpu"
 }
 
