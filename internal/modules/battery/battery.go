@@ -44,6 +44,10 @@ func (b *Battery) Run() (<-chan bool, chan<- modules.Event, error) {
 	b.send = make(chan modules.Event)
 	b.receive = make(chan bool)
 	b.status = make(map[string]int)
+	b.status["now"] = 0
+	b.status["full"] = 100
+	b.status["mains"] = 0
+	b.status["charging"] = 0
 	b.battery = battery
 	b.mains = mains
 	b.Update()
@@ -58,11 +62,13 @@ func (b *Battery) Run() (<-chan bool, chan<- modules.Event, error) {
 		for {
 			select {
 			case <-t.C:
-				b.Update()
-				b.receive <- true
+				if b.Update() {
+					b.receive <- true
+				}
 			case <-uchan:
-				b.Update()
-				b.receive <- true
+				if b.Update() {
+					b.receive <- true
+				}
 			case <-b.send:
 			}
 		}
@@ -71,10 +77,11 @@ func (b *Battery) Run() (<-chan bool, chan<- modules.Event, error) {
 	return b.receive, b.send, nil
 }
 
-func (b *Battery) Update() {
+func (b *Battery) Update() bool {
+	change := false
 	file, err := os.Open(filepath.Join(b.battery, "uevent"))
 	if err != nil {
-		return
+		return false
 	}
 	defer file.Close()
 
@@ -101,21 +108,36 @@ func (b *Battery) Update() {
 		}
 	}
 
+	percent_before := (b.status["now"] * 100) / (b.status["full"])
+	percent_now := (now * 100) / (full)
+
 	b.status["now"] = now
 	b.status["full"] = full
 	b.status["design"] = design
 
+	change = percent_before != percent_now
+
 	m, _ := os.ReadFile(filepath.Join(b.mains, "online"))
 	mains, _ = strconv.Atoi(strings.TrimSpace(string(m)))
-	b.status["mains"] = mains
-
-	switch status {
-	case "Charging":
-		b.status["charging"] = 1
-	case "Not charging", "Full", "Discharging":
-		b.status["charging"] = 0
+	if b.status["mains"] != mains {
+		b.status["mains"] = mains
+		change = true
 	}
 
+	charging := 0
+	switch status {
+	case "Charging":
+		charging = 1
+	case "Not charging", "Full", "Discharging":
+		charging = 0
+	}
+
+	if b.status["charging"] != charging {
+		b.status["charging"] = charging
+		change = true
+	}
+
+	return change
 }
 
 func (b *Battery) Render() []modules.EventCell {
