@@ -9,7 +9,7 @@ import(
 )
 
 func New() modules.Module {
-	return &RAM_Module{}
+	return &CPU_Module{}
 }
 
 type CPU_Module struct {
@@ -35,7 +35,6 @@ func (c *CPU_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 			case <-c.send:
 			}
 			}
-		}
 	}()
 
 	return c.receive, c.send, nil
@@ -44,10 +43,10 @@ func (c *CPU_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 func (c *CPU_Module) Render() []modules.EventCell {
 	percent, err := cpu.Percent(0, false)
 	if err !=nil {
-		return ""
+		return nil
 	}
 	icon := ''
-	rstring := fmt.Sprintf(" %d%%", percent[0])
+	rstring := fmt.Sprintf(" %d%%", int(percent[0]))
 	r := make([]modules.EventCell, len(rstring)+1)
 	i := 0
 	r[i] = modules.EventCell{C: icon, Style: modules.DEFAULT, Metadata: "", Mod: c}

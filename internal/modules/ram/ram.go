@@ -37,7 +37,7 @@ func (r *RAM_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 			case  <-r.send:
 			}
 			}
-		}
+		
 	}()
 
 	return r.receive, r.send, nil
@@ -46,19 +46,19 @@ func (r *RAM_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 func (r *RAM_Module) Render() []modules.EventCell {
 	v, err := mem.VirtualMemory()
 	if err !=nil {
-		return ""
+		return nil
 	}
 	icon := ''
-	rstring := fmt.Sprintf(" %d%%", v.UsedPercent)
-	r := make([]modules.EventCell, len(rstring)+1)
+	rstring := fmt.Sprintf(" %d%%", int(v.UsedPercent))
+	r_ := make([]modules.EventCell, len(rstring)+1)
 	i := 0
-	r[i] = modules.EventCell{C: icon, Style: modules.DEFAULT, Metadata: "", Mod: r}
+	r_[i] = modules.EventCell{C: icon, Style: modules.DEFAULT, Metadata: "", Mod: r}
 	i++
 	for _, ch := range rstring {
-		r[i] = modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: r}
+		r_[i] = modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: r}
 		i++
 	}
-	return r
+	return r_
 }
 
 
