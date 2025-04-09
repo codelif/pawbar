@@ -3,6 +3,8 @@ package config
 import (
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/modules/backlight"
+	"github.com/codelif/pawbar/internal/modules/ram"
+	"github.com/codelif/pawbar/internal/modules/cpu"
 	"github.com/codelif/pawbar/internal/modules/battery"
 	"github.com/codelif/pawbar/internal/modules/clock"
 	"github.com/codelif/pawbar/internal/modules/hyprtitle"
@@ -15,6 +17,8 @@ var moduleFactories = map[string]func() modules.Module{
 	"hyprws":    hyprws.New,
 	"battery":   battery.New,
 	"backlight": backlight.New,
+	"ram":       ram.New,
+	"cpu":       cpu.New,
 	"space": func() modules.Module {
 		return modules.NewStaticModule("space", []modules.EventCell{{C: ' ', Style: modules.DEFAULT}}, nil)
 	},
