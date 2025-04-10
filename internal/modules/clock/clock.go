@@ -24,7 +24,7 @@ func (c *ClockModule) Dependencies() []string {
 
 func (c *ClockModule) Update(format int) (timeFormat string){
 	if format==2{
-		time2 := time.Now().Format("Mon 02-01-2006 15:04")
+		time2 := time.Now().Format("Mon 15:04")
 		return time2
 	}
 	time1 := time.Now().Format("2006-01-02 15:04:05")
