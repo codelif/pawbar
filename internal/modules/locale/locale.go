@@ -2,8 +2,8 @@ package locale
 
 import(
 	"os"
-	"fmt"
 	"strings"
+	"time"
 
 	"github.com/codelif/pawbar/internal/modules"
 )
@@ -19,6 +19,13 @@ type LocaleModule struct{
 
 func (l *LocaleModule) Dependencies() []string {
 	return nil
+}
+
+func (l *LocaleModule) splitLocale(locale string) (string, string) {
+	formattedLocale, _, _ := strings.Cut(locale, ".")
+	formattedLocale = strings.ReplaceAll(formattedLocale, "-", "_")
+	language, territory, _ := strings.Cut(formattedLocale, "_")
+	return language, territory
 }
 
 func (l *LocaleModule) splitLocales(locales string) []string {
@@ -46,21 +53,21 @@ func (l *LocaleModule) getLangFromEnv() string {
 }
 
 func (l *LocaleModule)  getUnixLocales() []string {
-	locale := getLangFromEnv()
+	locale := l.getLangFromEnv()
 	if locale == "C" || locale == "POSIX" || len(locale) == 0 {
 		return nil
 	}
 
-	return splitLocales(locale)
+	return l.splitLocales(locale)
 }
 
 func (l *LocaleModule) GetLocale() (string, error) {
-	unixLocales := getUnixLocales()
+	unixLocales := l.getUnixLocales()
 	if unixLocales == nil {
 		return "", nil
 	}
 
-	language, region := splitLocale(unixLocales[0])
+	language, region := l.splitLocale(unixLocales[0])
 	locale := language
 	if len(region) > 0 {
 		locale = strings.Join([]string{language, region}, "-")
@@ -69,17 +76,17 @@ func (l *LocaleModule) GetLocale() (string, error) {
 	return locale, nil
 }
 
-func (c *LocaleModule) Run() (<-chan bool, chan<- modules.Event, error) {
+func (l *LocaleModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	l.receive = make(chan bool)
 	l.send = make(chan modules.Event)
 
 	go func() {
-		t := time.NewTicker(5 * time.Second)
+		t := time.NewTicker(7 * time.Second)
 		for {
 			select {
 			case <-t.C:
-				c.receive <- true
-			case e := <-c.send:
+				l.receive <- true
+			case <-l.send:
 			}
 		}
 	}()
@@ -90,11 +97,11 @@ func (c *LocaleModule) Run() (<-chan bool, chan<- modules.Event, error) {
 func (l *LocaleModule) Render() []modules.EventCell {
 	rstring, err  := l.GetLocale()
 	if err !=nil {
-		return ""
+		return nil
 	}
 	r := make([]modules.EventCell, len(rstring))
 	for i, ch := range rstring {
-		r[i] = modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: c}
+		r[i] = modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: l}
 	}
 
 	return r
