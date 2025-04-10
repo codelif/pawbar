@@ -15,25 +15,26 @@ func New() modules.Module {
 type ClockModule struct {
 	receive chan bool
 	send    chan modules.Event
-	format  int `default: "1" `
+	format  int
 }
 
 func (c *ClockModule) Dependencies() []string {
 	return nil
 }
 
-func (c *ClockModule) Update(format int) (timeFormat string){
-	if format==2{
+func (c *ClockModule) Update(format int) (timeFormat string) {
+	if format == 2 {
 		time2 := time.Now().Format("Mon 15:04")
 		return time2
 	}
 	time1 := time.Now().Format("2006-01-02 15:04:05")
-		return time1
+	return time1
 }
 
 func (c *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	c.receive = make(chan bool)
 	c.send = make(chan modules.Event)
+	c.format = 1
 
 	go func() {
 		t := time.NewTicker(5 * time.Second)
@@ -47,11 +48,12 @@ func (c *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 					if ev.Buttons() != 0 {
 						x, y := ev.Position()
 						utils.Logger.Printf("Clock: Got click event: %d, %d, Mod: %d, Button: %d\n", x, y, ev.Modifiers(), ev.Buttons())
-						if c.format==1 {
-							c.format=2
-						}else{
-							c.format=1
+						if c.format == 1 {
+							c.format = 2
+						} else {
+							c.format = 1
 						}
+						c.receive <- true
 					}
 				}
 			}
@@ -69,7 +71,6 @@ func (c *ClockModule) Render() []modules.EventCell {
 	}
 	return r
 }
-
 
 func (c *ClockModule) Channels() (<-chan bool, chan<- modules.Event) {
 	return c.receive, c.send
