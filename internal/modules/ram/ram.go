@@ -48,7 +48,7 @@ func (r *RAM_Module) Render() []modules.EventCell {
 	if err !=nil {
 		return nil
 	}
-	icon := ''
+	icon := '󰆌'
 	rstring := fmt.Sprintf(" %d%%", int(v.UsedPercent))
 	r_ := make([]modules.EventCell, len(rstring)+1)
 	i := 0
