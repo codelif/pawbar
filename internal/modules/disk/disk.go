@@ -76,7 +76,7 @@ func (d *DiskModule) Run() (<-chan bool, chan<- modules.Event, error) {
 }
 
 func (d *DiskModule) Render() []modules.EventCell {
-	icon := '󰆌'
+	icon := ''
 	rstring:= d.Update(d.format)
 	r_ := make([]modules.EventCell, len(rstring)+1)
 	i := 0
