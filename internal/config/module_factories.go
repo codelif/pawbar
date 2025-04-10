@@ -5,6 +5,7 @@ import (
 	"github.com/codelif/pawbar/internal/modules/backlight"
 	"github.com/codelif/pawbar/internal/modules/locale"
 	"github.com/codelif/pawbar/internal/modules/ram"
+	"github.com/codelif/pawbar/internal/modules/disk"
 	"github.com/codelif/pawbar/internal/modules/cpu"
 	"github.com/codelif/pawbar/internal/modules/battery"
 	"github.com/codelif/pawbar/internal/modules/clock"
@@ -21,6 +22,7 @@ var moduleFactories = map[string]func() modules.Module{
 	"ram":       ram.New,
 	"cpu":       cpu.New,
 	"locale":    locale.New,
+	"disk":      disk.New,
 	"space": func() modules.Module {
 		return modules.NewStaticModule("space", []modules.EventCell{{C: ' ', Style: modules.DEFAULT}}, nil)
 	},
