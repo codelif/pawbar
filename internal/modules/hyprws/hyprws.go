@@ -242,7 +242,7 @@ func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
 			t2.Style = modules.ACTIVE.Reverse(true)
 			t3.Style = modules.ACTIVE.Reverse(true)
 		}
-		if wsMod.ws[id].urgent {
+		if wsMod.ws[id].urgent && !wsMod.ws[id].active {
 			t1.Style = modules.URGENT.Reverse(true)
 			t2.Style = modules.URGENT.Reverse(true)
 			t3.Style = modules.URGENT.Reverse(true)
