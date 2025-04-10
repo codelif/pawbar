@@ -3,6 +3,7 @@ package disk
 import(
 	"time"
 	"fmt"
+	"os"
 	
 	"github.com/codelif/pawbar/internal/modules"
   "github.com/shirou/gopsutil/v3/disk"
@@ -26,7 +27,8 @@ func (d *DiskModule) Dependencies() []string {
 }
 
 func (d *DiskModule) Update(format int) (value string ){
-	d, err := disk.Usage()
+	home := os.Getenv("HOME")
+	disk_, err := disk.Usage(home)
 	if err !=nil {
 		return ""
 	}
@@ -52,7 +54,7 @@ func (d *DiskModule) Run() (<-chan bool, chan<- modules.Event, error) {
 			case <-t.C:
 					d.receive <- true
 		
-			case e:=  <-r.send:
+			case e:=  <-d.send:
 			switch ev := e.TcellEvent.(type) {
 			case *tcell.EventMouse:
 				if ev.Buttons() != 0 {
@@ -78,10 +80,10 @@ func (d *DiskModule) Render() []modules.EventCell {
 	rstring:= d.Update(d.format)
 	r_ := make([]modules.EventCell, len(rstring)+1)
 	i := 0
-	r_[i] = modules.EventCell{C: icon, Style: modules.DEFAULT, Metadata: "", Mod: r}
+	r_[i] = modules.EventCell{C: icon, Style: modules.DEFAULT, Metadata: "", Mod: d}
 	i++
 	for _, ch := range rstring {
-		r_[i] = modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: r}
+		r_[i] = modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: d}
 		i++
 	}
 	return r_
@@ -92,6 +94,6 @@ func (d *DiskModule) Channels() (<-chan bool, chan<- modules.Event) {
 	return d.receive, d.send
 }
 
-func (r *RAM_Module)  Name() string {
+func (d *DiskModule) Name() string {
 	return "disk"
 }
