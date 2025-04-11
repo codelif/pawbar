@@ -58,7 +58,7 @@ func (r *RAM_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 			case *tcell.EventMouse:
 				if ev.Buttons() != 0 {
 					x, y := ev.Position()
-					utils.Logger.Printf("Clock: Got click event: %d, %d, Mod: %d, Button: %d\n", x, y, ev.Modifiers(), ev.Buttons())
+					utils.Logger.Printf("RAM: Got click event: %d, %d, Mod: %d, Button: %d\n", x, y, ev.Modifiers(), ev.Buttons())
 					if r.format==1 {
 						r.format=2
 					}else{

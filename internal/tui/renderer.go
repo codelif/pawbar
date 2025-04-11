@@ -13,18 +13,6 @@ func RenderBar(scr tcell.Screen, l, r []modules.Module, cells []modules.EventCel
 	}
 
 	p := 0
-	for _, mod := range l {
-		for _, c := range mod.Render() {
-			// utils.Logger.Printf("%s: [%d]: '%c', '%s'\n", mod.Name(), p, c.c, c.m.Name())
-			if p < w {
-				scr.SetContent(p, 0, c.C, nil, c.Style)
-				cells[p] = c
-				p++
-			}
-		}
-	}
-
-	p = 0
 	for _, mod := range r {
 		mod_render := mod.Render()
 		len_mod := len(mod_render)
@@ -37,4 +25,31 @@ func RenderBar(scr tcell.Screen, l, r []modules.Module, cells []modules.EventCel
 			}
 		}
 	}
+
+	h:=0
+available := w - p  
+ellipsized := false
+
+for _, mod := range l {
+    for _, c := range mod.Render() {
+        if h < available - 3 {
+            scr.SetContent(h, 0, c.C, nil, c.Style)
+            cells[h] = c
+            h++
+        } else {
+            if !ellipsized && h < available {
+                for i := 0; i < 3 && h < available; i++ {
+                    scr.SetContent(h, 0, '.', nil, c.Style)
+                    cells[h] = modules.EventCell{C: '.', Style: c.Style}
+                    h++
+                }
+                ellipsized = true
+            }
+            break
+        }
+    }
+    if ellipsized {
+        break
+    }
+}	
 }
