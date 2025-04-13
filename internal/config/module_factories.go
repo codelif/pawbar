@@ -3,14 +3,14 @@ package config
 import (
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/modules/backlight"
-	"github.com/codelif/pawbar/internal/modules/locale"
-	"github.com/codelif/pawbar/internal/modules/ram"
-	"github.com/codelif/pawbar/internal/modules/disk"
-	"github.com/codelif/pawbar/internal/modules/cpu"
 	"github.com/codelif/pawbar/internal/modules/battery"
 	"github.com/codelif/pawbar/internal/modules/clock"
+	"github.com/codelif/pawbar/internal/modules/cpu"
+	"github.com/codelif/pawbar/internal/modules/disk"
 	"github.com/codelif/pawbar/internal/modules/hyprtitle"
 	"github.com/codelif/pawbar/internal/modules/hyprws"
+	"github.com/codelif/pawbar/internal/modules/locale"
+	"github.com/codelif/pawbar/internal/modules/ram"
 )
 
 var moduleFactories = map[string]func() modules.Module{

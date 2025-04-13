@@ -1,6 +1,6 @@
 package locale
 
-import(
+import (
 	"os"
 	"strings"
 	"time"
@@ -8,13 +8,13 @@ import(
 	"github.com/codelif/pawbar/internal/modules"
 )
 
-func New() modules.Module{
+func New() modules.Module {
 	return &LocaleModule{}
 }
 
-type LocaleModule struct{
-		receive chan bool
-		send    chan modules.Event
+type LocaleModule struct {
+	receive chan bool
+	send    chan modules.Event
 }
 
 func (l *LocaleModule) Dependencies() []string {
@@ -52,7 +52,7 @@ func (l *LocaleModule) getLangFromEnv() string {
 	return locale
 }
 
-func (l *LocaleModule)  getUnixLocales() []string {
+func (l *LocaleModule) getUnixLocales() []string {
 	locale := l.getLangFromEnv()
 	if locale == "C" || locale == "POSIX" || len(locale) == 0 {
 		return nil
@@ -95,8 +95,8 @@ func (l *LocaleModule) Run() (<-chan bool, chan<- modules.Event, error) {
 }
 
 func (l *LocaleModule) Render() []modules.EventCell {
-	rstring, err  := l.GetLocale()
-	if err !=nil {
+	rstring, err := l.GetLocale()
+	if err != nil {
 		return nil
 	}
 	r := make([]modules.EventCell, len(rstring))

@@ -1,14 +1,13 @@
 package ram
 
-import(
-	"time"
+import (
 	"fmt"
-	
+	"time"
+
 	"github.com/codelif/pawbar/internal/modules"
-  "github.com/shirou/gopsutil/v3/mem"
 	"github.com/codelif/pawbar/internal/utils"
 	"github.com/gdamore/tcell/v2"
-
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 func New() modules.Module {
@@ -25,21 +24,20 @@ func (r *RAM_Module) Dependencies() []string {
 	return nil
 }
 
-func (r* RAM_Module) Update(format int) (value string ){
+func (r *RAM_Module) Update(format int) (value string) {
 	v, err := mem.VirtualMemory()
-	if err !=nil {
+	if err != nil {
 		return ""
 	}
-	if format==2{
-		value2:= float64(v.Used)/1073741824.00
+	if format == 2 {
+		value2 := float64(v.Used) / 1073741824.00
 		rstring := fmt.Sprintf(" %.2fGB", value2)
 		return rstring
 	}
-	value1:= int(v.UsedPercent)
+	value1 := int(v.UsedPercent)
 	rstring := fmt.Sprintf(" %d%%", value1)
 	return rstring
 }
-
 
 func (r *RAM_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 	r.receive = make(chan bool)
@@ -51,24 +49,25 @@ func (r *RAM_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 		for {
 			select {
 			case <-t.C:
-					r.receive <- true
-		
-			case e:=  <-r.send:
-			switch ev := e.TcellEvent.(type) {
-			case *tcell.EventMouse:
-				if ev.Buttons() != 0 {
-					x, y := ev.Position()
-					utils.Logger.Printf("RAM: Got click event: %d, %d, Mod: %d, Button: %d\n", x, y, ev.Modifiers(), ev.Buttons())
-					if r.format==1 {
-						r.format=2
-					}else{
-						r.format=1
+				r.receive <- true
+
+			case e := <-r.send:
+				switch ev := e.TcellEvent.(type) {
+				case *tcell.EventMouse:
+					if ev.Buttons() != 0 {
+						x, y := ev.Position()
+						utils.Logger.Printf("RAM: Got click event: %d, %d, Mod: %d, Button: %d\n", x, y, ev.Modifiers(), ev.Buttons())
+						if r.format == 1 {
+							r.format = 2
+						} else {
+							r.format = 1
+						}
+
 					}
 				}
 			}
-			}
-			}
-		
+		}
+
 	}()
 
 	return r.receive, r.send, nil
@@ -76,7 +75,7 @@ func (r *RAM_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 
 func (r *RAM_Module) Render() []modules.EventCell {
 	icon := '󰆌'
-	rstring:= r.Update(r.format)
+	rstring := r.Update(r.format)
 	r_ := make([]modules.EventCell, len(rstring)+1)
 	i := 0
 	r_[i] = modules.EventCell{C: icon, Style: modules.DEFAULT, Metadata: "", Mod: r}
@@ -87,7 +86,6 @@ func (r *RAM_Module) Render() []modules.EventCell {
 	}
 	return r_
 }
-
 
 func (r *RAM_Module) Channels() (<-chan bool, chan<- modules.Event) {
 	return r.receive, r.send

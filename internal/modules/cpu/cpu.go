@@ -1,9 +1,9 @@
 package cpu
 
-import(
-	"time"
+import (
 	"fmt"
-	
+	"time"
+
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/shirou/gopsutil/v3/cpu"
 )
@@ -31,10 +31,10 @@ func (c *CPU_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 		for {
 			select {
 			case <-t.C:
-					c.receive <- true
+				c.receive <- true
 			case <-c.send:
 			}
-			}
+		}
 	}()
 
 	return c.receive, c.send, nil
@@ -42,7 +42,7 @@ func (c *CPU_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 
 func (c *CPU_Module) Render() []modules.EventCell {
 	percent, err := cpu.Percent(0, false)
-	if err !=nil {
+	if err != nil {
 		return nil
 	}
 	icon := ''
@@ -58,11 +58,10 @@ func (c *CPU_Module) Render() []modules.EventCell {
 	return r
 }
 
-
 func (c *CPU_Module) Channels() (<-chan bool, chan<- modules.Event) {
 	return c.receive, c.send
 }
 
-func (c *CPU_Module)  Name() string {
+func (c *CPU_Module) Name() string {
 	return "cpu"
 }

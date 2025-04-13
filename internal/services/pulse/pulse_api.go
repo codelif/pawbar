@@ -11,8 +11,6 @@ import (
 	"unsafe"
 )
 
-
-
 type SinkInfo struct {
 	Volume float64
 	Muted  bool
