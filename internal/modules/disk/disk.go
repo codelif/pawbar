@@ -80,6 +80,7 @@ func (d *DiskModule) Run() (<-chan bool, chan<- modules.Event, error) {
 								d.format = 1
 								d.formatSpecifier(1)
 							}
+							d.receive <- true
 						} else if btn == 2 {
 							if d.alterformat == 3 {
 								d.alterformat = 4
@@ -88,6 +89,7 @@ func (d *DiskModule) Run() (<-chan bool, chan<- modules.Event, error) {
 								d.alterformat = 3
 								d.formatSpecifier(3)
 							}
+							d.receive <- true
 						}
 					}
 				}
@@ -115,4 +117,3 @@ func (d *DiskModule) Channels() (<-chan bool, chan<- modules.Event) {
 func (d *DiskModule) Name() string {
 	return "disk"
 }
-
