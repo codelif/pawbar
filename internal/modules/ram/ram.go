@@ -17,7 +17,7 @@ func New() modules.Module {
 type RAM_Module struct {
 	receive chan bool
 	send    chan modules.Event
-	format  int `default : "1" `
+	format  int
 }
 
 func (r *RAM_Module) Dependencies() []string {
@@ -42,7 +42,7 @@ func (r *RAM_Module) Update(format int) (value string) {
 func (r *RAM_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 	r.receive = make(chan bool)
 	r.send = make(chan modules.Event)
-
+	r.format = 1
 	go func() {
 		t := time.NewTicker(3 * time.Second)
 		defer t.Stop()
@@ -62,7 +62,7 @@ func (r *RAM_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 						} else {
 							r.format = 1
 						}
-
+						r.receive <- true
 					}
 				}
 			}
