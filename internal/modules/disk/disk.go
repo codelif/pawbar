@@ -25,7 +25,6 @@ func New() modules.Module {
 		alterformat: 3,
 		lastPref:    1,
 	}
-	d.Update(1)
 	return d
 }
 
@@ -58,6 +57,7 @@ func (d *DiskModule) Update(format int) {
 func (d *DiskModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	d.receive = make(chan bool)
 	d.send = make(chan modules.Event)
+	d.Update(1)
 	go func() {
 		t := time.NewTicker(7 * time.Second)
 		defer t.Stop()
