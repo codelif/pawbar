@@ -8,16 +8,12 @@ Due to the existence of modern terminal standards (especially in kitty), a tiny 
 
 
 ## Installing
-A basic install script is there: 
+A basic install script is there (you need to compile pawbar before running the script): 
 ```sh
+go build ./cmd/pawbar
 ./install.sh
 ```
 Though fair caution it installs to `/usr/local/bin`
-
-Also if you want to you can compile pawbar yourself as well:
-```sh
-go build ./cmd/pawbar
-```
 
 > [!NOTE]
 > I will add other installation methods when I am satisfied with this project.
