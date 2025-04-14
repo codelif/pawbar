@@ -225,13 +225,18 @@ func (b *Battery) GetSupplies() (string, string, error) {
 	battery := ""
 	mains := ""
 
+	pref_bat_found := false
+
 	for _, entry := range entries {
 		typePath := filepath.Join(basePath, entry.Name(), "type")
 		data, err := os.ReadFile(typePath)
 		if err != nil {
 			continue
 		}
-		if strings.TrimSpace(string(data)) == "Battery" {
+		if strings.TrimSpace(string(data)) == "Battery" && !pref_bat_found {
+			if strings.HasPrefix(entry.Name(), "BAT") {
+				pref_bat_found = true
+			}
 			battery = filepath.Join(basePath, entry.Name())
 		} else if strings.TrimSpace(string(data)) == "Mains" {
 			mains = filepath.Join(basePath, entry.Name())
