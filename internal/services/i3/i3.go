@@ -235,7 +235,7 @@ func GoToWorkspace(name string){
 func GetActiveWorkspace() Workspace{
 	id,errc := strconv.Atoi(data.Current.Name)
 	if errc!= nil{
-		return nil
+		return Workspace{}
 	}
 	return Workspace{
 		id,
