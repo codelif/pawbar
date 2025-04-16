@@ -1,7 +1,6 @@
 package i3ws
 
 import (
-	"errors"
 	"slices"
 
 	"github.com/codelif/pawbar/internal/modules"
