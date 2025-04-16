@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"io"
 	"os/exec"
 	"strconv"
 
@@ -134,12 +135,12 @@ func readI3Ack(conn net.Conn) (string, error) {
 }
 
 func readResponse(conn net.Conn) ([]byte, error) {
-	responseHeader := make([]byte, HEADER_SIZE)
+	responseHeader := make([]byte, 14)
 	if _, err := io.ReadFull(conn, responseHeader); err != nil {
 		return nil, fmt.Errorf("error reading response header: %v", err)
 	}
 	if string(responseHeader[:6]) != "i3-ipc" {
-		return nil, fmt.Errorf("invalid response magic: expected '%s', got '%s'", IPC_MAGIC, string(responseHeader[:6]))
+		return nil, fmt.Errorf("invalid response magic: expected '%s', got '%s'",ipcMagic , string(responseHeader[:6]))
 	}
 
 	payloadLength := binary.LittleEndian.Uint32(responseHeader[6:10])
@@ -187,9 +188,9 @@ func (i *Service) sockMsg(){
 		return
 	}
 		
-	err := json.Unmarshal([]byte(eventPayload), &data)
-	if err != nil {
-			panic(err)
+	err_json := json.Unmarshal([]byte(eventPayload), &data)
+	if err_json != nil {
+			panic(err_json)
 	}
 }
 
@@ -211,13 +212,13 @@ func GetWorkspaces() []Workspace{
 	eventPayload, err := readResponse(conn)
 	if err != nil {
 		fmt.Println(err)
-		return
+		return nil
 	}
 	
 	var workspaces []Workspace
 	if err = json.Unmarshal(eventPayload, &workspaces); err != nil {
 		fmt.Println("Error unmarshaling JSON:", err)
-		return
+		return nil
 	}
 
 	return workspaces
@@ -232,8 +233,8 @@ func GoToWorkspace(name string){
 }
 
 func GetActiveWorkspace() Workspace{
-	id,err= strconv.Atoi(data.Current.Name)
-	if err!= nil{
+	id,errc := strconv.Atoi(data.Current.Name)
+	if errc!= nil{
 		return nil
 	}
 	return Workspace{
