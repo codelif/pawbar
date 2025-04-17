@@ -279,12 +279,12 @@ func GetTitleClass() (string, string){
 	eventPayload, err := readResponse(conn)
 	if err != nil {
 		fmt.Println(err)
-		return nil
+		return nil,nil
 	}
 
 	var root I3Node
-	if err := json.Unmarshal(payload, &root); err != nil {
-		log.Fatalf("Failed to parse JSON: %v", err)
+	if err := json.Unmarshal(eventPayload, &root); err != nil {
+		fmt.Println("Failed to parse JSON: %v", err)
 	}
 
 	var focusedProps *WindowProperties
