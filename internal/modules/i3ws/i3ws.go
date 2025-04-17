@@ -3,8 +3,6 @@ package i3ws
 import (
 
 	"slices"
-
-	"fmt"
 	"errors"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/services/i3"
@@ -54,8 +52,7 @@ func (wsMod *i3WorkspaceModule) Run() (<-chan bool, chan<- modules.Event, error)
 	wsMod.ievent = make(chan i3.I3Event)
 
 	service.RegisterChannel("workspaces", wsMod.ievent)
-	
-	fmt.Println("reached run")
+
 	wsMod.refreshWorkspaceCache()
 
 	go func() {
@@ -70,7 +67,6 @@ func (wsMod *i3WorkspaceModule) Run() (<-chan bool, chan<- modules.Event, error)
 					}
 				}
 			case <-wsMod.ievent:
-				fmt.Println("refreshed")
 				wsMod.refreshWorkspaceCache()
 				wsMod.receive <- true	
 			}
