@@ -2,10 +2,8 @@ package i3title
 
 import (
 	"errors"
-	"strings"
-
 	"github.com/codelif/pawbar/internal/modules"
-	"github.com/codelif/pawbar/internal/services/hypr"
+	"github.com/codelif/pawbar/internal/services/i3"
 )
 
 func New() modules.Module {
@@ -15,7 +13,7 @@ func New() modules.Module {
 type i3Title struct {
 	receive chan bool
 	send    chan modules.Event
-	hevent  chan hypr.HyprEvent
+	ievent  chan i3.I3Event
 	class   string
 	title   string
 }
@@ -35,35 +33,46 @@ func (it *i3Title) Name() string {
 func (it *i3Title) Run() (<-chan bool, chan<- modules.Event, error) {
 	service, ok := i3.GetService()
 	if !ok {
-		return nil, nil, errors.New("Hypr service not available")
+		return nil, nil, errors.New("i3 service not available")
 	}
 
-	hyprtitle.receive = make(chan bool)
-	hyprtitle.send = make(chan modules.Event)
-	hyprtitle.hevent = make(chan i3.I3Event)
-	activews := hypr.GetActiveWorkspace()
-	clients := hypr.GetClients()
+	it.receive = make(chan bool)
+	it.send = make(chan modules.Event)
+	it.ievent = make(chan i3.I3Event)
 
-	hyprtitle.class = ""
-	for _, c := range clients {
-		if c.Address == activews.Lastwindow {
-			hyprtitle.class = c.Class
-		}
-	}
+	it.class, it.title= i3.GetTitleClass() 
 
-	hyprtitle.title = hypr.GetActiveWorkspace().Lastwindowtitle
-	service.RegisterChannel("activewindow", hyprtitle.hevent)
+	service.RegisterChannel("activewindow", it.ievent)
 
 	go func() {
 		for {
 			select {
-			case h := <-hyprtitle.hevent:
-				hyprtitle.class, hyprtitle.title, _ = strings.Cut(h.Data, ",")
-				hyprtitle.receive <- true
-			case <-hyprtitle.send:
+			case <- it.ievent:
+				it.receive <- true
+			case <-it.send:
 			}
 		}
 	}()
 
-	return hyprtitle.receive, hyprtitle.send, nil
+	return it.receive, it.send, nil
 }
+
+func (it *i3Title) Render() []modules.EventCell {
+	var r []modules.EventCell
+	if it.class != "" {
+		r = append(r, modules.EventCell{C: ' ', Style: modules.COOL.Reverse(true), Metadata: "", Mod: i3title})
+		for _, ch := range it.class {
+			r = append(r, modules.EventCell{C: ch, Style: modules.COOL.Reverse(true), Metadata: "", Mod: i3title})
+		}
+		r = append(r, modules.EventCell{C: ' ', Style: modules.COOL.Reverse(true), Metadata: "", Mod: i3title})
+		r = append(r, modules.EventCell{C: ' ', Style: modules.DEFAULT, Metadata: "", Mod: i3title})
+	}
+	for _, ch := range it.title {
+		r = append(r, modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: i3title})
+	}
+
+	return r
+}
+
+
+
