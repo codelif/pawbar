@@ -48,6 +48,7 @@ func (it *i3Title) Run() (<-chan bool, chan<- modules.Event, error) {
 		for {
 			select {
 			case <- it.ievent:
+				it.class, it.title= i3.GetTitleClass()
 				it.receive <- true
 			case <-it.send:
 			}
