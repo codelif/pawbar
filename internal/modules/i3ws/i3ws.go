@@ -86,7 +86,7 @@ func (wsMod *i3WorkspaceModule) refreshWorkspaceCache() {
 	active := i3.GetActiveWorkspace()
 
 	for _, ws := range workspaces {
-		wsMod.ws[ws.Id] = &WorkspaceState{ws.Id, ws.Name, ws.Id == active.Id, false}
+		wsMod.ws[ws.Id] = &WorkspaceState{ws.Id, ws.Name, ws.Id == active.Id, ws.Urgent}
 
 		// add special/scratchpad if any
 
