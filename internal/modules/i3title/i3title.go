@@ -60,15 +60,15 @@ func (it *i3Title) Run() (<-chan bool, chan<- modules.Event, error) {
 func (it *i3Title) Render() []modules.EventCell {
 	var r []modules.EventCell
 	if it.class != "" {
-		r = append(r, modules.EventCell{C: ' ', Style: modules.COOL.Reverse(true), Metadata: "", Mod: i3title})
+		r = append(r, modules.EventCell{C: ' ', Style: modules.COOL.Reverse(true), Metadata: "", Mod: it})
 		for _, ch := range it.class {
-			r = append(r, modules.EventCell{C: ch, Style: modules.COOL.Reverse(true), Metadata: "", Mod: i3title})
+			r = append(r, modules.EventCell{C: ch, Style: modules.COOL.Reverse(true), Metadata: "", Mod: it})
 		}
-		r = append(r, modules.EventCell{C: ' ', Style: modules.COOL.Reverse(true), Metadata: "", Mod: i3title})
-		r = append(r, modules.EventCell{C: ' ', Style: modules.DEFAULT, Metadata: "", Mod: i3title})
+		r = append(r, modules.EventCell{C: ' ', Style: modules.COOL.Reverse(true), Metadata: "", Mod: it})
+		r = append(r, modules.EventCell{C: ' ', Style: modules.DEFAULT, Metadata: "", Mod: it})
 	}
 	for _, ch := range it.title {
-		r = append(r, modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: i3title})
+		r = append(r, modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: it})
 	}
 
 	return r
