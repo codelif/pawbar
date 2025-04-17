@@ -8,7 +8,7 @@ import (
 	"os"
 	"io"
 	"os/exec"
-	"strconv"
+
 
 	"github.com/codelif/pawbar/internal/services"
 )
@@ -16,8 +16,6 @@ import (
 const ipcMagic = "i3-ipc"
 const I3_IPC_MESSAGE_TYPE_SUBSCRIBE = 2
 const IPC_GET_WORKSPACES = 1
-
-var data I3Event
 
 type Service struct {
 	callbacks map[string][]chan<- I3Event
@@ -72,7 +70,7 @@ func (i *Service) Start() error {
 	if i.running {
 		return nil
 	}
-	//i.callbacks = make(map[string][]chan<- I3Event)
+	i.callbacks = make(map[string][]chan<- I3Event)
 	go i.sockMsg()
 	i.running = true
 	return nil
@@ -82,9 +80,9 @@ func (i *Service) Stop() error {
 	return nil
 }
 
-// func (i *Service) RegisterChannel(event string, ch chan<- I3Event) {
-// 	i.callbacks[event] = append(i.callbacks[event], ch)
-// }
+func (i *Service) RegisterChannel(event string, ch chan<- I3Event) {
+	i.callbacks[event] = append(i.callbacks[event], ch)
+}
 
 func connectToI3() (net.Conn, error) {
 	sockPath := os.Getenv("I3SOCK")
@@ -182,15 +180,25 @@ func (i *Service) sockMsg(){
 
 	fmt.Println("Subscription Acknowledgment:", ack)
 
-	eventPayload, err := readResponse(conn)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-		
-	err_json := json.Unmarshal([]byte(eventPayload), &data)
-	if err_json != nil {
-			panic(err_json)
+	var event I3Event
+
+	for {
+		eventPayload, err := readResponse(conn)
+		if err != nil {
+			fmt.Println("Error reading response:", err)
+			break
+		}
+
+		if err := json.Unmarshal(eventPayload, &event); err != nil {
+			fmt.Println("Error unmarshaling event:", err)
+			continue
+		}
+
+		if chans, ok := i.callbacks["workspaces"]; ok {
+				for _, ch := range chans {
+				ch <- event
+			}
+		}
 	}
 }
 
@@ -232,17 +240,14 @@ func GoToWorkspace(name string){
 	}
 }
 
-func GetActiveWorkspace() Workspace{
-	id,errc := strconv.Atoi(data.Current.Name)
-	if errc!= nil{
-		return Workspace{}
+func GetActiveWorkspace() Workspace {
+	workspaces := GetWorkspaces()
+	for _, ws := range workspaces {
+		if ws.Focused {
+			return ws
+		}
 	}
-	return Workspace{
-		id,
-		data.Current.Name,
-		data.Current.Focused,
-		data.Current.Urgent,
-	} 
+	return Workspace{}
 }
 
 
