@@ -1,8 +1,11 @@
 package i3ws
 
 import (
+
 	"slices"
 
+	"fmt"
+	"errors"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/services/i3"
 	"github.com/gdamore/tcell/v2"
@@ -25,8 +28,6 @@ type i3WorkspaceModule struct {
 	ievent    chan i3.I3Event
 	ws        map[int]*WorkspaceState
 	activeId  int
-	specialId int
-	special   bool
 }
 
 func (wsMod *i3WorkspaceModule) Name() string {
@@ -43,11 +44,20 @@ func (wsMod *i3WorkspaceModule) Channels() (<-chan bool, chan<- modules.Event) {
 
 func (wsMod *i3WorkspaceModule) Run() (<-chan bool, chan<- modules.Event, error) {
 
+	service, ok := i3.GetService()
+	if !ok {
+		return nil, nil, errors.New("i3 service not available")
+	}
+
 	wsMod.receive = make(chan bool)
 	wsMod.send = make(chan modules.Event)
 	wsMod.ievent = make(chan i3.I3Event)
 
+	service.RegisterChannel("workspaces", wsMod.ievent)
+	
+	fmt.Println("reached run")
 	wsMod.refreshWorkspaceCache()
+
 	go func() {
 		for {
 			select {
@@ -60,7 +70,9 @@ func (wsMod *i3WorkspaceModule) Run() (<-chan bool, chan<- modules.Event, error)
 					}
 				}
 			case <-wsMod.ievent:
-					wsMod.receive <- true			
+				fmt.Println("refreshed")
+				wsMod.refreshWorkspaceCache()
+				wsMod.receive <- true	
 			}
 		}
 	}()
