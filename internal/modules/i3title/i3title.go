@@ -13,7 +13,7 @@ func New() modules.Module {
 type i3Title struct {
 	receive chan bool
 	send    chan modules.Event
-	ievent  chan i3.I3Event
+	ievent  chan i3.I3WEvent
 	class   string
 	title   string
 }
@@ -38,11 +38,11 @@ func (it *i3Title) Run() (<-chan bool, chan<- modules.Event, error) {
 
 	it.receive = make(chan bool)
 	it.send = make(chan modules.Event)
-	it.ievent = make(chan i3.I3Event)
+	it.ievent = make(chan i3.I3WEvent)
 
 	it.class, it.title= i3.GetTitleClass() 
 
-	service.RegisterChannel("activewindow", it.ievent)
+	service.RegisterWChannel("activeWindow", it.ievent)
 
 	go func() {
 		for {
