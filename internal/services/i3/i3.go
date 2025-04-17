@@ -1,14 +1,15 @@
 package i3
 
 import (
+	""
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"os"
-	"io"
 	"os/exec"
-
+	"strconv"
 
 	"github.com/codelif/pawbar/internal/services"
 )
@@ -16,6 +17,7 @@ import (
 const ipcMagic = "i3-ipc"
 const I3_IPC_MESSAGE_TYPE_SUBSCRIBE = 2
 const IPC_GET_WORKSPACES = 1
+var event I3Event
 
 type Service struct {
 	callbacks map[string][]chan<- I3Event
@@ -180,8 +182,7 @@ func (i *Service) sockMsg(){
 
 	fmt.Println("Subscription Acknowledgment:", ack)
 
-	var event I3Event
-
+	
 	for {
 		eventPayload, err := readResponse(conn)
 		if err != nil {
@@ -241,14 +242,19 @@ func GoToWorkspace(name string){
 }
 
 func GetActiveWorkspace() Workspace {
-	workspaces := GetWorkspaces()
-	for _, ws := range workspaces {
-		if ws.Focused {
-			return ws
-		}
+	id,err := strconv.Atoi(event.Current.Name)
+	if err!=nil{
+		return Workspace{}
 	}
-	return Workspace{}
-}
+
+	return{
+		id,
+		event.Current.Name,
+		event.Current.Focused,
+		event.Current.Urgent,
+	}
+
+	}
 
 
 
