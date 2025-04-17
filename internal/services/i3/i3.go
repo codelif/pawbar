@@ -17,10 +17,12 @@ const I3_IPC_MESSAGE_TYPE_SUBSCRIBE = 2
 const IPC_GET_WORKSPACES = 1
 const msgTypeGetTree = 4
 var event I3Event
+var wevent I3WEvent
 
 type Service struct {
-	callbacks map[string][]chan<- I3Event
-	running   bool
+	callbacks   map[string][]chan<- I3Event
+	wCallbacks  map[string][]chan<- I3WEvent
+	running     bool
 }
 
 type WinInfo struct {
@@ -70,6 +72,17 @@ func Register() {
 	services.StartService("i3", &Service{})
 }
 
+type Container struct {
+	ID   int    `json:"id"`
+	Type string `json:"type"`
+	}
+
+type I3WEvent struct {
+	Change    string    `json:"change"`
+	Container Container `json:"container"`
+}
+
+
 func GetService() (*Service, bool) {
 	if s, ok := services.ServiceRegistry["i3"].(*Service); ok {
 		return s, true
@@ -84,7 +97,9 @@ func (i *Service) Start() error {
 		return nil
 	}
 	i.callbacks = make(map[string][]chan<- I3Event)
+	i.wCallbacks = make(map[string][]chan<- I3WEvent)
 	go i.sockMsg()
+	go i.sockWMsg()
 	i.running = true
 	return nil
 }
@@ -95,6 +110,13 @@ func (i *Service) Stop() error {
 
 func (i *Service) RegisterChannel(event string, ch chan<- I3Event) {
 	i.callbacks[event] = append(i.callbacks[event], ch)
+}
+
+func (i *Service) RegisterWChannel(event string, ch chan<- I3WEvent) {
+	if i.wCallbacks == nil {
+		i.wCallbacks = make(map[string][]chan<- I3WEvent)
+	}
+	i.wCallbacks[event] = append(i.wCallbacks[event], ch)
 }
 
 func connectToI3() (net.Conn, error) {
@@ -212,6 +234,56 @@ func (i *Service) sockMsg(){
 		}
 	}
 }
+
+func (i *Service) sockWMsg(){
+
+	conn, err := connectToI3()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer conn.Close()
+
+	subscription := []string{"window"}
+	payload, err := json.Marshal(subscription)
+	if err != nil {
+		fmt.Printf("Error marshaling subscription payload: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := sendI3Message(conn, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, payload); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	
+	ack, err := readI3Ack(conn)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Subscription Acknowledgment:", ack)
+
+	for {
+		eventPayload, err := readResponse(conn)
+		if err != nil {
+			fmt.Println("Error reading response:", err)
+			break
+		}
+
+		if err := json.Unmarshal(eventPayload, &wevent); err != nil {
+			fmt.Println("Error unmarshaling event:", err)
+			continue
+		}
+
+		if chans, ok := i.wCallbacks["activeWindow"]; ok {
+				for _, ch := range chans {
+				ch <- wevent
+			}
+		}
+	}
+}
+
 
 func GetWorkspaces() []Workspace{
 	conn, err := connectToI3()
