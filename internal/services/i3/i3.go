@@ -279,7 +279,7 @@ func GetTitleClass() (string, string){
 	eventPayload, err := readResponse(conn)
 	if err != nil {
 		fmt.Println(err)
-		return nil,nil
+		return "", ""
 	}
 
 	var root I3Node
