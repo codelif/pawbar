@@ -8,6 +8,7 @@ import (
 	"github.com/codelif/pawbar/internal/modules/hyprtitle"
 	"github.com/codelif/pawbar/internal/modules/hyprws"
 	"github.com/codelif/pawbar/internal/services/hypr"
+	"github.com/codelif/pawbar/internal/services/i3"
 	"github.com/codelif/pawbar/internal/services/pulse"
 	"github.com/codelif/pawbar/internal/utils"
 )
@@ -113,6 +114,8 @@ func runServices(mods []modules.Module) {
 			hypr.Register()
 		case "pulse":
 			pulse.Register()
+		case "i3":
+			i3.Register()
 		default:
 		}
 	}
