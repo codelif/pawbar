@@ -14,6 +14,7 @@ type i3Title struct {
 	receive chan bool
 	send    chan modules.Event
 	ievent  chan i3.I3WEvent
+	ievent2 chan i3.I3Event
 	class   string
 	title   string
 }
@@ -39,15 +40,20 @@ func (it *i3Title) Run() (<-chan bool, chan<- modules.Event, error) {
 	it.receive = make(chan bool)
 	it.send = make(chan modules.Event)
 	it.ievent = make(chan i3.I3WEvent)
+	it.ievent2 = make(chan i3.I3Event)
 
 	it.class, it.title= i3.GetTitleClass() 
 
 	service.RegisterWChannel("activeWindow", it.ievent)
+	service.RegisterChannel("workspaces", it.ievent2)
 
 	go func() {
 		for {
 			select {
 			case <- it.ievent:
+				it.class, it.title= i3.GetTitleClass()
+				it.receive <- true
+			case <- it.ievent2:
 				it.class, it.title= i3.GetTitleClass()
 				it.receive <- true
 			case <-it.send:
