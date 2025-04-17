@@ -1,7 +1,6 @@
 package i3
 
 import (
-	""
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -9,7 +8,6 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"strconv"
 
 	"github.com/codelif/pawbar/internal/services"
 )
@@ -17,6 +15,7 @@ import (
 const ipcMagic = "i3-ipc"
 const I3_IPC_MESSAGE_TYPE_SUBSCRIBE = 2
 const IPC_GET_WORKSPACES = 1
+const msgTypeGetTree = 4
 var event I3Event
 
 type Service struct {
@@ -53,6 +52,18 @@ type Workspace struct {
 	Name    string `json:"name"`
 	Focused bool   `json:"focused"`
 	Urgent  bool   `json:"urgent"`
+}
+
+type WindowProperties struct {
+	Class string `json:"class"`
+	Title string `json:"title"`
+}
+
+type I3Node struct {
+	Focused          bool               `json:"focused"`
+	Nodes            []I3Node           `json:"nodes"`
+	FloatingNodes    []I3Node           `json:"floating_nodes"`
+	WindowProperties *WindowProperties  `json:"window_properties"`
 }
 
 func Register() {
@@ -182,7 +193,6 @@ func (i *Service) sockMsg(){
 
 	fmt.Println("Subscription Acknowledgment:", ack)
 
-	
 	for {
 		eventPayload, err := readResponse(conn)
 		if err != nil {
@@ -242,20 +252,60 @@ func GoToWorkspace(name string){
 }
 
 func GetActiveWorkspace() Workspace {
-	id,err := strconv.Atoi(event.Current.Name)
-	if err!=nil{
-		return Workspace{}
+	workspaces := GetWorkspaces()
+	for _, ws := range workspaces {
+		if ws.Focused {
+			return ws
+		}
+	}
+	return Workspace{}
+}
+
+func GetTitleClass() (string, string){
+	conn, err := connectToI3()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer conn.Close()
+
+	payload := []byte("")
+
+	if err := sendI3Message(conn, msgTypeGetTree,payload); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
-	return{
-		id,
-		event.Current.Name,
-		event.Current.Focused,
-		event.Current.Urgent,
+	eventPayload, err := readResponse(conn)
+	if err != nil {
+		fmt.Println(err)
+		return nil
 	}
 
+	var root I3Node
+	if err := json.Unmarshal(payload, &root); err != nil {
+		log.Fatalf("Failed to parse JSON: %v", err)
 	}
 
+	var focusedProps *WindowProperties
+	var findFocused func(n *I3Node)
+	findFocused = func(n *I3Node) {
+		if n.Focused && n.WindowProperties != nil {
+			focusedProps = n.WindowProperties
+			return
+		}
+		for i := range n.Nodes {
+			findFocused(&n.Nodes[i])
+		}
+		for i := range n.FloatingNodes {
+			findFocused(&n.FloatingNodes[i])
+		}
+	}
+	findFocused(&root)
+
+	return focusedProps.Class, focusedProps.Title
+
+}
 
 
 
