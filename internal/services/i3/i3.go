@@ -333,7 +333,7 @@ func GetActiveWorkspace() Workspace {
 	return Workspace{}
 }
 
-func GetTitleClass() (string, string){
+func GetTitleClass() (string, string) {
 	conn, err := connectToI3()
 	if err != nil {
 		fmt.Println(err)
@@ -343,7 +343,7 @@ func GetTitleClass() (string, string){
 
 	payload := []byte("")
 
-	if err := sendI3Message(conn, msgTypeGetTree,payload); err != nil {
+	if err := sendI3Message(conn, msgTypeGetTree, payload); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -356,12 +356,16 @@ func GetTitleClass() (string, string){
 
 	var root I3Node
 	if err := json.Unmarshal(eventPayload, &root); err != nil {
-		fmt.Println("Failed to parse JSON: %v", err)
+		fmt.Printf("Failed to parse JSON: %v\n", err)
+		return "", ""
 	}
 
 	var focusedProps *WindowProperties
 	var findFocused func(n *I3Node)
 	findFocused = func(n *I3Node) {
+		if focusedProps != nil {
+			return 
+		}
 		if n.Focused && n.WindowProperties != nil {
 			focusedProps = n.WindowProperties
 			return
@@ -375,11 +379,10 @@ func GetTitleClass() (string, string){
 	}
 	findFocused(&root)
 
+	if focusedProps == nil {
+		return "", ""
+	}
+
 	return focusedProps.Class, focusedProps.Title
-
 }
-
-
-
-
 
