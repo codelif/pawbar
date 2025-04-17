@@ -12,6 +12,7 @@ import (
 	"github.com/codelif/pawbar/internal/modules/locale"
 	"github.com/codelif/pawbar/internal/modules/ram"
 	"github.com/codelif/pawbar/internal/modules/i3ws"
+	"github.com/codelif/pawbar/internal/modules/i3title"
 )
 
 var moduleFactories = map[string]func() modules.Module{
@@ -25,6 +26,7 @@ var moduleFactories = map[string]func() modules.Module{
 	"locale":    locale.New,
 	"disk":      disk.New,
 	"i3ws":      i3ws.New,
+	"i3title":   i3title.New,
 	"space": func() modules.Module {
 		return modules.NewStaticModule("space", []modules.EventCell{{C: ' ', Style: modules.DEFAULT}}, nil)
 	},
