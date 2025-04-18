@@ -20,9 +20,8 @@ var event I3Event
 var wevent I3WEvent
 
 type Service struct {
-	callbacks   map[string][]chan<- I3Event
-	wCallbacks  map[string][]chan<- I3WEvent
-	running     bool
+	callbacks map[string][]chan<- interface{}
+	running   bool
 }
 
 type WinInfo struct {
@@ -57,7 +56,7 @@ type Workspace struct {
 }
 
 type WindowProperties struct {
-	Class string `json:"class"`
+	Instance string `json:"instance"`
 	Title string `json:"title"`
 }
 
@@ -96,10 +95,8 @@ func (i *Service) Start() error {
 	if i.running {
 		return nil
 	}
-	i.callbacks = make(map[string][]chan<- I3Event)
-	i.wCallbacks = make(map[string][]chan<- I3WEvent)
+	i.callbacks = make(map[string][]chan<- interface{})
 	go i.sockMsg()
-	go i.sockWMsg()
 	i.running = true
 	return nil
 }
@@ -108,16 +105,10 @@ func (i *Service) Stop() error {
 	return nil
 }
 
-func (i *Service) RegisterChannel(event string, ch chan<- I3Event) {
+func (i *Service) RegisterChannel(event string, ch chan<- interface{}) {
 	i.callbacks[event] = append(i.callbacks[event], ch)
 }
 
-func (i *Service) RegisterWChannel(event string, ch chan<- I3WEvent) {
-	if i.wCallbacks == nil {
-		i.wCallbacks = make(map[string][]chan<- I3WEvent)
-	}
-	i.wCallbacks[event] = append(i.wCallbacks[event], ch)
-}
 
 func connectToI3() (net.Conn, error) {
 	sockPath := os.Getenv("I3SOCK")
@@ -167,23 +158,25 @@ func readI3Ack(conn net.Conn) (string, error) {
 	return string(ackPayload), nil
 }
 
-func readResponse(conn net.Conn) ([]byte, error) {
+func readResponse(conn net.Conn) (uint32,[]byte, error) {
 	responseHeader := make([]byte, 14)
 	if _, err := io.ReadFull(conn, responseHeader); err != nil {
-		return nil, fmt.Errorf("error reading response header: %v", err)
+		return 13,nil, fmt.Errorf("error reading response header: %v", err)
 	}
 	if string(responseHeader[:6]) != "i3-ipc" {
-		return nil, fmt.Errorf("invalid response magic: expected '%s', got '%s'",ipcMagic , string(responseHeader[:6]))
+		return 13,nil, fmt.Errorf("invalid response magic: expected '%s', got '%s'",ipcMagic , string(responseHeader[:6]))
 	}
-
+	
 	payloadLength := binary.LittleEndian.Uint32(responseHeader[6:10])
 	payloadData := make([]byte, payloadLength)
 
+	responseType:= binary.LittleEndian.Uint32(responseHeader[10:14])
+
 	if _, err := io.ReadFull(conn, payloadData); err != nil {
-		return nil, fmt.Errorf("error reading payload data: %v", err)
+		return 13,nil, fmt.Errorf("error reading payload data: %v", err)
 	}
 
-	return payloadData, nil
+	return responseType,payloadData, nil
 }
 
 func (i *Service) sockMsg(){
@@ -195,7 +188,7 @@ func (i *Service) sockMsg(){
 	}
 	defer conn.Close()
 
-	subscription := []string{"workspace"}
+	subscription := []string{"window", "workspace"}
 	payload, err := json.Marshal(subscription)
 	if err != nil {
 		fmt.Printf("Error marshaling subscription payload: %v\n", err)
@@ -216,74 +209,38 @@ func (i *Service) sockMsg(){
 	fmt.Println("Subscription Acknowledgment:", ack)
 
 	for {
-		eventPayload, err := readResponse(conn)
+		eventType,eventPayload, err := readResponse(conn)
 		if err != nil {
 			fmt.Println("Error reading response:", err)
 			break
 		}
-
-		if err := json.Unmarshal(eventPayload, &event); err != nil {
-			fmt.Println("Error unmarshaling event:", err)
-			continue
-		}
-
-		if chans, ok := i.callbacks["workspaces"]; ok {
-				for _, ch := range chans {
-				ch <- event
+		
+		switch eventType{
+		case 0x80000000:
+			if err := json.Unmarshal(eventPayload, &event); err != nil {
+				fmt.Println("Error unmarshaling event:", err)
+				continue
 			}
-		}
-	}
-}
 
-func (i *Service) sockWMsg(){
-
-	conn, err := connectToI3()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	defer conn.Close()
-
-	subscription := []string{"window"}
-	payload, err := json.Marshal(subscription)
-	if err != nil {
-		fmt.Printf("Error marshaling subscription payload: %v\n", err)
-		os.Exit(1)
-	}
-
-	if err := sendI3Message(conn, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, payload); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	
-	ack, err := readI3Ack(conn)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	fmt.Println("Subscription Acknowledgment:", ack)
-
-	for {
-		eventPayload, err := readResponse(conn)
-		if err != nil {
-			fmt.Println("Error reading response:", err)
-			break
-		}
-
-		if err := json.Unmarshal(eventPayload, &wevent); err != nil {
+			if chans, ok := i.callbacks["workspaces"]; ok {
+					for _, ch := range chans {
+					ch <- event
+				}
+			}
+		case 0x80000003:
+			if err := json.Unmarshal(eventPayload, &wevent); err != nil {
 			fmt.Println("Error unmarshaling event:", err)
 			continue
 		}
 
-		if chans, ok := i.wCallbacks["activeWindow"]; ok {
+		if chans, ok := i.callbacks["activeWindow"]; ok {
 				for _, ch := range chans {
 				ch <- wevent
 			}
 		}
 	}
 }
-
+}
 
 func GetWorkspaces() []Workspace{
 	conn, err := connectToI3()
@@ -300,7 +257,8 @@ func GetWorkspaces() []Workspace{
 		os.Exit(1)
 	}
 
-	eventPayload, err := readResponse(conn)
+	eventType,eventPayload, err := readResponse(conn)
+	fmt.Println("event of type:", eventType)
 	if err != nil {
 		fmt.Println(err)
 		return nil
@@ -348,7 +306,8 @@ func GetTitleClass() (string, string) {
 		os.Exit(1)
 	}
 
-	eventPayload, err := readResponse(conn)
+	eventType,eventPayload, err := readResponse(conn)
+	fmt.Println("event of type:", eventType)
 	if err != nil {
 		fmt.Println(err)
 		return "", ""
@@ -383,6 +342,6 @@ func GetTitleClass() (string, string) {
 		return "", ""
 	}
 
-	return focusedProps.Class, focusedProps.Title
+	return focusedProps.Instance, focusedProps.Title
 }
 
