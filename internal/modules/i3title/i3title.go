@@ -1,6 +1,7 @@
 package i3title
 
 import (
+	"fmt"
 	"errors"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/services/i3"
