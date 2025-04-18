@@ -103,9 +103,7 @@ func (wsMod *i3WorkspaceModule) refreshWorkspaceCache() {
 func (wsMod *i3WorkspaceModule) Render() []modules.EventCell {
 	var wss []int
 	for k := range wsMod.ws {
-		if k > 0 {
 			wss = append(wss, k)
-		}
 	}
 
 	slices.Sort(wss)
