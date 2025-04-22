@@ -1,7 +1,7 @@
 package i3ws
 
 import (
-
+	"fmt"
 	"slices"
 	"errors"
 	"github.com/codelif/pawbar/internal/modules"
@@ -23,7 +23,7 @@ func New() modules.Module {
 type i3WorkspaceModule struct {
 	receive   chan bool
 	send      chan modules.Event
-	ievent    chan i3.I3Event
+	ievent    chan interface{}
 	ws        map[int]*WorkspaceState
 	activeId  int
 }
@@ -49,29 +49,37 @@ func (wsMod *i3WorkspaceModule) Run() (<-chan bool, chan<- modules.Event, error)
 
 	wsMod.receive = make(chan bool)
 	wsMod.send = make(chan modules.Event)
-	wsMod.ievent = make(chan i3.I3Event)
+	wsMod.ievent = make(chan interface{})
 
 	service.RegisterChannel("workspaces", wsMod.ievent)
 
 	wsMod.refreshWorkspaceCache()
 
-	go func() {
-		for {
-			select {
-			case e := <-wsMod.send:
-				switch ev := e.TcellEvent.(type) {
-				case *tcell.EventMouse:
-					btns := ev.Buttons()
-					if btns == tcell.Button1 {
-						go i3.GoToWorkspace(e.Cell.Metadata)
-					}
+go func() {
+	for {
+		select {
+		case e := <-wsMod.send:
+			switch ev := e.TcellEvent.(type) {
+			case *tcell.EventMouse:
+				if ev.Buttons() == tcell.Button1 {
+					go i3.GoToWorkspace(e.Cell.Metadata)
 				}
-			case <-wsMod.ievent:
+			}
+
+		case raw := <-wsMod.ievent:
+			switch evt := raw.(type) {
+			case i3.I3Event:
+				fmt.Println("event of type", evt)		
 				wsMod.refreshWorkspaceCache()
-				wsMod.receive <- true	
+				wsMod.receive <- true
+			default:
+				fmt.Println("Unknown event type received on workspace ievent:", raw)
 			}
 		}
-	}()
+	}
+}()
+
+
 	return wsMod.receive, wsMod.send, nil
 }
 
@@ -95,9 +103,7 @@ func (wsMod *i3WorkspaceModule) refreshWorkspaceCache() {
 func (wsMod *i3WorkspaceModule) Render() []modules.EventCell {
 	var wss []int
 	for k := range wsMod.ws {
-		if k > 0 {
 			wss = append(wss, k)
-		}
 	}
 
 	slices.Sort(wss)

@@ -1,6 +1,7 @@
 package i3title
 
 import (
+	"fmt"
 	"errors"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/services/i3"
@@ -11,12 +12,12 @@ func New() modules.Module {
 }
 
 type i3Title struct {
-	receive chan bool
-	send    chan modules.Event
-	ievent  chan i3.I3WEvent
-	ievent2 chan i3.I3Event
-	class   string
-	title   string
+	receive    chan bool
+	send       chan modules.Event
+	ievent     chan interface{}
+	ievent2    chan interface{}
+	instance   string
+	title      string
 }
 
 func (it *i3Title) Dependencies() []string {
@@ -39,36 +40,50 @@ func (it *i3Title) Run() (<-chan bool, chan<- modules.Event, error) {
 
 	it.receive = make(chan bool)
 	it.send = make(chan modules.Event)
-	it.ievent = make(chan i3.I3WEvent)
-	it.ievent2 = make(chan i3.I3Event)
+	it.ievent = make(chan interface{})
+	it.ievent2 = make(chan interface{})
 
-	it.class, it.title= i3.GetTitleClass() 
+	it.instance, it.title= i3.GetTitleClass() 
 
-	service.RegisterWChannel("activeWindow", it.ievent)
+	service.RegisterChannel("activeWindow", it.ievent)
 	service.RegisterChannel("workspaces", it.ievent2)
 
 	go func() {
-		for {
-			select {
-			case <- it.ievent:
-				it.class, it.title= i3.GetTitleClass()
+	for {
+		select {
+		case ev := <-it.ievent:
+			switch evt := ev.(type) {
+			case i3.I3WEvent:
+				// Handle window event
+				it.instance, it.title = i3.GetTitleClass()
 				it.receive <- true
-			case <- it.ievent2:
-				it.class, it.title= i3.GetTitleClass()
-				it.receive <- true
-			case <-it.send:
+			default:
+				fmt.Println("Received unknown type on window event channel:", evt)
 			}
+
+		case ev := <-it.ievent2:
+			switch evt := ev.(type) {
+			case i3.I3Event:
+				// Handle workspace event
+				it.instance, it.title = i3.GetTitleClass()
+				it.receive <- true
+			default:
+				fmt.Println("Received unknown type on workspace event channel:", evt)
+			}
+
+		case <-it.send:	
 		}
-	}()
+	}
+}()
 
 	return it.receive, it.send, nil
 }
 
 func (it *i3Title) Render() []modules.EventCell {
 	var r []modules.EventCell
-	if it.class != "" {
+	if it.instance != "" {
 		r = append(r, modules.EventCell{C: ' ', Style: modules.COOL.Reverse(true), Metadata: "", Mod: it})
-		for _, ch := range it.class {
+		for _, ch := range it.instance {
 			r = append(r, modules.EventCell{C: ch, Style: modules.COOL.Reverse(true), Metadata: "", Mod: it})
 		}
 		r = append(r, modules.EventCell{C: ' ', Style: modules.COOL.Reverse(true), Metadata: "", Mod: it})
