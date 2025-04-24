@@ -172,7 +172,7 @@ func (wsMod *HyprWorkspaceModule) setWorkspaceUrgent(address string) {
 	clients := hypr.GetClients()
 	for _, client := range clients {
 		client_address, _ := strings.CutPrefix(client.Address, "0x")
-		if client_address == address {
+		if client_address == address && client.Workspace.Id != wsMod.activeId {
 			wsMod.ws[client.Workspace.Id].urgent = true
 		}
 	}
@@ -242,7 +242,7 @@ func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
 			t2.Style = modules.ACTIVE.Reverse(true)
 			t3.Style = modules.ACTIVE.Reverse(true)
 		}
-		if wsMod.ws[id].urgent && !wsMod.ws[id].active {
+		if wsMod.ws[id].urgent {
 			t1.Style = modules.URGENT.Reverse(true)
 			t2.Style = modules.URGENT.Reverse(true)
 			t3.Style = modules.URGENT.Reverse(true)
