@@ -3,9 +3,9 @@ package clock
 import (
 	"time"
 
+	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/utils"
-	"github.com/gdamore/tcell/v2"
 )
 
 func New() modules.Module {
@@ -43,19 +43,17 @@ func (c *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 			case <-t.C:
 				c.receive <- true
 			case e := <-c.send:
-				switch ev := e.TcellEvent.(type) {
-				case *tcell.EventMouse:
-					if ev.Buttons() != 0 {
-						x, y := ev.Position()
-						utils.Logger.Printf("Clock: Got click event: %d, %d, Mod: %d, Button: %d\n", x, y, ev.Modifiers(), ev.Buttons())
-						if c.format == 1 {
-							c.format = 2
-						} else {
-							c.format = 1
-						}
-						c.receive <- true
-					}
+				switch ev := e.VaxisEvent.(type) {
+				case vaxis.Mouse:
+					utils.Logger.Printf("clock: Got mouse event: %d, %d, Mod: %d, Button: %d\n", ev.Col, ev.Row, ev.Modifiers, ev.EventType)
+					// if c.format == 1 {
+					// 	c.format = 2
+					// } else {
+					// 	c.format = 1
+					// }
+					// c.receive <- true
 				}
+
 			}
 		}
 	}()
@@ -67,7 +65,17 @@ func (c *ClockModule) Render() []modules.EventCell {
 	rstring := c.Update(c.format)
 	r := make([]modules.EventCell, len(rstring))
 	for i, ch := range rstring {
-		r[i] = modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: c}
+		r[i] = modules.EventCell{
+			C: vaxis.Cell{
+				Character: vaxis.Character{
+					Grapheme: string(ch),
+					Width:    1,
+				},
+				Style: vaxis.Style{},
+			},
+			Metadata: "",
+			Mod:      c,
+		}
 	}
 	return r
 }

@@ -2,15 +2,12 @@ package main
 
 import (
 	"os"
-	"os/signal"
-	"strconv"
-	"syscall"
 
+	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/tui"
 	"github.com/codelif/pawbar/internal/utils"
-	"github.com/gdamore/tcell/v2"
 )
 
 func main() {
@@ -24,66 +21,49 @@ func main() {
 }
 
 func mainLoop(cfgPath string) int {
-	scr, err := tcell.NewScreen()
+	vx, err := vaxis.New(vaxis.Options{EnableSGRPixels: true})
 	if err != nil {
-		utils.Logger.Println("There was an error creating a Screen.")
+		utils.Logger.Println("There was an error initializing Vaxis.")
 		return 1
 	}
+	defer vx.Close() // no need for recover since its done in vaxis
 
-	err = scr.Init()
-	if err != nil {
-		utils.Logger.Println("There was an error initializing the Screen.")
-		return 1
-	}
-
-	defer func() {
-		if_panic := recover()
-		scr.Fini()
-		if if_panic != nil {
-			panic(if_panic)
-		}
-	}()
-
-	scr.EnableMouse()
-
-	style := tcell.StyleDefault
-	w, h := scr.Size()
-	utils.Logger.Println("Panel Size:", strconv.Itoa(w)+", "+strconv.Itoa(h))
-	scr.SetStyle(style)
-	scr.Clear()
-
-	exit_signal := make(chan os.Signal, 1)
-	signal.Notify(exit_signal, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
+	win := vx.Window()
+	w, h := win.Size()
+	pw, ph := 0, 0
+	utils.Logger.Printf("Panel Size (cells): %d, %d\n", w, h)
+	win.Clear()
 
 	modev, l, r, err := config.InitModules(cfgPath)
 	if err != nil {
 		utils.Logger.Fatalln("Failed to init modules from config:", err)
 	}
 
-	screenEvents := make(chan tcell.Event)
-	quitEventsChan := make(chan struct{})
-	go scr.ChannelEvents(screenEvents, quitEventsChan)
+	screenEvents := vx.Events()
 
 	renderCells := make([]modules.EventCell, w)
+	tui.RenderBar(win, l, r, nil, renderCells)
 
 	isRunning := true
 	for isRunning {
 		select {
 		case ev := <-screenEvents:
 			switch ev := ev.(type) {
-			case *tcell.EventResize:
-				w, h = scr.Size()
-				utils.Logger.Println("Panel Size:", strconv.Itoa(w)+", "+strconv.Itoa(h))
+			case vaxis.Resize:
+				w, h = ev.Cols, ev.Rows
+				pw, ph = ev.XPixel, ev.YPixel
+				utils.Logger.Printf("Panel Size: %d, %d\n", pw, ph)
+			case vaxis.Redraw:
 				renderCells = make([]modules.EventCell, w)
-				tui.RenderBar(scr, l, r, renderCells)
-				scr.Show()
-			case *tcell.EventKey:
-				utils.Logger.Printf("Key: %s\n", ev.Name())
-				if ev.Key() == tcell.KeyCtrlC {
-					exit_signal <- os.Interrupt
+				tui.RenderBar(win, l, r, nil, renderCells)
+				vx.Render()
+			case vaxis.Key:
+				if ev.String() == "Ctrl+c" {
+					isRunning = false
+					vx.PostEvent(vaxis.QuitEvent{})
 				}
-			case *tcell.EventMouse:
-				x, y := ev.Position()
+			case vaxis.Mouse:
+				x, y := ev.Col, ev.Row
 
 				if y != 0 {
 					continue
@@ -91,23 +71,18 @@ func mainLoop(cfgPath string) int {
 				c := renderCells[x]
 				if c.Mod != nil {
 					_, send := c.Mod.Channels()
-					send <- modules.Event{Cell: c, TcellEvent: ev}
+					send <- modules.Event{Cell: c, VaxisEvent: ev}
 				}
-
-			case *tcell.EventPaste:
-				utils.Logger.Printf("Paste: %t, %t\n", ev.Start(), ev.End())
+			case vaxis.QuitEvent:
+				utils.Logger.Printf("Received exit signal\n")
+				isRunning = false
 			}
 		case m := <-modev:
 			utils.Logger.Println("Received render event from:", m.Name())
-			tui.RenderBar(scr, l, r, renderCells)
-			scr.Show()
-		case s := <-exit_signal:
-			utils.Logger.Printf("Received exit signal: %s\n", s.String())
-			quitEventsChan <- struct{}{}
-			isRunning = false
+			tui.RenderBar(win, l, r, m, renderCells)
+			vx.Render()
 		}
 
 	}
-
 	return 0
 }

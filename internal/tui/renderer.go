@@ -1,25 +1,57 @@
 package tui
 
 import (
+	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/modules"
-	"github.com/gdamore/tcell/v2"
 )
 
-func RenderBar(scr tcell.Screen, l, r []modules.Module, cells []modules.EventCell) {
+var SPACE = modules.EventCell{
+	C: vaxis.Cell{Character: vaxis.Character{
+		Grapheme: " ",
+		Width:    1,
+	}},
+	Metadata: "",
+	Mod:      nil,
+}
+var DOT = modules.EventCell{
+	C: vaxis.Cell{Character: vaxis.Character{
+		Grapheme: ".",
+		Width:    1,
+	}},
+	Metadata: "",
+	Mod:      nil,
+}
+
+
+var modMap = make(map[string][]modules.EventCell)
+
+// func refreshModMap(l, r []modules.Module){
+//   for _, m := range append(l, r...) {
+//     modMap[m.Name()]
+//   }
+
+// }
+
+
+func RenderBar(scr vaxis.Window, l, r []modules.Module, m modules.Module, cells []modules.EventCell) {
 	w, _ := scr.Size()
 	for i := range w {
-		cells[i] = modules.EventCell{C: ' ', Style: modules.DEFAULT, Metadata: "", Mod: nil}
-		scr.SetContent(i, 0, ' ', nil, modules.DEFAULT)
+		cells[i] = SPACE
+		scr.SetCell(i, 0, SPACE.C)
 	}
-
+  
 	p := 0
 	for _, mod := range r {
-		mod_render := mod.Render()
+    if m != nil &&  {
+
+    }else {
+      mod_render := mod.Render()
+    }
 		len_mod := len(mod_render)
 		for i := range len_mod {
 			if p < w {
 				c := mod_render[len_mod-i-1]
-				scr.SetContent(w-p-1, 0, c.C, nil, c.Style)
+				scr.SetCell(w-p-1, 0, c.C)
 				cells[w-p-1] = c
 				p++
 			}
@@ -33,14 +65,14 @@ func RenderBar(scr tcell.Screen, l, r []modules.Module, cells []modules.EventCel
 	for _, mod := range l {
 		for _, c := range mod.Render() {
 			if h < available-3 {
-				scr.SetContent(h, 0, c.C, nil, c.Style)
+				scr.SetCell(h, 0, c.C)
 				cells[h] = c
 				h++
 			} else {
 				if !ellipsized && h < available {
 					for i := 0; i < 3 && h < available; i++ {
-						scr.SetContent(h, 0, '.', nil, c.Style)
-						cells[h] = modules.EventCell{C: '.', Style: c.Style}
+						cells[h] = DOT
+						scr.SetCell(h, 0, DOT.C)
 						h++
 					}
 					ellipsized = true

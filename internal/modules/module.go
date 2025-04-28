@@ -1,29 +1,24 @@
 package modules
 
 import (
-	"github.com/gdamore/tcell/v2"
+	"git.sr.ht/~rockorager/vaxis"
 )
 
 var (
-	DEFAULT = tcell.StyleDefault
-	URGENT  = DEFAULT.Foreground(tcell.ColorRed)
-	WARNING = DEFAULT.Foreground(tcell.ColorYellow)
-	GOOD    = DEFAULT.Foreground(tcell.ColorGreen)
-	ACTIVE  = DEFAULT.Foreground(tcell.ColorWhite)
-	COOL    = DEFAULT.Foreground(tcell.ColorLightBlue)
-	SPECIAL = DEFAULT.Foreground(tcell.ColorDarkGreen).Background(tcell.ColorWhite)
+  // vaxis.StyleDefault
+	// DEFAULT = tcell.StyleDefault
+	// URGENT  = DEFAULT.Foreground(tcell.ColorRed)
+	// WARNING = DEFAULT.Foreground(tcell.ColorYellow)
+	// GOOD    = DEFAULT.Foreground(tcell.ColorGreen)
+	// ACTIVE  = DEFAULT.Foreground(tcell.ColorWhite)
+	// COOL    = DEFAULT.Foreground(tcell.ColorLightBlue)
+	// SPECIAL = DEFAULT.Foreground(tcell.ColorDarkGreen).Background(tcell.ColorWhite)
 )
 
 type EventCell struct {
-	C        rune
-	Style    tcell.Style
+  C        vaxis.Cell
 	Metadata string
 	Mod      Module
-}
-
-type StaticCell struct {
-	c     rune
-	style tcell.Style
 }
 
 type Module interface {
@@ -36,5 +31,5 @@ type Module interface {
 
 type Event struct {
 	Cell       EventCell
-	TcellEvent tcell.Event
+	VaxisEvent vaxis.Event
 }
