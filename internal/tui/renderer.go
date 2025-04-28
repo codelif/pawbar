@@ -16,7 +16,7 @@ func State() []modules.EventCell {
 	return state
 }
 
-// Can be called again
+// can be called again
 func Init(w, h int, l, r []modules.Module) {
 	width = w
 	height = h

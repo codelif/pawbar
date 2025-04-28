@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/jochenvg/go-udev"
 )
@@ -191,11 +192,12 @@ func (b *Backlight) Render() []modules.EventCell {
 
 	r := make([]modules.EventCell, len(rstring)+1)
 	i := 0
-	r[i] = modules.EventCell{C: icon, Style: modules.DEFAULT, Metadata: "", Mod: b}
+
+	r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(icon), Width: 1}}, Mod: b}
 	i++
 
 	for _, ch := range rstring {
-		r[i] = modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: b}
+    r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: b}
 		i++
 	}
 	return r

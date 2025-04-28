@@ -4,42 +4,35 @@ import (
 	"fmt"
 	"time"
 
+	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/modules"
-	"github.com/codelif/pawbar/internal/utils"
-	"github.com/gdamore/tcell/v2"
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
 func New() modules.Module {
-	return &RAM_Module{}
+	return &RamModule{}
 }
 
-type RAM_Module struct {
+type Format int
+
+const (
+	FormatPercentage Format = iota
+	FormatAbsolute
+)
+
+func (f *Format) toggle() { *f ^= 1 }
+
+type RamModule struct {
 	receive chan bool
 	send    chan modules.Event
-	format  int
+	format  Format
 }
 
-func (r *RAM_Module) Dependencies() []string {
+func (r *RamModule) Dependencies() []string {
 	return nil
 }
 
-func (r *RAM_Module) Update(format int) (value string) {
-	v, err := mem.VirtualMemory()
-	if err != nil {
-		return ""
-	}
-	if format == 2 {
-		value2 := float64(v.Used) / 1073741824.00
-		rstring := fmt.Sprintf(" %.2fGB", value2)
-		return rstring
-	}
-	value1 := int(v.UsedPercent)
-	rstring := fmt.Sprintf(" %d%%", value1)
-	return rstring
-}
-
-func (r *RAM_Module) Run() (<-chan bool, chan<- modules.Event, error) {
+func (r *RamModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	r.receive = make(chan bool)
 	r.send = make(chan modules.Event)
 	r.format = 1
@@ -52,18 +45,9 @@ func (r *RAM_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 				r.receive <- true
 
 			case e := <-r.send:
-				switch ev := e.TcellEvent.(type) {
-				case *tcell.EventMouse:
-					if ev.Buttons() != 0 {
-						x, y := ev.Position()
-						utils.Logger.Printf("RAM: Got click event: %d, %d, Mod: %d, Button: %d\n", x, y, ev.Modifiers(), ev.Buttons())
-						if r.format == 1 {
-							r.format = 2
-						} else {
-							r.format = 1
-						}
-						r.receive <- true
-					}
+				switch ev := e.VaxisEvent.(type) {
+				case vaxis.Mouse:
+					r.handleMouseEvent(ev)
 				}
 			}
 		}
@@ -73,24 +57,56 @@ func (r *RAM_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 	return r.receive, r.send, nil
 }
 
-func (r *RAM_Module) Render() []modules.EventCell {
+// this is a blocking function, only use it in event loop
+func (r *RamModule) handleMouseEvent(ev vaxis.Mouse) {
+	if ev.EventType == vaxis.EventPress {
+		switch ev.Button {
+		case vaxis.MouseLeftButton:
+			r.format.toggle()
+			r.receive <- true
+		}
+	}
+}
+
+func (r *RamModule) formatString() string {
+	v, err := mem.VirtualMemory()
+	if err != nil {
+		return ""
+	}
+
+	switch r.format {
+	case FormatPercentage:
+		value := int(v.UsedPercent)
+		rstring := fmt.Sprintf(" %d%%", value)
+		return rstring
+	case FormatAbsolute:
+		value := float64(v.Used) / 1073741824.00
+		rstring := fmt.Sprintf(" %.2fGB", value)
+		return rstring
+	}
+	return ""
+
+}
+
+func (r *RamModule) Render() []modules.EventCell {
 	icon := '󰆌'
-	rstring := r.Update(r.format)
+	rstring := r.formatString()
 	r_ := make([]modules.EventCell, len(rstring)+1)
 	i := 0
-	r_[i] = modules.EventCell{C: icon, Style: modules.DEFAULT, Metadata: "", Mod: r}
+
+	r_[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(icon), Width: 1}}, Mod: r}
 	i++
 	for _, ch := range rstring {
-		r_[i] = modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: r}
+		r_[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: r}
 		i++
 	}
 	return r_
 }
 
-func (r *RAM_Module) Channels() (<-chan bool, chan<- modules.Event) {
+func (r *RamModule) Channels() (<-chan bool, chan<- modules.Event) {
 	return r.receive, r.send
 }
 
-func (r *RAM_Module) Name() string {
+func (r *RamModule) Name() string {
 	return "ram"
 }

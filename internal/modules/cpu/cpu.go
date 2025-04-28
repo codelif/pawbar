@@ -4,24 +4,25 @@ import (
 	"fmt"
 	"time"
 
+	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/shirou/gopsutil/v3/cpu"
 )
 
 func New() modules.Module {
-	return &CPU_Module{}
+	return &CpuModule{}
 }
 
-type CPU_Module struct {
+type CpuModule struct {
 	receive chan bool
 	send    chan modules.Event
 }
 
-func (c *CPU_Module) Dependencies() []string {
+func (c *CpuModule) Dependencies() []string {
 	return nil
 }
 
-func (c *CPU_Module) Run() (<-chan bool, chan<- modules.Event, error) {
+func (c *CpuModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	c.receive = make(chan bool)
 	c.send = make(chan modules.Event)
 
@@ -40,7 +41,7 @@ func (c *CPU_Module) Run() (<-chan bool, chan<- modules.Event, error) {
 	return c.receive, c.send, nil
 }
 
-func (c *CPU_Module) Render() []modules.EventCell {
+func (c *CpuModule) Render() []modules.EventCell {
 	percent, err := cpu.Percent(0, false)
 	if err != nil {
 		return nil
@@ -49,19 +50,20 @@ func (c *CPU_Module) Render() []modules.EventCell {
 	rstring := fmt.Sprintf(" %d%%", int(percent[0]))
 	r := make([]modules.EventCell, len(rstring)+1)
 	i := 0
-	r[i] = modules.EventCell{C: icon, Style: modules.DEFAULT, Metadata: "", Mod: c}
+	r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(icon), Width: 1}}, Mod: c}
 	i++
+
 	for _, ch := range rstring {
-		r[i] = modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: c}
+    r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: c}
 		i++
 	}
 	return r
 }
 
-func (c *CPU_Module) Channels() (<-chan bool, chan<- modules.Event) {
+func (c *CpuModule) Channels() (<-chan bool, chan<- modules.Event) {
 	return c.receive, c.send
 }
 
-func (c *CPU_Module) Name() string {
+func (c *CpuModule) Name() string {
 	return "cpu"
 }

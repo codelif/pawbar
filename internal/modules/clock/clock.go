@@ -12,9 +12,8 @@ func New() modules.Module {
 }
 
 type Format int
-
 const (
-	FormatDefault = iota
+	FormatDefault Format = iota
 	FormatAlt1
 )
 
@@ -27,7 +26,6 @@ type ClockModule struct {
 func (c *ClockModule) Dependencies() []string {
 	return nil
 }
-
 
 func (c *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	c.receive = make(chan bool)
@@ -44,8 +42,8 @@ func (c *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 				case vaxis.Mouse:
 					c.handleMouseEvent(ev)
 				}
-
 			}
+
 		}
 	}()
 
@@ -61,7 +59,6 @@ func (c *ClockModule) timeFormatString() string {
 	}
 	return time.Now().Format("2006-01-02 15:04:05")
 }
-
 
 // this is a blocking function, only use it in event loop
 func (c *ClockModule) handleMouseEvent(ev vaxis.Mouse) {
