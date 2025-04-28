@@ -41,8 +41,9 @@ func mainLoop(cfgPath string) int {
 
 	screenEvents := vx.Events()
 
-  tui.Init(w, h, l , r)
+  tui.Init(w, h, l, r)
   tui.FullRender(win)
+  vx.Render()
 
 	isRunning := true
 	for isRunning {
