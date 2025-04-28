@@ -5,18 +5,18 @@ import (
 )
 
 var (
-  // vaxis.StyleDefault
-	// DEFAULT = tcell.StyleDefault
-	// URGENT  = DEFAULT.Foreground(tcell.ColorRed)
-	// WARNING = DEFAULT.Foreground(tcell.ColorYellow)
-	// GOOD    = DEFAULT.Foreground(tcell.ColorGreen)
-	// ACTIVE  = DEFAULT.Foreground(tcell.ColorWhite)
-	// COOL    = DEFAULT.Foreground(tcell.ColorLightBlue)
-	// SPECIAL = DEFAULT.Foreground(tcell.ColorDarkGreen).Background(tcell.ColorWhite)
+// vaxis.StyleDefault
+// DEFAULT = tcell.StyleDefault
+// URGENT  = DEFAULT.Foreground(tcell.ColorRed)
+// WARNING = DEFAULT.Foreground(tcell.ColorYellow)
+// GOOD    = DEFAULT.Foreground(tcell.ColorGreen)
+// ACTIVE  = DEFAULT.Foreground(tcell.ColorWhite)
+// COOL    = DEFAULT.Foreground(tcell.ColorLightBlue)
+// SPECIAL = DEFAULT.Foreground(tcell.ColorDarkGreen).Background(tcell.ColorWhite)
 )
 
 type EventCell struct {
-  C        vaxis.Cell
+	C        vaxis.Cell
 	Metadata string
 	Mod      Module
 }
@@ -33,3 +33,22 @@ type Event struct {
 	Cell       EventCell
 	VaxisEvent vaxis.Event
 }
+
+var (
+	ECSPACE = EventCell{
+		C: vaxis.Cell{Character: vaxis.Character{
+			Grapheme: " ",
+			Width:    1,
+		}},
+		Metadata: "",
+		Mod:      nil,
+	}
+	ECDOT = EventCell{
+		C: vaxis.Cell{Character: vaxis.Character{
+			Grapheme: ".",
+			Width:    1,
+		}},
+		Metadata: "",
+		Mod:      nil,
+	}
+)

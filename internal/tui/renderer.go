@@ -5,22 +5,6 @@ import (
 	"github.com/codelif/pawbar/internal/modules"
 )
 
-var SPACE = modules.EventCell{
-	C: vaxis.Cell{Character: vaxis.Character{
-		Grapheme: " ",
-		Width:    1,
-	}},
-	Metadata: "",
-	Mod:      nil,
-}
-var DOT = modules.EventCell{
-	C: vaxis.Cell{Character: vaxis.Character{
-		Grapheme: ".",
-		Width:    1,
-	}},
-	Metadata: "",
-	Mod:      nil,
-}
 
 var modMap = make(map[string][]modules.EventCell)
 var state []modules.EventCell
@@ -69,8 +53,8 @@ func refreshModMap(l, r []modules.Module) {
 
 func render(win vaxis.Window) {
 	for i := range width {
-		state[i] = SPACE
-		win.SetCell(i, 0, SPACE.C)
+		state[i] = modules.ECSPACE
+		win.SetCell(i, 0, modules.ECSPACE.C)
 	}
 
 	rightModulesLength := 0
@@ -97,8 +81,8 @@ outerLeft:
 
 			if leftModulesLength >= available-3 {
 				for range available - leftModulesLength {
-					state[leftModulesLength] = DOT
-					win.SetCell(leftModulesLength, 0, DOT.C)
+					state[leftModulesLength] = modules.ECDOT
+					win.SetCell(leftModulesLength, 0, modules.ECDOT.C)
 					leftModulesLength++
 				}
 				break outerLeft
