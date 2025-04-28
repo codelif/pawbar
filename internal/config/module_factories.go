@@ -4,7 +4,7 @@ import (
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/modules/backlight"
-	// "github.com/codelif/pawbar/internal/modules/battery"
+	"github.com/codelif/pawbar/internal/modules/battery"
 	"github.com/codelif/pawbar/internal/modules/clock"
 	"github.com/codelif/pawbar/internal/modules/cpu"
 	"github.com/codelif/pawbar/internal/modules/disk"
@@ -20,7 +20,7 @@ var moduleFactories = map[string]func() modules.Module{
 	"clock": clock.New,
 	// "hyprtitle": hyprtitle.New,
 	// "hyprws":    hyprws.New,
-	// "battery":   battery.New,
+	"battery":   battery.New,
 	"backlight": backlight.New,
 	"ram":       ram.New,
 	"cpu":       cpu.New,

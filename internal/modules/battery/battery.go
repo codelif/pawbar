@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/jochenvg/go-udev"
 )
@@ -142,19 +143,19 @@ func (b *Battery) Update() bool {
 
 func (b *Battery) Render() []modules.EventCell {
 	percent := (b.status["now"] * 100) / (b.status["full"])
-	s := modules.DEFAULT
+	s := vaxis.Style{}
 	icon := ' '
 	if b.status["mains"] == 1 {
 		icon = ICONS_CHARGING[(len(ICONS_CHARGING)-1)*percent/100]
 		if b.status["charging"] == 0 {
-			s = modules.GOOD
+			s.Foreground = modules.GOOD
 		}
 	} else {
 		icon = ICONS_DISCHARGING[(len(ICONS_DISCHARGING)-1)*percent/100]
 		if percent <= 15 {
-			s = modules.URGENT
+			s.Foreground = modules.URGENT
 		} else if percent <= 30 {
-			s = modules.WARNING
+			s.Foreground = modules.WARNING
 		}
 
 	}
@@ -163,11 +164,11 @@ func (b *Battery) Render() []modules.EventCell {
 	r := make([]modules.EventCell, len(rstring)+1)
 
 	i := 0
-	r[i] = modules.EventCell{C: icon, Style: s, Metadata: "", Mod: b}
+	r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(icon), Width: 1}, Style: s}, Mod: b}
 	i++
 
 	for _, ch := range rstring {
-		r[i] = modules.EventCell{C: ch, Style: s, Metadata: "", Mod: b}
+    r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}, Style: s}, Mod: b}
 		i++
 	}
 

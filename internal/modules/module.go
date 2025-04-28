@@ -5,14 +5,12 @@ import (
 )
 
 var (
-// vaxis.StyleDefault
-// DEFAULT = tcell.StyleDefault
-// URGENT  = DEFAULT.Foreground(tcell.ColorRed)
-// WARNING = DEFAULT.Foreground(tcell.ColorYellow)
-// GOOD    = DEFAULT.Foreground(tcell.ColorGreen)
-// ACTIVE  = DEFAULT.Foreground(tcell.ColorWhite)
-// COOL    = DEFAULT.Foreground(tcell.ColorLightBlue)
-// SPECIAL = DEFAULT.Foreground(tcell.ColorDarkGreen).Background(tcell.ColorWhite)
+	URGENT  = vaxis.IndexColor(9)
+	WARNING = vaxis.IndexColor(11)
+	GOOD    = vaxis.IndexColor(2)
+	ACTIVE  = vaxis.IndexColor(15)
+	COOL    = vaxis.RGBColor(173, 216, 230)
+	SPECIAL = vaxis.RGBColor(0, 100, 0)
 )
 
 type EventCell struct {
