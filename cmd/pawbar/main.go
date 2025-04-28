@@ -41,8 +41,8 @@ func mainLoop(cfgPath string) int {
 
 	screenEvents := vx.Events()
 
-	renderCells := make([]modules.EventCell, w)
-	tui.RenderBar(win, l, r, nil, renderCells)
+  tui.Init(w, h, l , r)
+  tui.FullRender(win)
 
 	isRunning := true
 	for isRunning {
@@ -54,8 +54,7 @@ func mainLoop(cfgPath string) int {
 				pw, ph = ev.XPixel, ev.YPixel
 				utils.Logger.Printf("Panel Size: %d, %d\n", pw, ph)
 			case vaxis.Redraw:
-				renderCells = make([]modules.EventCell, w)
-				tui.RenderBar(win, l, r, nil, renderCells)
+				tui.FullRender(win)
 				vx.Render()
 			case vaxis.Key:
 				if ev.String() == "Ctrl+c" {
@@ -68,7 +67,7 @@ func mainLoop(cfgPath string) int {
 				if y != 0 {
 					continue
 				}
-				c := renderCells[x]
+				c := tui.State()[x]
 				if c.Mod != nil {
 					_, send := c.Mod.Channels()
 					send <- modules.Event{Cell: c, VaxisEvent: ev}
@@ -79,7 +78,7 @@ func mainLoop(cfgPath string) int {
 			}
 		case m := <-modev:
 			utils.Logger.Println("Received render event from:", m.Name())
-			tui.RenderBar(win, l, r, m, renderCells)
+			tui.PartialRender(win, m)
 			vx.Render()
 		}
 
