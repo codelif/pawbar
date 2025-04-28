@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/services/hypr"
-	"github.com/gdamore/tcell/v2"
 )
 
 type WorkspaceState struct {
@@ -57,12 +57,9 @@ func (wsMod *HyprWorkspaceModule) Run() (<-chan bool, chan<- modules.Event, erro
 		for {
 			select {
 			case e := <-wsMod.send:
-				switch ev := e.TcellEvent.(type) {
-				case *tcell.EventMouse:
-					btns := ev.Buttons()
-					if btns == tcell.Button1 {
-						go hypr.GoToWorkspace(e.Cell.Metadata)
-					}
+				switch ev := e.VaxisEvent.(type) {
+				case vaxis.Mouse:
+					wsMod.handleMouseEvent(e, ev)
 				}
 			case h := <-wsMod.hevent:
 				if !wsMod.validateHyprEvent(h) {
@@ -76,6 +73,18 @@ func (wsMod *HyprWorkspaceModule) Run() (<-chan bool, chan<- modules.Event, erro
 	}()
 
 	return wsMod.receive, wsMod.send, nil
+}
+
+func (wsMod *HyprWorkspaceModule) handleMouseEvent(e modules.Event, ev vaxis.Mouse) {
+	if ev.EventType != vaxis.EventPress {
+		return
+	}
+
+	switch ev.Button {
+	case vaxis.MouseLeftButton:
+		go hypr.GoToWorkspace(e.Cell.Metadata)
+	}
+
 }
 
 func (wsMod *HyprWorkspaceModule) Channels() (<-chan bool, chan<- modules.Event) {
@@ -200,6 +209,11 @@ func (wsMod *HyprWorkspaceModule) handleHyprEvent(e hypr.HyprEvent) bool {
 	return true
 }
 
+var SPECIAL = vaxis.Style{Foreground: modules.ACTIVE, Background: modules.SPECIAL}
+var ACTIVE = vaxis.Style{Foreground: modules.BLACK, Background: modules.ACTIVE}
+var URGENT = vaxis.Style{Foreground: modules.BLACK, Background: modules.URGENT}
+
+
 func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
 	var wss []int
 	for k := range wsMod.ws {
@@ -216,13 +230,9 @@ func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
 		var t1 modules.EventCell
 		var t2 modules.EventCell
 		var t3 modules.EventCell
-		t1.C = ' '
-		t2.C = 'S'
-		t3.C = ' '
-
-		t1.Style = modules.SPECIAL.Reverse(true)
-		t2.Style = modules.SPECIAL.Reverse(true)
-		t3.Style = modules.SPECIAL.Reverse(true)
+		t1.C = modules.Cell(' ', SPECIAL)
+		t2.C = modules.Cell('S', SPECIAL)
+		t3.C = modules.Cell(' ', SPECIAL)
 
 		t1.Mod = wsMod
 		t2.Mod = wsMod
@@ -234,18 +244,19 @@ func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
 		var t1 modules.EventCell
 		var t2 modules.EventCell
 		var t3 modules.EventCell
-		t1.C = ' '
-		t2.C = rune(wsMod.ws[id].name[0])
-		t3.C = ' '
+
+		t1.C = modules.Cell(' ', vaxis.Style{})
+		t2.C = modules.Cell(rune(wsMod.ws[id].name[0]), vaxis.Style{})
+		t3.C = modules.Cell(' ', vaxis.Style{})
 		if wsMod.ws[id].active {
-			t1.Style = modules.ACTIVE.Reverse(true)
-			t2.Style = modules.ACTIVE.Reverse(true)
-			t3.Style = modules.ACTIVE.Reverse(true)
+			t1.C.Style = ACTIVE
+			t2.C.Style = ACTIVE
+			t3.C.Style = ACTIVE
 		}
 		if wsMod.ws[id].urgent {
-			t1.Style = modules.URGENT.Reverse(true)
-			t2.Style = modules.URGENT.Reverse(true)
-			t3.Style = modules.URGENT.Reverse(true)
+      t1.C.Style = URGENT
+      t2.C.Style = URGENT
+      t3.C.Style = URGENT
 		}
 
 		t1.Metadata = wsMod.ws[id].name

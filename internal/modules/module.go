@@ -5,6 +5,7 @@ import (
 )
 
 var (
+	BLACK   = vaxis.IndexColor(0)
 	URGENT  = vaxis.IndexColor(9)
 	WARNING = vaxis.IndexColor(11)
 	GOOD    = vaxis.IndexColor(2)
@@ -12,6 +13,10 @@ var (
 	COOL    = vaxis.RGBColor(173, 216, 230)
 	SPECIAL = vaxis.RGBColor(0, 100, 0)
 )
+
+func Cell(r rune, s vaxis.Style) vaxis.Cell{
+  return vaxis.Cell{Character: vaxis.Character{Grapheme: string(r), Width: 1}, Style: s}
+}
 
 type EventCell struct {
 	C        vaxis.Cell
