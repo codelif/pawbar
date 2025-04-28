@@ -17,7 +17,7 @@ panelOpts=(
 )
 kittyOpts=(
   allow_remote_control=yes
-  font_size=12
+  font_size=14
   cursor_trail=0
   paste_actions=replace-dangerous-control-codes
 )

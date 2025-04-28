@@ -29,9 +29,6 @@ func mainLoop(cfgPath string) int {
 	defer vx.Close() // no need for recover since its done in vaxis
 
 	win := vx.Window()
-	w, h := win.Size()
-	pw, ph := 0, 0
-	utils.Logger.Printf("Panel Size (cells): %d, %d\n", w, h)
 	win.Clear()
 
 	modev, l, r, err := config.InitModules(cfgPath)
@@ -41,9 +38,13 @@ func mainLoop(cfgPath string) int {
 
 	screenEvents := vx.Events()
 
-  tui.Init(w, h, l, r)
-  tui.FullRender(win)
-  vx.Render()
+	w, h := win.Size()
+	pw, ph := 0, 0
+	utils.Logger.Printf("Panel Size (cells): %d, %d\n", w, h)
+
+	tui.Init(w, h, l, r)
+	tui.FullRender(win)
+	vx.Render()
 
 	isRunning := true
 	for isRunning {

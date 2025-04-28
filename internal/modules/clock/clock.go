@@ -5,36 +5,33 @@ import (
 
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/modules"
-	"github.com/codelif/pawbar/internal/utils"
 )
 
 func New() modules.Module {
 	return &ClockModule{}
 }
 
+type Format int
+
+const (
+	FormatDefault = iota
+	FormatAlt1
+)
+
 type ClockModule struct {
 	receive chan bool
 	send    chan modules.Event
-	format  int
+	format  Format
 }
 
 func (c *ClockModule) Dependencies() []string {
 	return nil
 }
 
-func (c *ClockModule) Update(format int) (timeFormat string) {
-	if format == 2 {
-		time2 := time.Now().Format("Mon 15:04")
-		return time2
-	}
-	time1 := time.Now().Format("2006-01-02 15:04:05")
-	return time1
-}
 
 func (c *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	c.receive = make(chan bool)
 	c.send = make(chan modules.Event)
-	c.format = 1
 
 	go func() {
 		t := time.NewTicker(5 * time.Second)
@@ -45,13 +42,7 @@ func (c *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 			case e := <-c.send:
 				switch ev := e.VaxisEvent.(type) {
 				case vaxis.Mouse:
-					utils.Logger.Printf("clock: Got mouse event: %d, %d, Mod: %d, Button: %d\n", ev.Col, ev.Row, ev.Modifiers, ev.EventType)
-					// if c.format == 1 {
-					// 	c.format = 2
-					// } else {
-					// 	c.format = 1
-					// }
-					// c.receive <- true
+					c.handleMouseEvent(ev)
 				}
 
 			}
@@ -61,8 +52,39 @@ func (c *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	return c.receive, c.send, nil
 }
 
+func (c *ClockModule) timeFormatString() string {
+	switch c.format {
+	case FormatDefault:
+		return time.Now().Format("2006-01-02 15:04:05")
+	case FormatAlt1:
+		return time.Now().Format("Mon 15:04")
+	}
+	return time.Now().Format("2006-01-02 15:04:05")
+}
+
+
+// this is a blocking function, only use it in event loop
+func (c *ClockModule) handleMouseEvent(ev vaxis.Mouse) {
+	if ev.EventType == vaxis.EventPress {
+		switch ev.Button {
+		case vaxis.MouseLeftButton:
+			c.cycle()
+			c.receive <- true
+		}
+	}
+}
+
+func (c *ClockModule) cycle() {
+	switch c.format {
+	case FormatDefault:
+		c.format = FormatAlt1
+	case FormatAlt1:
+		c.format = FormatDefault
+	}
+}
+
 func (c *ClockModule) Render() []modules.EventCell {
-	rstring := c.Update(c.format)
+	rstring := c.timeFormatString()
 	r := make([]modules.EventCell, len(rstring))
 	for i, ch := range rstring {
 		r[i] = modules.EventCell{
