@@ -10,7 +10,7 @@ import (
 	"github.com/codelif/pawbar/internal/modules/disk"
 	"github.com/codelif/pawbar/internal/modules/hyprtitle"
 	"github.com/codelif/pawbar/internal/modules/hyprws"
-	// "github.com/codelif/pawbar/internal/modules/locale"
+	"github.com/codelif/pawbar/internal/modules/locale"
 	"github.com/codelif/pawbar/internal/modules/ram"
 	"github.com/codelif/pawbar/internal/modules/i3ws"
 	"github.com/codelif/pawbar/internal/modules/i3title"
@@ -24,7 +24,7 @@ var moduleFactories = map[string]func() modules.Module{
 	"backlight": backlight.New,
 	"ram":       ram.New,
 	"cpu":       cpu.New,
-	// "locale":    locale.New,
+	"locale":    locale.New,
 	"disk":      disk.New,
 	"i3ws":      i3ws.New,
 	"i3title":   i3title.New,

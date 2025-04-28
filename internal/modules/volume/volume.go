@@ -5,7 +5,6 @@ import (
 
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/services/pulse"
-	"github.com/gdamore/tcell/v2"
 )
 
 func New() modules.Module {
