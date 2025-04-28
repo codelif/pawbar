@@ -213,7 +213,6 @@ var SPECIAL = vaxis.Style{Foreground: modules.ACTIVE, Background: modules.SPECIA
 var ACTIVE = vaxis.Style{Foreground: modules.BLACK, Background: modules.ACTIVE}
 var URGENT = vaxis.Style{Foreground: modules.BLACK, Background: modules.URGENT}
 
-
 func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
 	var wss []int
 	for k := range wsMod.ws {
@@ -254,9 +253,9 @@ func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
 			t3.C.Style = ACTIVE
 		}
 		if wsMod.ws[id].urgent {
-      t1.C.Style = URGENT
-      t2.C.Style = URGENT
-      t3.C.Style = URGENT
+			t1.C.Style = URGENT
+			t2.C.Style = URGENT
+			t3.C.Style = URGENT
 		}
 
 		t1.Metadata = wsMod.ws[id].name

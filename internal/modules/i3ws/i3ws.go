@@ -1,12 +1,13 @@
 package i3ws
 
 import (
+	"errors"
 	"fmt"
 	"slices"
-	"errors"
+
+	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/services/i3"
-	"github.com/gdamore/tcell/v2"
 )
 
 type WorkspaceState struct {
@@ -59,12 +60,10 @@ go func() {
 	for {
 		select {
 		case e := <-wsMod.send:
-			switch ev := e.TcellEvent.(type) {
-			case *tcell.EventMouse:
-				if ev.Buttons() == tcell.Button1 {
-					go i3.GoToWorkspace(e.Cell.Metadata)
+				switch ev := e.VaxisEvent.(type) {
+				case vaxis.Mouse:
+					wsMod.handleMouseEvent(e, ev)
 				}
-			}
 
 		case raw := <-wsMod.ievent:
 			switch evt := raw.(type) {
@@ -83,6 +82,19 @@ go func() {
 	return wsMod.receive, wsMod.send, nil
 }
 
+func (wsMod *i3WorkspaceModule) handleMouseEvent(e modules.Event, ev vaxis.Mouse) {
+	if ev.EventType != vaxis.EventPress {
+		return
+	}
+
+	switch ev.Button {
+	case vaxis.MouseLeftButton:
+		go i3.GoToWorkspace(e.Cell.Metadata)
+	}
+
+}
+
+
 func (wsMod *i3WorkspaceModule) refreshWorkspaceCache() {
 	wsMod.ws = make(map[int]*WorkspaceState)
 
@@ -100,6 +112,12 @@ func (wsMod *i3WorkspaceModule) refreshWorkspaceCache() {
 	}
 }
 
+
+
+var SPECIAL = vaxis.Style{Foreground: modules.ACTIVE, Background: modules.SPECIAL}
+var ACTIVE = vaxis.Style{Foreground: modules.BLACK, Background: modules.ACTIVE}
+var URGENT = vaxis.Style{Foreground: modules.BLACK, Background: modules.URGENT}
+
 func (wsMod *i3WorkspaceModule) Render() []modules.EventCell {
 	var wss []int
 	for k := range wsMod.ws {
@@ -114,18 +132,18 @@ func (wsMod *i3WorkspaceModule) Render() []modules.EventCell {
 		var t1 modules.EventCell
 		var t2 modules.EventCell
 		var t3 modules.EventCell
-		t1.C = ' '
-		t2.C = rune(wsMod.ws[id].name[0])
-		t3.C = ' '
+		t1.C = modules.Cell(' ', vaxis.Style{})
+		t2.C = modules.Cell(rune(wsMod.ws[id].name[0]), vaxis.Style{})
+		t3.C = modules.Cell(' ', vaxis.Style{})
 		if wsMod.ws[id].active {
-			t1.Style = modules.ACTIVE.Reverse(true)
-			t2.Style = modules.ACTIVE.Reverse(true)
-			t3.Style = modules.ACTIVE.Reverse(true)
+			t1.C.Style = ACTIVE
+			t2.C.Style = ACTIVE
+			t3.C.Style = ACTIVE
 		}
 		if wsMod.ws[id].urgent && !wsMod.ws[id].active {
-			t1.Style = modules.URGENT.Reverse(true)
-			t2.Style = modules.URGENT.Reverse(true)
-			t3.Style = modules.URGENT.Reverse(true)
+			t1.C.Style = URGENT
+			t2.C.Style = URGENT
+			t3.C.Style = URGENT
 		}
 
 		t1.Metadata = wsMod.ws[id].name

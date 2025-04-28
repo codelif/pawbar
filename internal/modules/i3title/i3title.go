@@ -1,8 +1,10 @@
 package i3title
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
+
+	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/services/i3"
 )
@@ -81,16 +83,18 @@ func (it *i3Title) Run() (<-chan bool, chan<- modules.Event, error) {
 
 func (it *i3Title) Render() []modules.EventCell {
 	var r []modules.EventCell
+  styleBg := vaxis.Style{Foreground: modules.BLACK, Background: modules.COOL}
+
 	if it.instance != "" {
-		r = append(r, modules.EventCell{C: ' ', Style: modules.COOL.Reverse(true), Metadata: "", Mod: it})
+		r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: " ", Width: 1}, Style: styleBg}, Mod: it})
 		for _, ch := range it.instance {
-			r = append(r, modules.EventCell{C: ch, Style: modules.COOL.Reverse(true), Metadata: "", Mod: it})
+      r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}, Style: styleBg}, Mod: it})
 		}
-		r = append(r, modules.EventCell{C: ' ', Style: modules.COOL.Reverse(true), Metadata: "", Mod: it})
-		r = append(r, modules.EventCell{C: ' ', Style: modules.DEFAULT, Metadata: "", Mod: it})
+		r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: " ", Width: 1}, Style: styleBg}, Mod: it})
+		r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: " ", Width: 1}}, Mod: it})
 	}
 	for _, ch := range it.title {
-		r = append(r, modules.EventCell{C: ch, Style: modules.DEFAULT, Metadata: "", Mod: it})
+    r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: it})
 	}
 
 	return r
