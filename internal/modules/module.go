@@ -19,9 +19,10 @@ func Cell(r rune, s vaxis.Style) vaxis.Cell {
 }
 
 type EventCell struct {
-	C        vaxis.Cell
-	Metadata string
-	Mod      Module
+	C          vaxis.Cell
+	Metadata   string
+	Mod        Module
+	MouseShape vaxis.MouseShape
 }
 
 type Module interface {

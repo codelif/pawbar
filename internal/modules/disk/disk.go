@@ -108,10 +108,10 @@ func (d *DiskModule) Render() []modules.EventCell {
 	icon := ''
 	r := make([]modules.EventCell, len(rstring)+1)
 	i := 0
-	r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(icon), Width: 1}}, Mod: d}
+	r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(icon), Width: 1}}, Mod: d, MouseShape: vaxis.MouseShapeClickable}
 	i++
 	for _, ch := range rstring {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: d}
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: d, MouseShape: vaxis.MouseShapeClickable}
 		i++
 	}
 	return r

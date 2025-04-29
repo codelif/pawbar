@@ -94,10 +94,10 @@ func (r *RamModule) Render() []modules.EventCell {
 	r_ := make([]modules.EventCell, len(rstring)+1)
 	i := 0
 
-	r_[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(icon), Width: 1}}, Mod: r}
+	r_[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(icon), Width: 1}}, Mod: r, MouseShape: vaxis.MouseShapeClickable}
 	i++
 	for _, ch := range rstring {
-		r_[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: r}
+		r_[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: r, MouseShape: vaxis.MouseShapeClickable}
 		i++
 	}
 	return r_

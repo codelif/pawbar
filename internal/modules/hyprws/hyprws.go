@@ -234,18 +234,20 @@ func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
 	for _, id := range wss {
 		wsName := wsMod.ws[id].name
 		style := vaxis.Style{}
+		mouseShape := vaxis.MouseShapeClickable
 
 		if wsMod.ws[id].active {
 			style = ACTIVE
+			mouseShape = vaxis.MouseShapeDefault
 		} else if wsMod.ws[id].urgent {
 			style = URGENT
 		}
 
-		r = append(r, modules.EventCell{C: modules.Cell(' ', style), Metadata: wsName, Mod: wsMod})
+		r = append(r, modules.EventCell{C: modules.Cell(' ', style), Metadata: wsName, Mod: wsMod, MouseShape: mouseShape})
 		for _, ch := range wsName {
-			r = append(r, modules.EventCell{C: modules.Cell(ch, style), Metadata: wsName, Mod: wsMod})
+			r = append(r, modules.EventCell{C: modules.Cell(ch, style), Metadata: wsName, Mod: wsMod, MouseShape: mouseShape})
 		}
-		r = append(r, modules.EventCell{C: modules.Cell(' ', style), Metadata: wsName, Mod: wsMod})
+		r = append(r, modules.EventCell{C: modules.Cell(' ', style), Metadata: wsName, Mod: wsMod, MouseShape: mouseShape})
 
 	}
 

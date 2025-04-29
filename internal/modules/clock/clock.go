@@ -93,8 +93,9 @@ func (c *ClockModule) Render() []modules.EventCell {
 				},
 				Style: vaxis.Style{},
 			},
-			Metadata: "",
-			Mod:      c,
+			Metadata:   "",
+			Mod:        c,
+			MouseShape: vaxis.MouseShapeClickable,
 		}
 	}
 	return r

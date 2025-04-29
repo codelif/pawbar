@@ -40,7 +40,9 @@ func mainLoop(cfgPath string) int {
 
 	w, h := win.Size()
 	pw, ph := 0, 0
+	mouseX, mouseY := 0, 0
 	utils.Logger.Printf("Panel Size (cells): %d, %d\n", w, h)
+	mouseShape := vaxis.MouseShapeDefault
 
 	tui.Init(w, h, l, r)
 	tui.FullRender(win)
@@ -64,26 +66,55 @@ func mainLoop(cfgPath string) int {
 					vx.PostEvent(vaxis.QuitEvent{})
 				}
 			case vaxis.Mouse:
-				x, y := ev.Col, ev.Row
+				mouseX, mouseY = ev.Col, ev.Row
 
-				if y != 0 {
+				if mouseY != 0 {
 					continue
 				}
-				c := tui.State()[x]
+				c := tui.State()[mouseX]
 				if c.Mod != nil {
 					_, send := c.Mod.Channels()
 					send <- modules.Event{Cell: c, VaxisEvent: ev}
 				}
+				updateMouseShape(vx, c, &mouseShape, true)
 			case vaxis.QuitEvent:
 				utils.Logger.Printf("Received exit signal\n")
 				isRunning = false
 			}
 		case m := <-modev:
-			utils.Logger.Println("Received render event from:", m.Name())
+			utils.Logger.Println("render:", m.Name())
 			tui.PartialRender(win, m)
 			vx.Render()
 		}
 
 	}
 	return 0
+}
+
+func updateMouseShape(
+	vx *vaxis.Vaxis,
+	ec modules.EventCell,
+	old *vaxis.MouseShape,
+	render bool,
+) {
+
+	target := ec.MouseShape
+	if target == "" {
+		target = vaxis.MouseShapeDefault
+	}
+	if ec.Mod == nil {
+		target = vaxis.MouseShapeDefault
+	}
+
+	if *old == target {
+		return
+	}
+
+	*old = target
+	utils.Logger.Printf("mouse shape: %s\n", *old)
+	vx.SetMouseShape(target)
+
+	if render {
+		vx.Render()
+	}
 }
