@@ -54,7 +54,7 @@ func (c *CpuModule) Render() []modules.EventCell {
 	i++
 
 	for _, ch := range rstring {
-    r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: c}
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: c}
 		i++
 	}
 	return r

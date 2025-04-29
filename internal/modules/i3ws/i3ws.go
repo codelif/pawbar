@@ -12,7 +12,7 @@ import (
 
 type WorkspaceState struct {
 	id     int
-	name   string 
+	name   string
 	active bool
 	urgent bool
 }
@@ -22,11 +22,11 @@ func New() modules.Module {
 }
 
 type i3WorkspaceModule struct {
-	receive   chan bool
-	send      chan modules.Event
-	ievent    chan interface{}
-	ws        map[int]*WorkspaceState
-	activeId  int
+	receive  chan bool
+	send     chan modules.Event
+	ievent   chan interface{}
+	ws       map[int]*WorkspaceState
+	activeId int
 }
 
 func (wsMod *i3WorkspaceModule) Name() string {
@@ -56,28 +56,27 @@ func (wsMod *i3WorkspaceModule) Run() (<-chan bool, chan<- modules.Event, error)
 
 	wsMod.refreshWorkspaceCache()
 
-go func() {
-	for {
-		select {
-		case e := <-wsMod.send:
+	go func() {
+		for {
+			select {
+			case e := <-wsMod.send:
 				switch ev := e.VaxisEvent.(type) {
 				case vaxis.Mouse:
 					wsMod.handleMouseEvent(e, ev)
 				}
 
-		case raw := <-wsMod.ievent:
-			switch evt := raw.(type) {
-			case i3.I3Event:
-				fmt.Println("event of type", evt)		
-				wsMod.refreshWorkspaceCache()
-				wsMod.receive <- true
-			default:
-				fmt.Println("Unknown event type received on workspace ievent:", raw)
+			case raw := <-wsMod.ievent:
+				switch evt := raw.(type) {
+				case i3.I3Event:
+					fmt.Println("event of type", evt)
+					wsMod.refreshWorkspaceCache()
+					wsMod.receive <- true
+				default:
+					fmt.Println("Unknown event type received on workspace ievent:", raw)
+				}
 			}
 		}
-	}
-}()
-
+	}()
 
 	return wsMod.receive, wsMod.send, nil
 }
@@ -93,7 +92,6 @@ func (wsMod *i3WorkspaceModule) handleMouseEvent(e modules.Event, ev vaxis.Mouse
 	}
 
 }
-
 
 func (wsMod *i3WorkspaceModule) refreshWorkspaceCache() {
 	wsMod.ws = make(map[int]*WorkspaceState)
@@ -112,8 +110,6 @@ func (wsMod *i3WorkspaceModule) refreshWorkspaceCache() {
 	}
 }
 
-
-
 var SPECIAL = vaxis.Style{Foreground: modules.ACTIVE, Background: modules.SPECIAL}
 var ACTIVE = vaxis.Style{Foreground: modules.BLACK, Background: modules.ACTIVE}
 var URGENT = vaxis.Style{Foreground: modules.BLACK, Background: modules.URGENT}
@@ -121,7 +117,7 @@ var URGENT = vaxis.Style{Foreground: modules.BLACK, Background: modules.URGENT}
 func (wsMod *i3WorkspaceModule) Render() []modules.EventCell {
 	var wss []int
 	for k := range wsMod.ws {
-			wss = append(wss, k)
+		wss = append(wss, k)
 	}
 
 	slices.Sort(wss)
@@ -157,4 +153,3 @@ func (wsMod *i3WorkspaceModule) Render() []modules.EventCell {
 
 	return r
 }
-

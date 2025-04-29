@@ -16,6 +16,7 @@ const ipcMagic = "i3-ipc"
 const I3_IPC_MESSAGE_TYPE_SUBSCRIBE = 2
 const IPC_GET_WORKSPACES = 1
 const msgTypeGetTree = 4
+
 var event I3Event
 var wevent I3WEvent
 
@@ -25,31 +26,31 @@ type Service struct {
 }
 
 type WinInfo struct {
-		Class string `json:"class"`
-		Title string `json:"title"`
+	Class string `json:"class"`
+	Title string `json:"title"`
 }
 
 type WsInfo struct {
-		Focused         bool               `json:"focused"`
-		WindowInfo      WinInfo            `json:"window_properties"`
+	Focused    bool    `json:"focused"`
+	WindowInfo WinInfo `json:"window_properties"`
 }
 
 type WsIdentity struct {
-		Focused         bool              `json:"focused"`
-		Urgent          bool              `json:"urgent"`
-		ScratchpadState string            `json:"scratchpad_state"`
-		Name            string            `json:"name"`
-		Nodes           []WsInfo          `json:"nodes"`
+	Focused         bool     `json:"focused"`
+	Urgent          bool     `json:"urgent"`
+	ScratchpadState string   `json:"scratchpad_state"`
+	Name            string   `json:"name"`
+	Nodes           []WsInfo `json:"nodes"`
 }
 
 type I3Event struct {
-		Change  string     `json:"change"`
-		Current WsIdentity `json:"current"`
-		Old     WsIdentity `json:"old"`
+	Change  string     `json:"change"`
+	Current WsIdentity `json:"current"`
+	Old     WsIdentity `json:"old"`
 }
 
 type Workspace struct {
-	Id     int    `json:"num"`
+	Id      int    `json:"num"`
 	Name    string `json:"name"`
 	Focused bool   `json:"focused"`
 	Urgent  bool   `json:"urgent"`
@@ -57,14 +58,14 @@ type Workspace struct {
 
 type WindowProperties struct {
 	Instance string `json:"instance"`
-	Title string `json:"title"`
+	Title    string `json:"title"`
 }
 
 type I3Node struct {
-	Focused          bool               `json:"focused"`
-	Nodes            []I3Node           `json:"nodes"`
-	FloatingNodes    []I3Node           `json:"floating_nodes"`
-	WindowProperties *WindowProperties  `json:"window_properties"`
+	Focused          bool              `json:"focused"`
+	Nodes            []I3Node          `json:"nodes"`
+	FloatingNodes    []I3Node          `json:"floating_nodes"`
+	WindowProperties *WindowProperties `json:"window_properties"`
 }
 
 func Register() {
@@ -74,13 +75,12 @@ func Register() {
 type Container struct {
 	ID   int    `json:"id"`
 	Type string `json:"type"`
-	}
+}
 
 type I3WEvent struct {
 	Change    string    `json:"change"`
 	Container Container `json:"container"`
 }
-
 
 func GetService() (*Service, bool) {
 	if s, ok := services.ServiceRegistry["i3"].(*Service); ok {
@@ -108,7 +108,6 @@ func (i *Service) Stop() error {
 func (i *Service) RegisterChannel(event string, ch chan<- interface{}) {
 	i.callbacks[event] = append(i.callbacks[event], ch)
 }
-
 
 func connectToI3() (net.Conn, error) {
 	sockPath := os.Getenv("I3SOCK")
@@ -158,28 +157,28 @@ func readI3Ack(conn net.Conn) (string, error) {
 	return string(ackPayload), nil
 }
 
-func readResponse(conn net.Conn) (uint32,[]byte, error) {
+func readResponse(conn net.Conn) (uint32, []byte, error) {
 	responseHeader := make([]byte, 14)
 	if _, err := io.ReadFull(conn, responseHeader); err != nil {
-		return 13,nil, fmt.Errorf("error reading response header: %v", err)
+		return 13, nil, fmt.Errorf("error reading response header: %v", err)
 	}
 	if string(responseHeader[:6]) != "i3-ipc" {
-		return 13,nil, fmt.Errorf("invalid response magic: expected '%s', got '%s'",ipcMagic , string(responseHeader[:6]))
+		return 13, nil, fmt.Errorf("invalid response magic: expected '%s', got '%s'", ipcMagic, string(responseHeader[:6]))
 	}
-	
+
 	payloadLength := binary.LittleEndian.Uint32(responseHeader[6:10])
 	payloadData := make([]byte, payloadLength)
 
-	responseType:= binary.LittleEndian.Uint32(responseHeader[10:14])
+	responseType := binary.LittleEndian.Uint32(responseHeader[10:14])
 
 	if _, err := io.ReadFull(conn, payloadData); err != nil {
-		return 13,nil, fmt.Errorf("error reading payload data: %v", err)
+		return 13, nil, fmt.Errorf("error reading payload data: %v", err)
 	}
 
-	return responseType,payloadData, nil
+	return responseType, payloadData, nil
 }
 
-func (i *Service) sockMsg(){
+func (i *Service) sockMsg() {
 
 	conn, err := connectToI3()
 	if err != nil {
@@ -199,7 +198,7 @@ func (i *Service) sockMsg(){
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	
+
 	ack, err := readI3Ack(conn)
 	if err != nil {
 		fmt.Println(err)
@@ -209,13 +208,13 @@ func (i *Service) sockMsg(){
 	fmt.Println("Subscription Acknowledgment:", ack)
 
 	for {
-		eventType,eventPayload, err := readResponse(conn)
+		eventType, eventPayload, err := readResponse(conn)
 		if err != nil {
 			fmt.Println("Error reading response:", err)
 			break
 		}
-		
-		switch eventType{
+
+		switch eventType {
 		case 0x80000000:
 			if err := json.Unmarshal(eventPayload, &event); err != nil {
 				fmt.Println("Error unmarshaling event:", err)
@@ -223,26 +222,26 @@ func (i *Service) sockMsg(){
 			}
 
 			if chans, ok := i.callbacks["workspaces"]; ok {
-					for _, ch := range chans {
+				for _, ch := range chans {
 					ch <- event
 				}
 			}
 		case 0x80000003:
 			if err := json.Unmarshal(eventPayload, &wevent); err != nil {
-			fmt.Println("Error unmarshaling event:", err)
-			continue
-		}
+				fmt.Println("Error unmarshaling event:", err)
+				continue
+			}
 
-		if chans, ok := i.callbacks["activeWindow"]; ok {
+			if chans, ok := i.callbacks["activeWindow"]; ok {
 				for _, ch := range chans {
-				ch <- wevent
+					ch <- wevent
+				}
 			}
 		}
 	}
 }
-}
 
-func GetWorkspaces() []Workspace{
+func GetWorkspaces() []Workspace {
 	conn, err := connectToI3()
 	if err != nil {
 		fmt.Println(err)
@@ -252,18 +251,18 @@ func GetWorkspaces() []Workspace{
 
 	payload := []byte("")
 
-	if err := sendI3Message(conn, IPC_GET_WORKSPACES,payload); err != nil {
+	if err := sendI3Message(conn, IPC_GET_WORKSPACES, payload); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	eventType,eventPayload, err := readResponse(conn)
+	eventType, eventPayload, err := readResponse(conn)
 	fmt.Println("event of type:", eventType)
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
-	
+
 	var workspaces []Workspace
 	if err = json.Unmarshal(eventPayload, &workspaces); err != nil {
 		fmt.Println("Error unmarshaling JSON:", err)
@@ -273,7 +272,7 @@ func GetWorkspaces() []Workspace{
 	return workspaces
 }
 
-func GoToWorkspace(name string){
+func GoToWorkspace(name string) {
 	cmd := exec.Command("i3-msg", "workspace", name)
 	if err := cmd.Run(); err != nil {
 		fmt.Printf("Error executing command: %v\n", err)
@@ -306,7 +305,7 @@ func GetTitleClass() (string, string) {
 		os.Exit(1)
 	}
 
-	eventType,eventPayload, err := readResponse(conn)
+	eventType, eventPayload, err := readResponse(conn)
 	fmt.Println("event of type:", eventType)
 	if err != nil {
 		fmt.Println(err)
@@ -323,7 +322,7 @@ func GetTitleClass() (string, string) {
 	var findFocused func(n *I3Node)
 	findFocused = func(n *I3Node) {
 		if focusedProps != nil {
-			return 
+			return
 		}
 		if n.Focused && n.WindowProperties != nil {
 			focusedProps = n.WindowProperties
@@ -344,4 +343,3 @@ func GetTitleClass() (string, string) {
 
 	return focusedProps.Instance, focusedProps.Title
 }
-

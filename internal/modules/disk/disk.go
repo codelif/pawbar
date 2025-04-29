@@ -71,14 +71,14 @@ func (d *DiskModule) handleMouseEvent(ev vaxis.Mouse) {
 
 	switch ev.Button {
 	case vaxis.MouseLeftButton:
-    d.format.toggleUnit()
-    d.receive <- true
+		d.format.toggleUnit()
+		d.receive <- true
 	case vaxis.MouseRightButton:
-    d.format.toggleFree()
-    d.receive <- true
-  case vaxis.MouseMiddleButton:
-    d.format = UsedPercent
-    d.receive <- true
+		d.format.toggleFree()
+		d.receive <- true
+	case vaxis.MouseMiddleButton:
+		d.format = UsedPercent
+		d.receive <- true
 	}
 
 }

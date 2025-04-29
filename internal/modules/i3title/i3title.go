@@ -14,12 +14,12 @@ func New() modules.Module {
 }
 
 type i3Title struct {
-	receive    chan bool
-	send       chan modules.Event
-	ievent     chan interface{}
-	ievent2    chan interface{}
-	instance   string
-	title      string
+	receive  chan bool
+	send     chan modules.Event
+	ievent   chan interface{}
+	ievent2  chan interface{}
+	instance string
+	title    string
 }
 
 func (it *i3Title) Dependencies() []string {
@@ -45,60 +45,57 @@ func (it *i3Title) Run() (<-chan bool, chan<- modules.Event, error) {
 	it.ievent = make(chan interface{})
 	it.ievent2 = make(chan interface{})
 
-	it.instance, it.title= i3.GetTitleClass() 
+	it.instance, it.title = i3.GetTitleClass()
 
 	service.RegisterChannel("activeWindow", it.ievent)
 	service.RegisterChannel("workspaces", it.ievent2)
 
 	go func() {
-	for {
-		select {
-		case ev := <-it.ievent:
-			switch evt := ev.(type) {
-			case i3.I3WEvent:
-				// Handle window event
-				it.instance, it.title = i3.GetTitleClass()
-				it.receive <- true
-			default:
-				fmt.Println("Received unknown type on window event channel:", evt)
-			}
+		for {
+			select {
+			case ev := <-it.ievent:
+				switch evt := ev.(type) {
+				case i3.I3WEvent:
+					// Handle window event
+					it.instance, it.title = i3.GetTitleClass()
+					it.receive <- true
+				default:
+					fmt.Println("Received unknown type on window event channel:", evt)
+				}
 
-		case ev := <-it.ievent2:
-			switch evt := ev.(type) {
-			case i3.I3Event:
-				// Handle workspace event
-				it.instance, it.title = i3.GetTitleClass()
-				it.receive <- true
-			default:
-				fmt.Println("Received unknown type on workspace event channel:", evt)
-			}
+			case ev := <-it.ievent2:
+				switch evt := ev.(type) {
+				case i3.I3Event:
+					// Handle workspace event
+					it.instance, it.title = i3.GetTitleClass()
+					it.receive <- true
+				default:
+					fmt.Println("Received unknown type on workspace event channel:", evt)
+				}
 
-		case <-it.send:	
+			case <-it.send:
+			}
 		}
-	}
-}()
+	}()
 
 	return it.receive, it.send, nil
 }
 
 func (it *i3Title) Render() []modules.EventCell {
 	var r []modules.EventCell
-  styleBg := vaxis.Style{Foreground: modules.BLACK, Background: modules.COOL}
+	styleBg := vaxis.Style{Foreground: modules.BLACK, Background: modules.COOL}
 
 	if it.instance != "" {
 		r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: " ", Width: 1}, Style: styleBg}, Mod: it})
 		for _, ch := range it.instance {
-      r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}, Style: styleBg}, Mod: it})
+			r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}, Style: styleBg}, Mod: it})
 		}
 		r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: " ", Width: 1}, Style: styleBg}, Mod: it})
 		r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: " ", Width: 1}}, Mod: it})
 	}
 	for _, ch := range it.title {
-    r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: it})
+		r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: it})
 	}
 
 	return r
 }
-
-
-

@@ -14,8 +14,8 @@ var (
 	SPECIAL = vaxis.RGBColor(0, 100, 0)
 )
 
-func Cell(r rune, s vaxis.Style) vaxis.Cell{
-  return vaxis.Cell{Character: vaxis.Character{Grapheme: string(r), Width: 1}, Style: s}
+func Cell(r rune, s vaxis.Style) vaxis.Cell {
+	return vaxis.Cell{Character: vaxis.Character{Grapheme: string(r), Width: 1}, Style: s}
 }
 
 type EventCell struct {

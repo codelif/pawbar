@@ -102,7 +102,7 @@ func (l *LocaleModule) Render() []modules.EventCell {
 	}
 	r := make([]modules.EventCell, len(rstring))
 	for i, ch := range rstring {
-    r[i] = modules.EventCell{C: modules.Cell(ch, vaxis.Style{}), Mod: l}
+		r[i] = modules.EventCell{C: modules.Cell(ch, vaxis.Style{}), Mod: l}
 	}
 
 	return r

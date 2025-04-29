@@ -5,7 +5,6 @@ import (
 	"github.com/codelif/pawbar/internal/modules"
 )
 
-
 var modMap = make(map[string][]modules.EventCell)
 var state []modules.EventCell
 var leftModules []modules.Module
@@ -37,7 +36,7 @@ func Resize(w, h int) {
 
 func FullRender(win vaxis.Window) {
 	refreshModMap(leftModules, rightModules)
-  render(win)
+	render(win)
 }
 
 func PartialRender(win vaxis.Window, m modules.Module) {

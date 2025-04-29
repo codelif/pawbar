@@ -197,7 +197,7 @@ func (b *Backlight) Render() []modules.EventCell {
 	i++
 
 	for _, ch := range rstring {
-    r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: b}
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: b}
 		i++
 	}
 	return r

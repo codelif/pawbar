@@ -168,7 +168,7 @@ func (b *Battery) Render() []modules.EventCell {
 	i++
 
 	for _, ch := range rstring {
-    r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}, Style: s}, Mod: b}
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}, Style: s}, Mod: b}
 		i++
 	}
 

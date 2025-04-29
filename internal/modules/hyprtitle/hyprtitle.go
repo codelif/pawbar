@@ -63,18 +63,18 @@ func (hyprtitle *HyprTitle) Run() (<-chan bool, chan<- modules.Event, error) {
 func (hyprtitle *HyprTitle) Render() []modules.EventCell {
 	var r []modules.EventCell
 
-  styleBg := vaxis.Style{Foreground: modules.BLACK, Background: modules.COOL}
+	styleBg := vaxis.Style{Foreground: modules.BLACK, Background: modules.COOL}
 
 	if hyprtitle.class != "" {
 		r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: " ", Width: 1}, Style: styleBg}, Mod: hyprtitle})
 		for _, ch := range hyprtitle.class {
-      r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}, Style: styleBg}, Mod: hyprtitle})
+			r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}, Style: styleBg}, Mod: hyprtitle})
 		}
 		r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: " ", Width: 1}, Style: styleBg}, Mod: hyprtitle})
 		r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: " ", Width: 1}}, Mod: hyprtitle})
 	}
 	for _, ch := range hyprtitle.title {
-    r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: hyprtitle})
+		r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: hyprtitle})
 	}
 
 	return r

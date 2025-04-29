@@ -12,6 +12,7 @@ func New() modules.Module {
 }
 
 type Format int
+
 const (
 	FormatDefault Format = iota
 	FormatAlt1
