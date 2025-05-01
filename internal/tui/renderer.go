@@ -78,10 +78,10 @@ outerLeft:
 	for _, mod := range leftModules {
 		for _, c := range modMap[mod.Name()] {
 
-			if leftModulesLength >= available-3 {
+			if leftModulesLength >= available-1 {
 				for range available - leftModulesLength {
-					state[leftModulesLength] = modules.ECDOT
-					win.SetCell(leftModulesLength, 0, modules.ECDOT.C)
+          state[leftModulesLength] = modules.EventCell{C:modules.Cell('…', vaxis.Style{}), Mod: nil}
+					win.SetCell(leftModulesLength, 0, state[leftModulesLength].C)
 					leftModulesLength++
 				}
 				break outerLeft
