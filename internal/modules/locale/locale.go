@@ -100,9 +100,11 @@ func (l *LocaleModule) Render() []modules.EventCell {
 	if err != nil {
 		return nil
 	}
-	r := make([]modules.EventCell, len(rstring))
-	for i, ch := range rstring {
-		r[i] = modules.EventCell{C: modules.Cell(ch, vaxis.Style{}), Mod: l}
+
+	rch := vaxis.Characters(rstring)
+	r := make([]modules.EventCell, len(rch))
+	for i, ch := range rch {
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: l}
 	}
 
 	return r

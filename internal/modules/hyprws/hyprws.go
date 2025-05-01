@@ -226,9 +226,9 @@ func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
 	var r []modules.EventCell
 
 	if wsMod.isSpecialWorkspaceActive() {
-		r = append(r, modules.EventCell{C: modules.Cell(' ', SPECIAL), Metadata: wsMod.ws[wsMod.specialId].name, Mod: wsMod})
-		r = append(r, modules.EventCell{C: modules.Cell('S', SPECIAL), Metadata: wsMod.ws[wsMod.specialId].name, Mod: wsMod})
-		r = append(r, modules.EventCell{C: modules.Cell(' ', SPECIAL), Metadata: wsMod.ws[wsMod.specialId].name, Mod: wsMod})
+		for _, ch := range vaxis.Characters(" S ") {
+			r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch, Style: SPECIAL}, Metadata: wsMod.ws[wsMod.specialId].name, Mod: wsMod})
+		}
 	}
 
 	for _, id := range wss {
@@ -243,12 +243,9 @@ func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
 			style = URGENT
 		}
 
-		r = append(r, modules.EventCell{C: modules.Cell(' ', style), Metadata: wsName, Mod: wsMod, MouseShape: mouseShape})
-		for _, ch := range wsName {
-			r = append(r, modules.EventCell{C: modules.Cell(ch, style), Metadata: wsName, Mod: wsMod, MouseShape: mouseShape})
+		for _, ch := range vaxis.Characters(" " + wsName + " ") {
+			r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch, Style: style}, Metadata: wsName, Mod: wsMod, MouseShape: mouseShape})
 		}
-		r = append(r, modules.EventCell{C: modules.Cell(' ', style), Metadata: wsName, Mod: wsMod, MouseShape: mouseShape})
-
 	}
 
 	return r

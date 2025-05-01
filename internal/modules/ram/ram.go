@@ -90,16 +90,14 @@ func (r *RamModule) formatString() string {
 
 func (r *RamModule) Render() []modules.EventCell {
 	icon := '󰆌'
-	rstring := r.formatString()
-	r_ := make([]modules.EventCell, len(rstring)+1)
-	i := 0
 
-	r_[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(icon), Width: 1}}, Mod: r, MouseShape: vaxis.MouseShapeClickable}
-	i++
-	for _, ch := range rstring {
-		r_[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: r, MouseShape: vaxis.MouseShapeClickable}
-		i++
+	rch := vaxis.Characters(fmt.Sprintf("%c%s", icon, r.formatString()))
+	r_ := make([]modules.EventCell, len(rch))
+
+	for i, ch := range rch {
+		r_[i] = modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: r, MouseShape: vaxis.MouseShapeClickable}
 	}
+
 	return r_
 }
 

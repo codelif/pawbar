@@ -46,16 +46,13 @@ func (c *CpuModule) Render() []modules.EventCell {
 	if err != nil {
 		return nil
 	}
-	icon := ''
-	rstring := fmt.Sprintf(" %d%%", int(percent[0]))
-	r := make([]modules.EventCell, len(rstring)+1)
-	i := 0
-	r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(icon), Width: 1}}, Mod: c}
-	i++
 
-	for _, ch := range rstring {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: c}
-		i++
+	icon := ''
+	rch := vaxis.Characters(fmt.Sprintf("%c %d%%", icon, int(percent[0])))
+	r := make([]modules.EventCell, len(rch))
+
+	for i, ch := range rch {
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: c}
 	}
 	return r
 }

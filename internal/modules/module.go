@@ -15,7 +15,7 @@ var (
 )
 
 func Cell(r rune, s vaxis.Style) vaxis.Cell {
-	return vaxis.Cell{Character: vaxis.Character{Grapheme: string(r), Width: 1}, Style: s}
+	return vaxis.Cell{Character: vaxis.Characters(string(r))[0], Style: s}
 }
 
 type EventCell struct {

@@ -188,17 +188,11 @@ func (b *Backlight) Render() []modules.EventCell {
 
 	idx := (len(ICONS_BACKLIGHT) - 1) * percent / 100
 	icon := ICONS_BACKLIGHT[idx]
-	rstring := fmt.Sprintf(" %d%%", percent)
 
-	r := make([]modules.EventCell, len(rstring)+1)
-	i := 0
-
-	r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(icon), Width: 1}}, Mod: b}
-	i++
-
-	for _, ch := range rstring {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: b}
-		i++
+	rch := vaxis.Characters(fmt.Sprintf("%c %d%%", icon, percent))
+	r := make([]modules.EventCell, len(rch))
+	for i, ch := range rch {
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: b}
 	}
 	return r
 }

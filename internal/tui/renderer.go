@@ -69,6 +69,15 @@ outerRight:
 			win.SetCell(width-rightModulesLength-1, 0, c.C)
 			state[width-rightModulesLength-1] = c
 			rightModulesLength++
+
+			if c.C.Width > 1 {
+				emptyCell := vaxis.Cell{Style: c.C.Style}
+				for range c.C.Width - 1 {
+					win.SetCell(width-rightModulesLength-1, 0, emptyCell)
+					state[width-rightModulesLength-1] = modules.EventCell{C: emptyCell, Metadata: c.Metadata, Mod: c.Mod, MouseShape: c.MouseShape}
+					rightModulesLength++
+				}
+			}
 		}
 	}
 
@@ -90,6 +99,16 @@ outerLeft:
 			win.SetCell(leftModulesLength, 0, c.C)
 			state[leftModulesLength] = c
 			leftModulesLength++
+
+			if c.C.Width > 1 {
+				emptyCell := vaxis.Cell{Style: c.C.Style}
+				for range c.C.Width - 1 {
+					win.SetCell(leftModulesLength, 0, emptyCell)
+					state[leftModulesLength] = modules.EventCell{C: emptyCell, Metadata: c.Metadata, Mod: c.Mod, MouseShape: c.MouseShape}
+					leftModulesLength++
+				}
+			}
 		}
+
 	}
 }

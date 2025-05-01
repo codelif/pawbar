@@ -104,15 +104,12 @@ func (d *DiskModule) formatString() string {
 }
 
 func (d *DiskModule) Render() []modules.EventCell {
-	rstring := d.formatString()
 	icon := ''
-	r := make([]modules.EventCell, len(rstring)+1)
-	i := 0
-	r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(icon), Width: 1}}, Mod: d, MouseShape: vaxis.MouseShapeClickable}
-	i++
-	for _, ch := range rstring {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}}, Mod: d, MouseShape: vaxis.MouseShapeClickable}
-		i++
+	rch := vaxis.Characters(fmt.Sprintf("%c%s", icon, d.formatString()))
+	r := make([]modules.EventCell, len(rch))
+
+	for i, ch := range rch {
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: d, MouseShape: vaxis.MouseShapeClickable}
 	}
 	return r
 }

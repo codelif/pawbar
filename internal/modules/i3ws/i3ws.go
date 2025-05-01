@@ -125,30 +125,19 @@ func (wsMod *i3WorkspaceModule) Render() []modules.EventCell {
 	var r []modules.EventCell
 
 	for _, id := range wss {
-		var t1 modules.EventCell
-		var t2 modules.EventCell
-		var t3 modules.EventCell
-		t1.C = modules.Cell(' ', vaxis.Style{})
-		t2.C = modules.Cell(rune(wsMod.ws[id].name[0]), vaxis.Style{})
-		t3.C = modules.Cell(' ', vaxis.Style{})
+		wsName := wsMod.ws[id].name
+		style := vaxis.Style{}
+		mouseShape := vaxis.MouseShapeClickable
 		if wsMod.ws[id].active {
-			t1.C.Style = ACTIVE
-			t2.C.Style = ACTIVE
-			t3.C.Style = ACTIVE
-		}
-		if wsMod.ws[id].urgent && !wsMod.ws[id].active {
-			t1.C.Style = URGENT
-			t2.C.Style = URGENT
-			t3.C.Style = URGENT
+			style = ACTIVE
+			mouseShape = vaxis.MouseShapeDefault
+		} else if wsMod.ws[id].urgent {
+			style = URGENT
 		}
 
-		t1.Metadata = wsMod.ws[id].name
-		t2.Metadata = wsMod.ws[id].name
-		t3.Metadata = wsMod.ws[id].name
-		t1.Mod = wsMod
-		t2.Mod = wsMod
-		t3.Mod = wsMod
-		r = append(r, t1, t2, t3)
+		for _, ch := range vaxis.Characters(" " + wsName + " ") {
+			r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch, Style: style}, Metadata: wsName, Mod: wsMod, MouseShape: mouseShape})
+		}
 	}
 
 	return r

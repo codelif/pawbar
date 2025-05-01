@@ -82,16 +82,12 @@ func (c *ClockModule) cycle() {
 }
 
 func (c *ClockModule) Render() []modules.EventCell {
-	rstring := c.timeFormatString()
-	r := make([]modules.EventCell, len(rstring))
-	for i, ch := range rstring {
+	rch := vaxis.Characters(c.timeFormatString())
+	r := make([]modules.EventCell, len(rch))
+	for i, ch := range rch {
 		r[i] = modules.EventCell{
 			C: vaxis.Cell{
-				Character: vaxis.Character{
-					Grapheme: string(ch),
-					Width:    1,
-				},
-				Style: vaxis.Style{},
+				Character: ch,
 			},
 			Metadata:   "",
 			Mod:        c,

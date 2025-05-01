@@ -160,16 +160,11 @@ func (b *Battery) Render() []modules.EventCell {
 
 	}
 
-	rstring := fmt.Sprintf(" %d%%", percent)
-	r := make([]modules.EventCell, len(rstring)+1)
+	rch := vaxis.Characters(fmt.Sprintf("%c %d%%", icon, percent))
+	r := make([]modules.EventCell, len(rch))
 
-	i := 0
-	r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(icon), Width: 1}, Style: s}, Mod: b}
-	i++
-
-	for _, ch := range rstring {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: string(ch), Width: 1}, Style: s}, Mod: b}
-		i++
+	for i, ch := range rch {
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: b}
 	}
 
 	return r
