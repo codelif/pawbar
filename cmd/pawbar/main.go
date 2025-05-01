@@ -55,11 +55,11 @@ func mainLoop(cfgPath string) int {
 			switch ev := ev.(type) {
 			case vaxis.Resize:
 				pw, ph = ev.XPixel, ev.YPixel
-        win = vx.Window()
-        w, h = win.Size()
-        tui.Resize(w, h)
-        tui.FullRender(win)
-        vx.Render()
+				win = vx.Window()
+				w, h = win.Size()
+				tui.Resize(w, h)
+				tui.FullRender(win)
+				vx.Render()
 				utils.Logger.Printf("Panel Size: %d, %d\n", pw, ph)
 			case vaxis.Redraw:
 				tui.FullRender(win)

@@ -80,7 +80,7 @@ outerLeft:
 
 			if leftModulesLength >= available-1 {
 				for range available - leftModulesLength {
-          state[leftModulesLength] = modules.EventCell{C:modules.Cell('…', vaxis.Style{}), Mod: nil}
+					state[leftModulesLength] = modules.EventCell{C: modules.Cell('…', vaxis.Style{}), Mod: nil}
 					win.SetCell(leftModulesLength, 0, state[leftModulesLength].C)
 					leftModulesLength++
 				}
