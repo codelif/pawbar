@@ -51,6 +51,9 @@ func refreshModMap(l, r []modules.Module) {
 }
 
 func render(win vaxis.Window) {
+	for i := range width {
+		state[i] = modules.ECSPACE
+	}
 	win.Clear()
 
 	rightModulesLength := 0
