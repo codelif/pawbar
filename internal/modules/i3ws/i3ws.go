@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"sync"
 
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/modules"
@@ -27,6 +28,7 @@ type i3WorkspaceModule struct {
 	ievent   chan interface{}
 	ws       map[int]*WorkspaceState
 	activeId int
+	mu       sync.Mutex
 }
 
 func (wsMod *i3WorkspaceModule) Name() string {
@@ -92,6 +94,8 @@ func (wsMod *i3WorkspaceModule) handleMouseEvent(e modules.Event, ev vaxis.Mouse
 }
 
 func (wsMod *i3WorkspaceModule) refreshWorkspaceCache() {
+  wsMod.mu.Lock()
+  defer wsMod.mu.Unlock()
 	wsMod.ws = make(map[int]*WorkspaceState)
 
 	workspaces := i3.GetWorkspaces()
@@ -115,6 +119,8 @@ var (
 )
 
 func (wsMod *i3WorkspaceModule) Render() []modules.EventCell {
+  wsMod.mu.Lock()
+  defer wsMod.mu.Unlock()
 	var wss []int
 	for k := range wsMod.ws {
 		wss = append(wss, k)

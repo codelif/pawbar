@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/modules"
@@ -30,6 +31,7 @@ type HyprWorkspaceModule struct {
 	activeId  int
 	specialId int
 	special   bool
+	mu        sync.Mutex
 }
 
 func (wsMod *HyprWorkspaceModule) Name() string {
@@ -65,6 +67,7 @@ func (wsMod *HyprWorkspaceModule) Run() (<-chan bool, chan<- modules.Event, erro
 				if !wsMod.validateHyprEvent(h) {
 					wsMod.refreshWorkspaceCache()
 				}
+
 				if wsMod.handleHyprEvent(h) {
 					wsMod.receive <- true
 				}
@@ -91,6 +94,8 @@ func (wsMod *HyprWorkspaceModule) Channels() (<-chan bool, chan<- modules.Event)
 }
 
 func (wsMod *HyprWorkspaceModule) refreshWorkspaceCache() {
+	wsMod.mu.Lock()
+	defer wsMod.mu.Unlock()
 	wsMod.ws = make(map[int]*WorkspaceState)
 
 	workspaces := hypr.GetWorkspaces()
@@ -187,6 +192,8 @@ func (wsMod *HyprWorkspaceModule) setWorkspaceUrgent(address string) {
 }
 
 func (wsMod *HyprWorkspaceModule) handleHyprEvent(e hypr.HyprEvent) bool {
+	wsMod.mu.Lock()
+	defer wsMod.mu.Unlock()
 	switch e.Event {
 	case "workspacev2":
 		id, _ := strconv.Atoi(e.Data[:strings.IndexRune(e.Data, ',')])
@@ -215,6 +222,8 @@ var (
 )
 
 func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
+  wsMod.mu.Lock()
+  defer wsMod.mu.Unlock()
 	var wss []int
 	for k := range wsMod.ws {
 		if k > 0 {
