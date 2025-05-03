@@ -113,6 +113,8 @@ func (d *DiskModule) Render() []modules.EventCell {
 	s:=vaxis.Style{}
 	if usage>95 {
 		s.Foreground= modules.URGENT
+	}else if usage>90{
+		s.Foreground= modules.WARNING
 	}
 
 	icon := ''
