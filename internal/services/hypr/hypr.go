@@ -18,7 +18,6 @@ func Register() (*Service, bool) {
 	return nil, false
 }
 
-
 type Service struct {
 	callbacks map[string][]chan<- HyprEvent
 	running   bool

@@ -77,4 +77,3 @@ func runModuleEventLoop(mod modules.Module, rec <-chan bool, modev chan<- module
 		modev <- mod
 	}
 }
-

@@ -23,11 +23,11 @@ func Ensure(name string, factory func() Service) Service {
 func StartService(name string, s Service) {
 	prevService, ok := ServiceRegistry[name]
 	if ok {
-    utils.Logger.Printf("services: stopping '%s'\n", s.Name())
+		utils.Logger.Printf("services: stopping '%s'\n", s.Name())
 		prevService.Stop()
 	}
-  
-  utils.Logger.Printf("services: starting '%s'\n", s.Name())
+
+	utils.Logger.Printf("services: starting '%s'\n", s.Name())
 	ServiceRegistry[name] = s
 	s.Start()
 }
