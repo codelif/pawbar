@@ -83,9 +83,8 @@ func (d *DiskModule) handleMouseEvent(ev vaxis.Mouse) {
 
 }
 
-func (d *DiskModule) formatString() string {
-	du, err := disk.Usage("/")
-	if err != nil {
+func (d *DiskModule) formatString(du *disk.UsageStat) string {
+	if du==nil{
 		return ""
 	}
 
@@ -104,12 +103,26 @@ func (d *DiskModule) formatString() string {
 }
 
 func (d *DiskModule) Render() []modules.EventCell {
+
+	du, err := disk.Usage("/")
+	if err != nil {
+		return nil
+	}
+
+	usage:=int(du.UsedPercent)
+	s:=vaxis.Style{}
+	if usage>95 {
+		s.Foreground= modules.URGENT
+	}else if usage>90{
+		s.Foreground= modules.WARNING
+	}
+
 	icon := ''
-	rch := vaxis.Characters(fmt.Sprintf("%c%s", icon, d.formatString()))
+	rch := vaxis.Characters(fmt.Sprintf("%c%s", icon, d.formatString(du)))
 	r := make([]modules.EventCell, len(rch))
 
 	for i, ch := range rch {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: d, MouseShape: vaxis.MouseShapeClickable}
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: d, MouseShape: vaxis.MouseShapeClickable}
 	}
 	return r
 }
