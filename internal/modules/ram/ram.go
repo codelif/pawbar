@@ -23,9 +23,9 @@ const (
 func (f *Format) toggle() { *f ^= 1 }
 
 type RamModule struct {
-	receive      chan bool
-	send         chan modules.Event
-	format       Format
+	receive chan bool
+	send    chan modules.Event
+	format  Format
 }
 
 func (r *RamModule) Dependencies() []string {
@@ -91,12 +91,12 @@ func (r *RamModule) Render() []modules.EventCell {
 		return nil
 	}
 
-	thresValue:=int(v.UsedPercent)
+	thresValue := int(v.UsedPercent)
 	s := vaxis.Style{}
-	if(thresValue>90){
-		s.Foreground=modules.URGENT
-	}else if(thresValue>80){
-		s.Foreground=modules.WARNING
+	if thresValue > 90 {
+		s.Foreground = modules.URGENT
+	} else if thresValue > 80 {
+		s.Foreground = modules.WARNING
 	}
 
 	icon := '󰆌'

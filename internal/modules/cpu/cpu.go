@@ -14,11 +14,11 @@ func New() modules.Module {
 }
 
 type CpuModule struct {
-	receive   		chan bool
-	send      		chan modules.Event	
-  highStart     time.Time
-  highTriggered bool
-  required      time.Duration
+	receive       chan bool
+	send          chan modules.Event
+	highStart     time.Time
+	highTriggered bool
+	required      time.Duration
 }
 
 func (c *CpuModule) Dependencies() []string {
@@ -49,29 +49,29 @@ func (c *CpuModule) Render() []modules.EventCell {
 	if err != nil {
 		return nil
 	}
-	usage:=int(percent[0])
+	usage := int(percent[0])
 	const threshold = 90
 
 	if usage > threshold {
 
 		if c.highStart.IsZero() {
-				c.highStart = time.Now()
+			c.highStart = time.Now()
 		} else if !c.highTriggered && time.Since(c.highStart) >= c.required {
-				c.highTriggered = true
+			c.highTriggered = true
 		}
 
 	} else {
-			c.highStart = time.Time{}
-			c.highTriggered = false
+		c.highStart = time.Time{}
+		c.highTriggered = false
 	}
 
 	s := vaxis.Style{}
-	if(c.highTriggered){
-		s.Foreground=modules.URGENT
+	if c.highTriggered {
+		s.Foreground = modules.URGENT
 	}
 
 	icon := ''
-	rch := vaxis.Characters(fmt.Sprintf("%c %d%%", icon, usage ))
+	rch := vaxis.Characters(fmt.Sprintf("%c %d%%", icon, usage))
 	r := make([]modules.EventCell, len(rch))
 
 	for i, ch := range rch {

@@ -84,7 +84,7 @@ func (d *DiskModule) handleMouseEvent(ev vaxis.Mouse) {
 }
 
 func (d *DiskModule) formatString(du *disk.UsageStat) string {
-	if du==nil{
+	if du == nil {
 		return ""
 	}
 
@@ -109,12 +109,12 @@ func (d *DiskModule) Render() []modules.EventCell {
 		return nil
 	}
 
-	usage:=int(du.UsedPercent)
-	s:=vaxis.Style{}
-	if usage>95 {
-		s.Foreground= modules.URGENT
-	}else if usage>90{
-		s.Foreground= modules.WARNING
+	usage := int(du.UsedPercent)
+	s := vaxis.Style{}
+	if usage > 95 {
+		s.Foreground = modules.URGENT
+	} else if usage > 90 {
+		s.Foreground = modules.WARNING
 	}
 
 	icon := ''
