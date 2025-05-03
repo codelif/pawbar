@@ -43,7 +43,7 @@ func (mod *HyprWorkspaceModule) Dependencies() []string {
 }
 
 func (mod *HyprWorkspaceModule) Run() (<-chan bool, chan<- modules.Event, error) {
-	service, ok := hypr.GetService()
+	service, ok := hypr.Register()
 	if !ok {
 		return nil, nil, errors.New("Hypr service not available")
 	}

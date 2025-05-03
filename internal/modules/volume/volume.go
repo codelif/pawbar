@@ -25,7 +25,7 @@ func (mod *VolumeModule) Dependencies() []string {
 }
 
 func (mod *VolumeModule) Run() (<-chan bool, chan<- modules.Event, error) {
-	service, ok := pulse.GetService()
+	service, ok := pulse.Register()
 	if !ok {
 		return nil, nil, errors.New("pulse service not available")
 	}

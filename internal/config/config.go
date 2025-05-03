@@ -4,9 +4,6 @@ import (
 	"slices"
 
 	"github.com/codelif/pawbar/internal/modules"
-	"github.com/codelif/pawbar/internal/services/hypr"
-	"github.com/codelif/pawbar/internal/services/i3"
-	"github.com/codelif/pawbar/internal/services/pulse"
 	"github.com/codelif/pawbar/internal/utils"
 )
 
@@ -46,7 +43,7 @@ func InitModules(configPath string) (chan modules.Module, []modules.Module, []mo
 		return nil, nil, nil, err
 	}
 
-	runServices(append(tleft, tright...))
+	// runServices(append(tleft, tright...))
 	modev := make(chan modules.Module)
 
 	var left []modules.Module
@@ -81,23 +78,3 @@ func runModuleEventLoop(mod modules.Module, rec <-chan bool, modev chan<- module
 	}
 }
 
-func runServices(mods []modules.Module) {
-	neededServices := make(map[string]bool)
-	for _, mod := range mods {
-		for _, dep := range mod.Dependencies() {
-			neededServices[dep] = true
-		}
-	}
-
-	for dep := range neededServices {
-		switch dep {
-		case "hypr":
-			hypr.Register()
-		case "pulse":
-			pulse.Register()
-		case "i3":
-			i3.Register()
-		default:
-		}
-	}
-}

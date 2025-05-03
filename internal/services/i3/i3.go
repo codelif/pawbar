@@ -72,8 +72,11 @@ type I3Node struct {
 	WindowProperties *WindowProperties `json:"window_properties"`
 }
 
-func Register() {
-	services.StartService("i3", &Service{})
+func Register() (*Service, bool) {
+	if s, ok := services.Ensure("i3", func() services.Service { return &Service{} }).(*Service); ok {
+		return s, true
+	}
+	return nil, false
 }
 
 type Container struct {
@@ -84,13 +87,6 @@ type Container struct {
 type I3WEvent struct {
 	Change    string    `json:"change"`
 	Container Container `json:"container"`
-}
-
-func GetService() (*Service, bool) {
-	if s, ok := services.ServiceRegistry["i3"].(*Service); ok {
-		return s, true
-	}
-	return nil, false
 }
 
 func (i *Service) Name() string { return "i3" }

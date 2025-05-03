@@ -35,7 +35,7 @@ func (mod *i3Title) Name() string {
 }
 
 func (mod *i3Title) Run() (<-chan bool, chan<- modules.Event, error) {
-	service, ok := i3.GetService()
+	service, ok := i3.Register()
 	if !ok {
 		return nil, nil, errors.New("i3 service not available")
 	}

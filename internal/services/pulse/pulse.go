@@ -7,8 +7,9 @@ import (
 	"github.com/codelif/pawbar/internal/services"
 )
 
-func Register() {
-	services.StartService("pulse", &PulseService{})
+func Register() (*PulseService, bool) {
+	s, ok := services.Ensure("pulse", func() services.Service { return &PulseService{} }).(*PulseService)
+	return s, ok
 }
 
 func GetService() (*PulseService, bool) {

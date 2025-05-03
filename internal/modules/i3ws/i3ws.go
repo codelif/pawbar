@@ -44,7 +44,7 @@ func (wsMod *i3WorkspaceModule) Channels() (<-chan bool, chan<- modules.Event) {
 }
 
 func (wsMod *i3WorkspaceModule) Run() (<-chan bool, chan<- modules.Event, error) {
-	service, ok := i3.GetService()
+	service, ok := i3.Register()
 	if !ok {
 		return nil, nil, errors.New("i3 service not available")
 	}

@@ -11,16 +11,13 @@ import (
 	"github.com/codelif/pawbar/internal/services"
 )
 
-func Register() {
-	services.StartService("hypr", &Service{})
-}
-
-func GetService() (*Service, bool) {
-	if s, ok := services.ServiceRegistry["hypr"].(*Service); ok {
+func Register() (*Service, bool) {
+	if s, ok := services.Ensure("hypr", func() services.Service { return &Service{} }).(*Service); ok {
 		return s, true
 	}
 	return nil, false
 }
+
 
 type Service struct {
 	callbacks map[string][]chan<- HyprEvent
