@@ -23,9 +23,9 @@ const (
 func (f *Format) toggle() { *f ^= 1 }
 
 type RamModule struct {
-	receive chan bool
-	send    chan modules.Event
-	format  Format
+	receive      chan bool
+	send         chan modules.Event
+	format       Format
 }
 
 func (r *RamModule) Dependencies() []string {
@@ -35,7 +35,6 @@ func (r *RamModule) Dependencies() []string {
 func (r *RamModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	r.receive = make(chan bool)
 	r.send = make(chan modules.Event)
-	r.format = 1
 	go func() {
 		t := time.NewTicker(3 * time.Second)
 		defer t.Stop()
@@ -68,12 +67,10 @@ func (r *RamModule) handleMouseEvent(ev vaxis.Mouse) {
 	}
 }
 
-func (r *RamModule) formatString() string {
-	v, err := mem.VirtualMemory()
-	if err != nil {
+func (r *RamModule) formatString(v *mem.VirtualMemoryStat) string {
+	if v == nil {
 		return ""
 	}
-
 	switch r.format {
 	case FormatPercentage:
 		value := int(v.UsedPercent)
@@ -89,13 +86,26 @@ func (r *RamModule) formatString() string {
 }
 
 func (r *RamModule) Render() []modules.EventCell {
+	v, err := mem.VirtualMemory()
+	if err != nil {
+		return nil
+	}
+
+	thresValue:=int(v.UsedPercent)
+	s := vaxis.Style{}
+	if(thresValue>90){
+		s.Foreground=modules.URGENT
+	}else if(thresValue>80){
+		s.Foreground=modules.WARNING
+	}
+
 	icon := '󰆌'
 
-	rch := vaxis.Characters(fmt.Sprintf("%c%s", icon, r.formatString()))
+	rch := vaxis.Characters(fmt.Sprintf("%c%s", icon, r.formatString(v)))
 	r_ := make([]modules.EventCell, len(rch))
 
 	for i, ch := range rch {
-		r_[i] = modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: r, MouseShape: vaxis.MouseShapeClickable}
+		r_[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: r, MouseShape: vaxis.MouseShapeClickable}
 	}
 
 	return r_
