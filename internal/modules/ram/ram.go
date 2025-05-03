@@ -28,49 +28,49 @@ type RamModule struct {
 	format  Format
 }
 
-func (r *RamModule) Dependencies() []string {
+func (mod *RamModule) Dependencies() []string {
 	return nil
 }
 
-func (r *RamModule) Run() (<-chan bool, chan<- modules.Event, error) {
-	r.receive = make(chan bool)
-	r.send = make(chan modules.Event)
+func (mod *RamModule) Run() (<-chan bool, chan<- modules.Event, error) {
+	mod.receive = make(chan bool)
+	mod.send = make(chan modules.Event)
 	go func() {
 		t := time.NewTicker(3 * time.Second)
 		defer t.Stop()
 		for {
 			select {
 			case <-t.C:
-				r.receive <- true
+				mod.receive <- true
 
-			case e := <-r.send:
+			case e := <-mod.send:
 				switch ev := e.VaxisEvent.(type) {
 				case vaxis.Mouse:
-					r.handleMouseEvent(ev)
+					mod.handleMouseEvent(ev)
 				}
 			}
 		}
 	}()
 
-	return r.receive, r.send, nil
+	return mod.receive, mod.send, nil
 }
 
 // this is a blocking function, only use it in event loop
-func (r *RamModule) handleMouseEvent(ev vaxis.Mouse) {
+func (mod *RamModule) handleMouseEvent(ev vaxis.Mouse) {
 	if ev.EventType == vaxis.EventPress {
 		switch ev.Button {
 		case vaxis.MouseLeftButton:
-			r.format.toggle()
-			r.receive <- true
+			mod.format.toggle()
+			mod.receive <- true
 		}
 	}
 }
 
-func (r *RamModule) formatString(v *mem.VirtualMemoryStat) string {
+func (mod *RamModule) formatString(v *mem.VirtualMemoryStat) string {
 	if v == nil {
 		return ""
 	}
-	switch r.format {
+	switch mod.format {
 	case FormatPercentage:
 		value := int(v.UsedPercent)
 		rstring := fmt.Sprintf(" %d%%", value)
@@ -83,7 +83,7 @@ func (r *RamModule) formatString(v *mem.VirtualMemoryStat) string {
 	return ""
 }
 
-func (r *RamModule) Render() []modules.EventCell {
+func (mod *RamModule) Render() []modules.EventCell {
 	v, err := mem.VirtualMemory()
 	if err != nil {
 		return nil
@@ -99,20 +99,20 @@ func (r *RamModule) Render() []modules.EventCell {
 
 	icon := '󰆌'
 
-	rch := vaxis.Characters(fmt.Sprintf("%c%s", icon, r.formatString(v)))
+	rch := vaxis.Characters(fmt.Sprintf("%c%s", icon, mod.formatString(v)))
 	r_ := make([]modules.EventCell, len(rch))
 
 	for i, ch := range rch {
-		r_[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: r, MouseShape: vaxis.MouseShapeClickable}
+		r_[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: mod, MouseShape: vaxis.MouseShapeClickable}
 	}
 
 	return r_
 }
 
-func (r *RamModule) Channels() (<-chan bool, chan<- modules.Event) {
-	return r.receive, r.send
+func (mod *RamModule) Channels() (<-chan bool, chan<- modules.Event) {
+	return mod.receive, mod.send
 }
 
-func (r *RamModule) Name() string {
+func (mod *RamModule) Name() string {
 	return "ram"
 }

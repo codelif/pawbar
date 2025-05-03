@@ -16,40 +16,40 @@ type VolumeModule struct {
 	send    chan modules.Event
 }
 
-func (vol *VolumeModule) Name() string {
+func (mod *VolumeModule) Name() string {
 	return "hyprws"
 }
 
-func (vol *VolumeModule) Dependencies() []string {
+func (mod *VolumeModule) Dependencies() []string {
 	return []string{"hypr"}
 }
 
-func (vol *VolumeModule) Run() (<-chan bool, chan<- modules.Event, error) {
+func (mod *VolumeModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	service, ok := pulse.GetService()
 	if !ok {
 		return nil, nil, errors.New("pulse service not available")
 	}
 
-	vol.receive = make(chan bool)
-	vol.send = make(chan modules.Event)
+	mod.receive = make(chan bool)
+	mod.send = make(chan modules.Event)
 	pulse_ch := service.IssueListener()
 
 	go func() {
 		for {
 			select {
-			case <-vol.send:
+			case <-mod.send:
 			case c := <-pulse_ch:
 			}
 		}
 	}()
 
-	return vol.receive, vol.send, nil
+	return mod.receive, mod.send, nil
 }
 
-func (vol *VolumeModule) Channels() (<-chan bool, chan<- modules.Event) {
-	return vol.receive, vol.send
+func (mod *VolumeModule) Channels() (<-chan bool, chan<- modules.Event) {
+	return mod.receive, mod.send
 }
 
-func (vol *VolumeModule) Render() []modules.EventCell {
+func (mod *VolumeModule) Render() []modules.EventCell {
 	return []modules.EventCell{}
 }

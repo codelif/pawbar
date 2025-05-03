@@ -21,69 +21,69 @@ type HyprTitle struct {
 	title   string
 }
 
-func (ht *HyprTitle) Dependencies() []string {
+func (mod *HyprTitle) Dependencies() []string {
 	return []string{"hypr"}
 }
 
-func (hyprtitle *HyprTitle) Run() (<-chan bool, chan<- modules.Event, error) {
+func (mod *HyprTitle) Run() (<-chan bool, chan<- modules.Event, error) {
 	service, ok := hypr.GetService()
 	if !ok {
 		return nil, nil, errors.New("Hypr service not available")
 	}
 
-	hyprtitle.receive = make(chan bool)
-	hyprtitle.send = make(chan modules.Event)
-	hyprtitle.hevent = make(chan hypr.HyprEvent)
+	mod.receive = make(chan bool)
+	mod.send = make(chan modules.Event)
+	mod.hevent = make(chan hypr.HyprEvent)
 	activews := hypr.GetActiveWorkspace()
 	clients := hypr.GetClients()
 
-	hyprtitle.class = ""
+	mod.class = ""
 	for _, c := range clients {
 		if c.Address == activews.Lastwindow {
-			hyprtitle.class = c.Class
+			mod.class = c.Class
 		}
 	}
 
-	hyprtitle.title = hypr.GetActiveWorkspace().Lastwindowtitle
-	service.RegisterChannel("activewindow", hyprtitle.hevent)
+	mod.title = hypr.GetActiveWorkspace().Lastwindowtitle
+	service.RegisterChannel("activewindow", mod.hevent)
 
 	go func() {
 		for {
 			select {
-			case h := <-hyprtitle.hevent:
-				hyprtitle.class, hyprtitle.title, _ = strings.Cut(h.Data, ",")
-				hyprtitle.receive <- true
-			case <-hyprtitle.send:
+			case h := <-mod.hevent:
+				mod.class, mod.title, _ = strings.Cut(h.Data, ",")
+				mod.receive <- true
+			case <-mod.send:
 			}
 		}
 	}()
 
-	return hyprtitle.receive, hyprtitle.send, nil
+	return mod.receive, mod.send, nil
 }
 
-func (hyprtitle *HyprTitle) Render() []modules.EventCell {
+func (mod *HyprTitle) Render() []modules.EventCell {
 	var r []modules.EventCell
 
 	styleBg := vaxis.Style{Foreground: modules.BLACK, Background: modules.COOL}
 
-	if hyprtitle.class != "" {
-		rch := vaxis.Characters(" " + hyprtitle.class + " ")
+	if mod.class != "" {
+		rch := vaxis.Characters(" " + mod.class + " ")
 		for _, ch := range rch {
-			r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch, Style: styleBg}, Mod: hyprtitle})
+			r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch, Style: styleBg}, Mod: mod})
 		}
-		r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: " ", Width: 1}}, Mod: hyprtitle})
+		r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: " ", Width: 1}}, Mod: mod})
 	}
-	for _, ch := range vaxis.Characters(hyprtitle.title) {
-		r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: hyprtitle})
+	for _, ch := range vaxis.Characters(mod.title) {
+		r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: mod})
 	}
 
 	return r
 }
 
-func (hyprtitle *HyprTitle) Channels() (<-chan bool, chan<- modules.Event) {
-	return hyprtitle.receive, hyprtitle.send
+func (mod *HyprTitle) Channels() (<-chan bool, chan<- modules.Event) {
+	return mod.receive, mod.send
 }
 
-func (hyprtitle *HyprTitle) Name() string {
+func (mod *HyprTitle) Name() string {
 	return "hyprtitle"
 }

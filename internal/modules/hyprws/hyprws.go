@@ -34,51 +34,51 @@ type HyprWorkspaceModule struct {
 	mu        sync.Mutex
 }
 
-func (wsMod *HyprWorkspaceModule) Name() string {
+func (mod *HyprWorkspaceModule) Name() string {
 	return "hyprws"
 }
 
-func (wsMod *HyprWorkspaceModule) Dependencies() []string {
+func (mod *HyprWorkspaceModule) Dependencies() []string {
 	return []string{"hypr"}
 }
 
-func (wsMod *HyprWorkspaceModule) Run() (<-chan bool, chan<- modules.Event, error) {
+func (mod *HyprWorkspaceModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	service, ok := hypr.GetService()
 	if !ok {
 		return nil, nil, errors.New("Hypr service not available")
 	}
 
-	wsMod.receive = make(chan bool)
-	wsMod.send = make(chan modules.Event)
-	wsMod.hevent = make(chan hypr.HyprEvent)
+	mod.receive = make(chan bool)
+	mod.send = make(chan modules.Event)
+	mod.hevent = make(chan hypr.HyprEvent)
 	for _, e := range []string{"workspacev2", "focusedmonv2", "createworkspacev2", "destroyworkspacev2", "activespecial", "renameworkspace", "urgent"} {
-		service.RegisterChannel(e, wsMod.hevent)
+		service.RegisterChannel(e, mod.hevent)
 	}
-	wsMod.refreshWorkspaceCache()
+	mod.refreshWorkspaceCache()
 	go func() {
 		for {
 			select {
-			case e := <-wsMod.send:
+			case e := <-mod.send:
 				switch ev := e.VaxisEvent.(type) {
 				case vaxis.Mouse:
-					wsMod.handleMouseEvent(e, ev)
+					mod.handleMouseEvent(e, ev)
 				}
-			case h := <-wsMod.hevent:
-				if !wsMod.validateHyprEvent(h) {
-					wsMod.refreshWorkspaceCache()
+			case h := <-mod.hevent:
+				if !mod.validateHyprEvent(h) {
+					mod.refreshWorkspaceCache()
 				}
 
-				if wsMod.handleHyprEvent(h) {
-					wsMod.receive <- true
+				if mod.handleHyprEvent(h) {
+					mod.receive <- true
 				}
 			}
 		}
 	}()
 
-	return wsMod.receive, wsMod.send, nil
+	return mod.receive, mod.send, nil
 }
 
-func (wsMod *HyprWorkspaceModule) handleMouseEvent(e modules.Event, ev vaxis.Mouse) {
+func (mod *HyprWorkspaceModule) handleMouseEvent(e modules.Event, ev vaxis.Mouse) {
 	if ev.EventType != vaxis.EventPress {
 		return
 	}
@@ -89,126 +89,126 @@ func (wsMod *HyprWorkspaceModule) handleMouseEvent(e modules.Event, ev vaxis.Mou
 	}
 }
 
-func (wsMod *HyprWorkspaceModule) Channels() (<-chan bool, chan<- modules.Event) {
-	return wsMod.receive, wsMod.send
+func (mod *HyprWorkspaceModule) Channels() (<-chan bool, chan<- modules.Event) {
+	return mod.receive, mod.send
 }
 
-func (wsMod *HyprWorkspaceModule) refreshWorkspaceCache() {
-	wsMod.mu.Lock()
-	defer wsMod.mu.Unlock()
-	wsMod.ws = make(map[int]*WorkspaceState)
+func (mod *HyprWorkspaceModule) refreshWorkspaceCache() {
+	mod.mu.Lock()
+	defer mod.mu.Unlock()
+	mod.ws = make(map[int]*WorkspaceState)
 
 	workspaces := hypr.GetWorkspaces()
 	active := hypr.GetActiveWorkspace()
 
 	for _, ws := range workspaces {
-		wsMod.ws[ws.Id] = &WorkspaceState{ws.Id, ws.Name, ws.Id == active.Id, false}
+		mod.ws[ws.Id] = &WorkspaceState{ws.Id, ws.Name, ws.Id == active.Id, false}
 		if ws.Name == "special:magic" {
-			wsMod.specialId = ws.Id
-			wsMod.special = true
+			mod.specialId = ws.Id
+			mod.special = true
 		}
 		if ws.Id == active.Id {
-			wsMod.activeId = ws.Id
+			mod.activeId = ws.Id
 		}
 	}
 }
 
-func (wsMod *HyprWorkspaceModule) validateHyprEvent(e hypr.HyprEvent) bool {
+func (mod *HyprWorkspaceModule) validateHyprEvent(e hypr.HyprEvent) bool {
 	switch e.Event {
 	case "workspacev2":
 		id, _ := strconv.Atoi(e.Data[:strings.IndexRune(e.Data, ',')])
-		_, ok := wsMod.ws[id]
+		_, ok := mod.ws[id]
 		return ok
 
 	case "focusedmonv2":
 		id, _ := strconv.Atoi(e.Data[strings.LastIndex(e.Data, ",")+1:])
-		_, ok := wsMod.ws[id]
+		_, ok := mod.ws[id]
 		return ok
 
 	case "createworkspacev2":
 		id, _ := strconv.Atoi(e.Data[:strings.IndexRune(e.Data, ',')])
-		_, ok := wsMod.ws[id]
+		_, ok := mod.ws[id]
 		return !ok
 
 	case "destroyworkspacev2":
 		id, _ := strconv.Atoi(e.Data[:strings.IndexRune(e.Data, ',')])
-		_, ok := wsMod.ws[id]
+		_, ok := mod.ws[id]
 		return ok
 
 	case "renameworkspace":
 		id, _ := strconv.Atoi(e.Data[:strings.IndexRune(e.Data, ',')])
-		_, ok := wsMod.ws[id]
+		_, ok := mod.ws[id]
 		return ok
 	}
 
 	return true
 }
 
-func (wsMod *HyprWorkspaceModule) setActiveWorkspace(id int) {
-	wsMod.ws[wsMod.activeId].active = false
-	wsMod.ws[id].active = true
-	wsMod.ws[id].urgent = false
-	wsMod.activeId = id
+func (mod *HyprWorkspaceModule) setActiveWorkspace(id int) {
+	mod.ws[mod.activeId].active = false
+	mod.ws[id].active = true
+	mod.ws[id].urgent = false
+	mod.activeId = id
 }
 
-func (wsMod *HyprWorkspaceModule) createWorkspace(id int, name string) {
-	wsMod.ws[id] = &WorkspaceState{id, name, false, false}
+func (mod *HyprWorkspaceModule) createWorkspace(id int, name string) {
+	mod.ws[id] = &WorkspaceState{id, name, false, false}
 	if name == "special:magic" {
-		wsMod.specialId = id
-		wsMod.special = true
+		mod.specialId = id
+		mod.special = true
 	}
 }
 
-func (wsMod *HyprWorkspaceModule) destroyWorkspace(id int) {
-	delete(wsMod.ws, id)
-	if id == wsMod.specialId {
-		wsMod.special = false
+func (mod *HyprWorkspaceModule) destroyWorkspace(id int) {
+	delete(mod.ws, id)
+	if id == mod.specialId {
+		mod.special = false
 	}
 }
 
-func (wsMod *HyprWorkspaceModule) isSpecialWorkspaceActive() bool {
-	if wsMod.special {
-		return wsMod.ws[wsMod.specialId].active
+func (mod *HyprWorkspaceModule) isSpecialWorkspaceActive() bool {
+	if mod.special {
+		return mod.ws[mod.specialId].active
 	}
 	return false
 }
 
-func (wsMod *HyprWorkspaceModule) activateSpecialWorkspace(name string) {
+func (mod *HyprWorkspaceModule) activateSpecialWorkspace(name string) {
 	if name == "" {
-		wsMod.ws[wsMod.specialId].active = false
+		mod.ws[mod.specialId].active = false
 	} else {
-		wsMod.ws[wsMod.specialId].active = true
+		mod.ws[mod.specialId].active = true
 	}
 }
 
-func (wsMod *HyprWorkspaceModule) setWorkspaceUrgent(address string) {
+func (mod *HyprWorkspaceModule) setWorkspaceUrgent(address string) {
 	clients := hypr.GetClients()
 	for _, client := range clients {
 		client_address, _ := strings.CutPrefix(client.Address, "0x")
-		if client_address == address && client.Workspace.Id != wsMod.activeId {
-			wsMod.ws[client.Workspace.Id].urgent = true
+		if client_address == address && client.Workspace.Id != mod.activeId {
+			mod.ws[client.Workspace.Id].urgent = true
 		}
 	}
 }
 
-func (wsMod *HyprWorkspaceModule) handleHyprEvent(e hypr.HyprEvent) bool {
-	wsMod.mu.Lock()
-	defer wsMod.mu.Unlock()
+func (mod *HyprWorkspaceModule) handleHyprEvent(e hypr.HyprEvent) bool {
+	mod.mu.Lock()
+	defer mod.mu.Unlock()
 	switch e.Event {
 	case "workspacev2":
 		id, _ := strconv.Atoi(e.Data[:strings.IndexRune(e.Data, ',')])
-		wsMod.setActiveWorkspace(id)
+		mod.setActiveWorkspace(id)
 	case "createworkspacev2":
 		id_str, name, _ := strings.Cut(e.Data, ",")
 		id, _ := strconv.Atoi(id_str)
-		wsMod.createWorkspace(id, name)
+		mod.createWorkspace(id, name)
 	case "destroyworkspacev2":
 		id, _ := strconv.Atoi(e.Data[:strings.IndexRune(e.Data, ',')])
-		wsMod.destroyWorkspace(id)
+		mod.destroyWorkspace(id)
 	case "activespecial":
-		wsMod.activateSpecialWorkspace(e.Data[:strings.IndexRune(e.Data, ',')])
+		mod.activateSpecialWorkspace(e.Data[:strings.IndexRune(e.Data, ',')])
 	case "urgent":
-		wsMod.setWorkspaceUrgent(e.Data)
+		mod.setWorkspaceUrgent(e.Data)
 	default:
 		return false
 	}
@@ -221,11 +221,11 @@ var (
 	URGENT  = vaxis.Style{Foreground: modules.BLACK, Background: modules.URGENT}
 )
 
-func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
-  wsMod.mu.Lock()
-  defer wsMod.mu.Unlock()
+func (mod *HyprWorkspaceModule) Render() []modules.EventCell {
+	mod.mu.Lock()
+	defer mod.mu.Unlock()
 	var wss []int
-	for k := range wsMod.ws {
+	for k := range mod.ws {
 		if k > 0 {
 			wss = append(wss, k)
 		}
@@ -235,26 +235,26 @@ func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
 
 	var r []modules.EventCell
 
-	if wsMod.isSpecialWorkspaceActive() {
+	if mod.isSpecialWorkspaceActive() {
 		for _, ch := range vaxis.Characters(" S ") {
-			r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch, Style: SPECIAL}, Metadata: wsMod.ws[wsMod.specialId].name, Mod: wsMod})
+			r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch, Style: SPECIAL}, Metadata: mod.ws[mod.specialId].name, Mod: mod})
 		}
 	}
 
 	for _, id := range wss {
-		wsName := wsMod.ws[id].name
+		wsName := mod.ws[id].name
 		style := vaxis.Style{}
 		mouseShape := vaxis.MouseShapeClickable
 
-		if wsMod.ws[id].active {
+		if mod.ws[id].active {
 			style = ACTIVE
 			mouseShape = vaxis.MouseShapeDefault
-		} else if wsMod.ws[id].urgent {
+		} else if mod.ws[id].urgent {
 			style = URGENT
 		}
 
 		for _, ch := range vaxis.Characters(" " + wsName + " ") {
-			r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch, Style: style}, Metadata: wsName, Mod: wsMod, MouseShape: mouseShape})
+			r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch, Style: style}, Metadata: wsName, Mod: mod, MouseShape: mouseShape})
 		}
 	}
 

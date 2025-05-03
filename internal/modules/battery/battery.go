@@ -32,28 +32,28 @@ type Battery struct {
 	mains   string
 }
 
-func (b *Battery) Dependencies() []string {
+func (mod *Battery) Dependencies() []string {
 	return []string{}
 }
 
-func (b *Battery) Run() (<-chan bool, chan<- modules.Event, error) {
-	battery, mains, err := b.GetSupplies()
+func (mod *Battery) Run() (<-chan bool, chan<- modules.Event, error) {
+	battery, mains, err := mod.GetSupplies()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	b.send = make(chan modules.Event)
-	b.receive = make(chan bool)
-	b.status = make(map[string]int)
-	b.status["now"] = 0
-	b.status["full"] = 100
-	b.status["mains"] = 0
-	b.status["charging"] = 0
-	b.battery = battery
-	b.mains = mains
-	b.Update()
+	mod.send = make(chan modules.Event)
+	mod.receive = make(chan bool)
+	mod.status = make(map[string]int)
+	mod.status["now"] = 0
+	mod.status["full"] = 100
+	mod.status["mains"] = 0
+	mod.status["charging"] = 0
+	mod.battery = battery
+	mod.mains = mains
+	mod.Update()
 
-	uchan, err := b.Udev()
+	uchan, err := mod.Udev()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -63,24 +63,24 @@ func (b *Battery) Run() (<-chan bool, chan<- modules.Event, error) {
 		for {
 			select {
 			case <-t.C:
-				if b.Update() {
-					b.receive <- true
+				if mod.Update() {
+					mod.receive <- true
 				}
 			case <-uchan:
-				if b.Update() {
-					b.receive <- true
+				if mod.Update() {
+					mod.receive <- true
 				}
-			case <-b.send:
+			case <-mod.send:
 			}
 		}
 	}()
 
-	return b.receive, b.send, nil
+	return mod.receive, mod.send, nil
 }
 
-func (b *Battery) Update() bool {
+func (mod *Battery) Update() bool {
 	change := false
-	file, err := os.Open(filepath.Join(b.battery, "uevent"))
+	file, err := os.Open(filepath.Join(mod.battery, "uevent"))
 	if err != nil {
 		return false
 	}
@@ -109,19 +109,19 @@ func (b *Battery) Update() bool {
 		}
 	}
 
-	percent_before := (b.status["now"] * 100) / (b.status["full"])
+	percent_before := (mod.status["now"] * 100) / (mod.status["full"])
 	percent_now := (now * 100) / (full)
 
-	b.status["now"] = now
-	b.status["full"] = full
-	b.status["design"] = design
+	mod.status["now"] = now
+	mod.status["full"] = full
+	mod.status["design"] = design
 
 	change = percent_before != percent_now
 
-	m, _ := os.ReadFile(filepath.Join(b.mains, "online"))
+	m, _ := os.ReadFile(filepath.Join(mod.mains, "online"))
 	mains, _ = strconv.Atoi(strings.TrimSpace(string(m)))
-	if b.status["mains"] != mains {
-		b.status["mains"] = mains
+	if mod.status["mains"] != mains {
+		mod.status["mains"] = mains
 		change = true
 	}
 
@@ -133,21 +133,21 @@ func (b *Battery) Update() bool {
 		charging = 0
 	}
 
-	if b.status["charging"] != charging {
-		b.status["charging"] = charging
+	if mod.status["charging"] != charging {
+		mod.status["charging"] = charging
 		change = true
 	}
 
 	return change
 }
 
-func (b *Battery) Render() []modules.EventCell {
-	percent := (b.status["now"] * 100) / (b.status["full"])
+func (mod *Battery) Render() []modules.EventCell {
+	percent := (mod.status["now"] * 100) / (mod.status["full"])
 	s := vaxis.Style{}
 	icon := ' '
-	if b.status["mains"] == 1 {
+	if mod.status["mains"] == 1 {
 		icon = ICONS_CHARGING[(len(ICONS_CHARGING)-1)*percent/100]
-		if b.status["charging"] == 0 {
+		if mod.status["charging"] == 0 {
 			s.Foreground = modules.GOOD
 		}
 	} else {
@@ -164,21 +164,21 @@ func (b *Battery) Render() []modules.EventCell {
 	r := make([]modules.EventCell, len(rch))
 
 	for i, ch := range rch {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: b}
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: mod}
 	}
 
 	return r
 }
 
-func (b *Battery) Channels() (<-chan bool, chan<- modules.Event) {
-	return b.receive, b.send
+func (mod *Battery) Channels() (<-chan bool, chan<- modules.Event) {
+	return mod.receive, mod.send
 }
 
-func (b *Battery) Name() string {
+func (mod *Battery) Name() string {
 	return "battery"
 }
 
-func (b *Battery) Udev() (<-chan *udev.Device, error) {
+func (mod *Battery) Udev() (<-chan *udev.Device, error) {
 	u := udev.Udev{}
 	monitor := u.NewMonitorFromNetlink("udev")
 
@@ -211,7 +211,7 @@ func (b *Battery) Udev() (<-chan *udev.Device, error) {
 	return uchan, nil
 }
 
-func (b *Battery) GetSupplies() (string, string, error) {
+func (mod *Battery) GetSupplies() (string, string, error) {
 	basePath := "/sys/class/power_supply/"
 	entries, err := os.ReadDir(basePath)
 	if err != nil {

@@ -24,34 +24,34 @@ type ClockModule struct {
 	format  Format
 }
 
-func (c *ClockModule) Dependencies() []string {
+func (mod *ClockModule) Dependencies() []string {
 	return nil
 }
 
-func (c *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
-	c.receive = make(chan bool)
-	c.send = make(chan modules.Event)
+func (mod *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
+	mod.receive = make(chan bool)
+	mod.send = make(chan modules.Event)
 
 	go func() {
 		t := time.NewTicker(5 * time.Second)
 		for {
 			select {
 			case <-t.C:
-				c.receive <- true
-			case e := <-c.send:
+				mod.receive <- true
+			case e := <-mod.send:
 				switch ev := e.VaxisEvent.(type) {
 				case vaxis.Mouse:
-					c.handleMouseEvent(ev)
+					mod.handleMouseEvent(ev)
 				}
 			}
 		}
 	}()
 
-	return c.receive, c.send, nil
+	return mod.receive, mod.send, nil
 }
 
-func (c *ClockModule) timeFormatString() string {
-	switch c.format {
+func (mod *ClockModule) timeFormatString() string {
+	switch mod.format {
 	case FormatDefault:
 		return time.Now().Format("2006-01-02 15:04:05")
 	case FormatAlt1:
@@ -61,27 +61,27 @@ func (c *ClockModule) timeFormatString() string {
 }
 
 // this is a blocking function, only use it in event loop
-func (c *ClockModule) handleMouseEvent(ev vaxis.Mouse) {
+func (mod *ClockModule) handleMouseEvent(ev vaxis.Mouse) {
 	if ev.EventType == vaxis.EventPress {
 		switch ev.Button {
 		case vaxis.MouseLeftButton:
-			c.cycle()
-			c.receive <- true
+			mod.cycle()
+			mod.receive <- true
 		}
 	}
 }
 
-func (c *ClockModule) cycle() {
-	switch c.format {
+func (mod *ClockModule) cycle() {
+	switch mod.format {
 	case FormatDefault:
-		c.format = FormatAlt1
+		mod.format = FormatAlt1
 	case FormatAlt1:
-		c.format = FormatDefault
+		mod.format = FormatDefault
 	}
 }
 
-func (c *ClockModule) Render() []modules.EventCell {
-	rch := vaxis.Characters(c.timeFormatString())
+func (mod *ClockModule) Render() []modules.EventCell {
+	rch := vaxis.Characters(mod.timeFormatString())
 	r := make([]modules.EventCell, len(rch))
 	for i, ch := range rch {
 		r[i] = modules.EventCell{
@@ -89,17 +89,17 @@ func (c *ClockModule) Render() []modules.EventCell {
 				Character: ch,
 			},
 			Metadata:   "",
-			Mod:        c,
+			Mod:        mod,
 			MouseShape: vaxis.MouseShapeClickable,
 		}
 	}
 	return r
 }
 
-func (c *ClockModule) Channels() (<-chan bool, chan<- modules.Event) {
-	return c.receive, c.send
+func (mod *ClockModule) Channels() (<-chan bool, chan<- modules.Event) {
+	return mod.receive, mod.send
 }
 
-func (c *ClockModule) Name() string {
+func (mod *ClockModule) Name() string {
 	return "clock"
 }

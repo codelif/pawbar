@@ -29,11 +29,11 @@ func New() modules.Module {
 	return &Backlight{}
 }
 
-func (b *Backlight) Dependencies() []string {
+func (mod *Backlight) Dependencies() []string {
 	return []string{}
 }
 
-func (b *Backlight) Udev() (<-chan *udev.Device, error) {
+func (mod *Backlight) Udev() (<-chan *udev.Device, error) {
 	udevInstance := udev.Udev{}
 	monitor := udevInstance.NewMonitorFromNetlink("udev")
 
@@ -73,7 +73,7 @@ func (b *Backlight) Udev() (<-chan *udev.Device, error) {
 	return inchan, nil
 }
 
-func (b *Backlight) getBacklight() (string, error) {
+func (mod *Backlight) getBacklight() (string, error) {
 	basePath := "/sys/class/backlight/"
 	entries, err := os.ReadDir(basePath)
 	if err != nil {
@@ -124,34 +124,34 @@ func (b *Backlight) getBacklight() (string, error) {
 		}
 	}
 
-	b.Type = selected.devType
-	b.MaxBrightness = selected.maxBrightness
+	mod.Type = selected.devType
+	mod.MaxBrightness = selected.maxBrightness
 	return selected.name, nil
 }
 
-func (b *Backlight) Channels() (<-chan bool, chan<- modules.Event) {
-	return b.receive, b.send
+func (mod *Backlight) Channels() (<-chan bool, chan<- modules.Event) {
+	return mod.receive, mod.send
 }
 
-func (b *Backlight) Name() string {
+func (mod *Backlight) Name() string {
 	return "backlight"
 }
 
-func (b *Backlight) Update() {
-	if b.backlight == "" {
-		deviceName, err := b.getBacklight()
+func (mod *Backlight) Update() {
+	if mod.backlight == "" {
+		deviceName, err := mod.getBacklight()
 		if err != nil {
 			fmt.Println("Error getting backlight device:", err)
 			return
 		}
-		b.backlight = deviceName
+		mod.backlight = deviceName
 	}
 
-	if b.status == nil {
-		b.status = make(map[string]int)
+	if mod.status == nil {
+		mod.status = make(map[string]int)
 	}
 
-	base := filepath.Join("/sys/class/backlight", b.backlight)
+	base := filepath.Join("/sys/class/backlight", mod.backlight)
 	data, err := os.ReadFile(filepath.Join(base, "brightness"))
 	if err != nil {
 		fmt.Println("Error reading brightness:", err)
@@ -162,25 +162,25 @@ func (b *Backlight) Update() {
 		fmt.Println("Error converting brightness:", err)
 		return
 	}
-	b.status["now"] = now
-	b.currentBrightness = now
+	mod.status["now"] = now
+	mod.currentBrightness = now
 
-	if b.MaxBrightness == 0 {
+	if mod.MaxBrightness == 0 {
 		mdata, err := os.ReadFile(filepath.Join(base, "max_brightness"))
 		if err == nil {
 			maxVal, _ := strconv.Atoi(strings.TrimSpace(string(mdata)))
-			b.MaxBrightness = maxVal
+			mod.MaxBrightness = maxVal
 		}
 	}
-	b.status["max"] = b.MaxBrightness
+	mod.status["max"] = mod.MaxBrightness
 }
 
-func (b *Backlight) Render() []modules.EventCell {
-	if b.status == nil {
+func (mod *Backlight) Render() []modules.EventCell {
+	if mod.status == nil {
 		return nil
 	}
-	now := b.status["now"]
-	maxVal := b.status["max"]
+	now := mod.status["now"]
+	maxVal := mod.status["max"]
 	if maxVal == 0 {
 		return nil
 	}
@@ -192,18 +192,18 @@ func (b *Backlight) Render() []modules.EventCell {
 	rch := vaxis.Characters(fmt.Sprintf("%c %d%%", icon, percent))
 	r := make([]modules.EventCell, len(rch))
 	for i, ch := range rch {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: b}
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: mod}
 	}
 	return r
 }
 
-func (b *Backlight) Run() (<-chan bool, chan<- modules.Event, error) {
-	b.send = make(chan modules.Event)
-	b.receive = make(chan bool)
+func (mod *Backlight) Run() (<-chan bool, chan<- modules.Event, error) {
+	mod.send = make(chan modules.Event)
+	mod.receive = make(chan bool)
 
-	b.Update()
+	mod.Update()
 
-	uchan, err := b.Udev()
+	uchan, err := mod.Udev()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -212,12 +212,12 @@ func (b *Backlight) Run() (<-chan bool, chan<- modules.Event, error) {
 		for {
 			select {
 			case <-uchan:
-				b.Update()
-				b.receive <- true
-			case <-b.send:
+				mod.Update()
+				mod.receive <- true
+			case <-mod.send:
 			}
 		}
 	}()
 
-	return b.receive, b.send, nil
+	return mod.receive, mod.send, nil
 }

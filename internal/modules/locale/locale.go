@@ -18,22 +18,22 @@ type LocaleModule struct {
 	send    chan modules.Event
 }
 
-func (l *LocaleModule) Dependencies() []string {
+func (mod *LocaleModule) Dependencies() []string {
 	return nil
 }
 
-func (l *LocaleModule) splitLocale(locale string) (string, string) {
+func (mod *LocaleModule) splitLocale(locale string) (string, string) {
 	formattedLocale, _, _ := strings.Cut(locale, ".")
 	formattedLocale = strings.ReplaceAll(formattedLocale, "-", "_")
 	language, territory, _ := strings.Cut(formattedLocale, "_")
 	return language, territory
 }
 
-func (l *LocaleModule) splitLocales(locales string) []string {
+func (mod *LocaleModule) splitLocales(locales string) []string {
 	return strings.Split(locales, ":")
 }
 
-func (l *LocaleModule) getLangFromEnv() string {
+func (mod *LocaleModule) getLangFromEnv() string {
 	locale := ""
 	for _, env := range [...]string{"LC_ALL", "LC_MESSAGES", "LANG"} {
 		locale = os.Getenv(env)
@@ -53,22 +53,22 @@ func (l *LocaleModule) getLangFromEnv() string {
 	return locale
 }
 
-func (l *LocaleModule) getUnixLocales() []string {
-	locale := l.getLangFromEnv()
+func (mod *LocaleModule) getUnixLocales() []string {
+	locale := mod.getLangFromEnv()
 	if locale == "C" || locale == "POSIX" || len(locale) == 0 {
 		return nil
 	}
 
-	return l.splitLocales(locale)
+	return mod.splitLocales(locale)
 }
 
-func (l *LocaleModule) GetLocale() (string, error) {
-	unixLocales := l.getUnixLocales()
+func (mod *LocaleModule) GetLocale() (string, error) {
+	unixLocales := mod.getUnixLocales()
 	if unixLocales == nil {
 		return "", nil
 	}
 
-	language, region := l.splitLocale(unixLocales[0])
+	language, region := mod.splitLocale(unixLocales[0])
 	locale := language
 	if len(region) > 0 {
 		locale = strings.Join([]string{language, region}, "-")
@@ -77,26 +77,26 @@ func (l *LocaleModule) GetLocale() (string, error) {
 	return locale, nil
 }
 
-func (l *LocaleModule) Run() (<-chan bool, chan<- modules.Event, error) {
-	l.receive = make(chan bool)
-	l.send = make(chan modules.Event)
+func (mod *LocaleModule) Run() (<-chan bool, chan<- modules.Event, error) {
+	mod.receive = make(chan bool)
+	mod.send = make(chan modules.Event)
 
 	go func() {
 		t := time.NewTicker(7 * time.Second)
 		for {
 			select {
 			case <-t.C:
-				l.receive <- true
-			case <-l.send:
+				mod.receive <- true
+			case <-mod.send:
 			}
 		}
 	}()
 
-	return l.receive, l.send, nil
+	return mod.receive, mod.send, nil
 }
 
-func (l *LocaleModule) Render() []modules.EventCell {
-	rstring, err := l.GetLocale()
+func (mod *LocaleModule) Render() []modules.EventCell {
+	rstring, err := mod.GetLocale()
 	if err != nil {
 		return nil
 	}
@@ -104,16 +104,16 @@ func (l *LocaleModule) Render() []modules.EventCell {
 	rch := vaxis.Characters(rstring)
 	r := make([]modules.EventCell, len(rch))
 	for i, ch := range rch {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: l}
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: mod}
 	}
 
 	return r
 }
 
-func (l *LocaleModule) Channels() (<-chan bool, chan<- modules.Event) {
-	return l.receive, l.send
+func (mod *LocaleModule) Channels() (<-chan bool, chan<- modules.Event) {
+	return mod.receive, mod.send
 }
 
-func (l *LocaleModule) Name() string {
+func (mod *LocaleModule) Name() string {
 	return "locale"
 }

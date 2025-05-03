@@ -38,13 +38,13 @@ func New() modules.Module {
 	return &DiskModule{}
 }
 
-func (d *DiskModule) Dependencies() []string {
+func (mod *DiskModule) Dependencies() []string {
 	return nil
 }
 
-func (d *DiskModule) Run() (<-chan bool, chan<- modules.Event, error) {
-	d.receive = make(chan bool)
-	d.send = make(chan modules.Event)
+func (mod *DiskModule) Run() (<-chan bool, chan<- modules.Event, error) {
+	mod.receive = make(chan bool)
+	mod.send = make(chan modules.Event)
 
 	go func() {
 		t := time.NewTicker(7 * time.Second)
@@ -52,42 +52,42 @@ func (d *DiskModule) Run() (<-chan bool, chan<- modules.Event, error) {
 		for {
 			select {
 			case <-t.C:
-				d.receive <- true
-			case e := <-d.send:
+				mod.receive <- true
+			case e := <-mod.send:
 				switch ev := e.VaxisEvent.(type) {
 				case vaxis.Mouse:
-					d.handleMouseEvent(ev)
+					mod.handleMouseEvent(ev)
 				}
 			}
 		}
 	}()
-	return d.receive, d.send, nil
+	return mod.receive, mod.send, nil
 }
 
-func (d *DiskModule) handleMouseEvent(ev vaxis.Mouse) {
+func (mod *DiskModule) handleMouseEvent(ev vaxis.Mouse) {
 	if ev.EventType != vaxis.EventPress {
 		return
 	}
 
 	switch ev.Button {
 	case vaxis.MouseLeftButton:
-		d.format.toggleUnit()
-		d.receive <- true
+		mod.format.toggleUnit()
+		mod.receive <- true
 	case vaxis.MouseRightButton:
-		d.format.toggleFree()
-		d.receive <- true
+		mod.format.toggleFree()
+		mod.receive <- true
 	case vaxis.MouseMiddleButton:
-		d.format = UsedPercent
-		d.receive <- true
+		mod.format = UsedPercent
+		mod.receive <- true
 	}
 }
 
-func (d *DiskModule) formatString(du *disk.UsageStat) string {
+func (mod *DiskModule) formatString(du *disk.UsageStat) string {
 	if du == nil {
 		return ""
 	}
 
-	switch d.format {
+	switch mod.format {
 	case UsedPercent:
 		return fmt.Sprintf(" %d%%", int(du.UsedPercent))
 	case UsedAbsolute:
@@ -101,7 +101,7 @@ func (d *DiskModule) formatString(du *disk.UsageStat) string {
 	return ""
 }
 
-func (d *DiskModule) Render() []modules.EventCell {
+func (mod *DiskModule) Render() []modules.EventCell {
 	du, err := disk.Usage("/")
 	if err != nil {
 		return nil
@@ -116,19 +116,19 @@ func (d *DiskModule) Render() []modules.EventCell {
 	}
 
 	icon := ''
-	rch := vaxis.Characters(fmt.Sprintf("%c%s", icon, d.formatString(du)))
+	rch := vaxis.Characters(fmt.Sprintf("%c%s", icon, mod.formatString(du)))
 	r := make([]modules.EventCell, len(rch))
 
 	for i, ch := range rch {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: d, MouseShape: vaxis.MouseShapeClickable}
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: mod, MouseShape: vaxis.MouseShapeClickable}
 	}
 	return r
 }
 
-func (d *DiskModule) Channels() (<-chan bool, chan<- modules.Event) {
-	return d.receive, d.send
+func (mod *DiskModule) Channels() (<-chan bool, chan<- modules.Event) {
+	return mod.receive, mod.send
 }
 
-func (d *DiskModule) Name() string {
+func (mod *DiskModule) Name() string {
 	return "disk"
 }

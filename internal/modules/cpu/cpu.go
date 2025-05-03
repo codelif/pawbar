@@ -21,13 +21,13 @@ type CpuModule struct {
 	required      time.Duration
 }
 
-func (c *CpuModule) Dependencies() []string {
+func (mod *CpuModule) Dependencies() []string {
 	return nil
 }
 
-func (c *CpuModule) Run() (<-chan bool, chan<- modules.Event, error) {
-	c.receive = make(chan bool)
-	c.send = make(chan modules.Event)
+func (mod *CpuModule) Run() (<-chan bool, chan<- modules.Event, error) {
+	mod.receive = make(chan bool)
+	mod.send = make(chan modules.Event)
 
 	go func() {
 		t := time.NewTicker(3 * time.Second)
@@ -35,16 +35,16 @@ func (c *CpuModule) Run() (<-chan bool, chan<- modules.Event, error) {
 		for {
 			select {
 			case <-t.C:
-				c.receive <- true
-			case <-c.send:
+				mod.receive <- true
+			case <-mod.send:
 			}
 		}
 	}()
 
-	return c.receive, c.send, nil
+	return mod.receive, mod.send, nil
 }
 
-func (c *CpuModule) Render() []modules.EventCell {
+func (mod *CpuModule) Render() []modules.EventCell {
 	percent, err := cpu.Percent(0, false)
 	if err != nil {
 		return nil
@@ -53,18 +53,18 @@ func (c *CpuModule) Render() []modules.EventCell {
 	const threshold = 90
 
 	if usage > threshold {
-		if c.highStart.IsZero() {
-			c.highStart = time.Now()
-		} else if !c.highTriggered && time.Since(c.highStart) >= c.required {
-			c.highTriggered = true
+		if mod.highStart.IsZero() {
+			mod.highStart = time.Now()
+		} else if !mod.highTriggered && time.Since(mod.highStart) >= mod.required {
+			mod.highTriggered = true
 		}
 	} else {
-		c.highStart = time.Time{}
-		c.highTriggered = false
+		mod.highStart = time.Time{}
+		mod.highTriggered = false
 	}
 
 	s := vaxis.Style{}
-	if c.highTriggered {
+	if mod.highTriggered {
 		s.Foreground = modules.URGENT
 	}
 
@@ -73,15 +73,15 @@ func (c *CpuModule) Render() []modules.EventCell {
 	r := make([]modules.EventCell, len(rch))
 
 	for i, ch := range rch {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: c}
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: mod}
 	}
 	return r
 }
 
-func (c *CpuModule) Channels() (<-chan bool, chan<- modules.Event) {
-	return c.receive, c.send
+func (mod *CpuModule) Channels() (<-chan bool, chan<- modules.Event) {
+	return mod.receive, mod.send
 }
 
-func (c *CpuModule) Name() string {
+func (mod *CpuModule) Name() string {
 	return "cpu"
 }
