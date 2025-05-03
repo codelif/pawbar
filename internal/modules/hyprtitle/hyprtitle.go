@@ -24,6 +24,7 @@ type HyprTitle struct {
 func (ht *HyprTitle) Dependencies() []string {
 	return []string{"hypr"}
 }
+
 func (hyprtitle *HyprTitle) Run() (<-chan bool, chan<- modules.Event, error) {
 	service, ok := hypr.GetService()
 	if !ok {

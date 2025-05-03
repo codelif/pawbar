@@ -42,7 +42,6 @@ func (wsMod *i3WorkspaceModule) Channels() (<-chan bool, chan<- modules.Event) {
 }
 
 func (wsMod *i3WorkspaceModule) Run() (<-chan bool, chan<- modules.Event, error) {
-
 	service, ok := i3.GetService()
 	if !ok {
 		return nil, nil, errors.New("i3 service not available")
@@ -90,7 +89,6 @@ func (wsMod *i3WorkspaceModule) handleMouseEvent(e modules.Event, ev vaxis.Mouse
 	case vaxis.MouseLeftButton:
 		go i3.GoToWorkspace(e.Cell.Metadata)
 	}
-
 }
 
 func (wsMod *i3WorkspaceModule) refreshWorkspaceCache() {
@@ -110,9 +108,11 @@ func (wsMod *i3WorkspaceModule) refreshWorkspaceCache() {
 	}
 }
 
-var SPECIAL = vaxis.Style{Foreground: modules.ACTIVE, Background: modules.SPECIAL}
-var ACTIVE = vaxis.Style{Foreground: modules.BLACK, Background: modules.ACTIVE}
-var URGENT = vaxis.Style{Foreground: modules.BLACK, Background: modules.URGENT}
+var (
+	SPECIAL = vaxis.Style{Foreground: modules.ACTIVE, Background: modules.SPECIAL}
+	ACTIVE  = vaxis.Style{Foreground: modules.BLACK, Background: modules.ACTIVE}
+	URGENT  = vaxis.Style{Foreground: modules.BLACK, Background: modules.URGENT}
+)
 
 func (wsMod *i3WorkspaceModule) Render() []modules.EventCell {
 	var wss []int

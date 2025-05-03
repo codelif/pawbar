@@ -44,7 +44,6 @@ func (c *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 					c.handleMouseEvent(ev)
 				}
 			}
-
 		}
 	}()
 

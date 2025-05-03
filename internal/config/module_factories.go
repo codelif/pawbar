@@ -45,7 +45,8 @@ var moduleFactories = map[string]func() modules.Module{
 				{C: vaxis.Cell{
 					Character: vaxis.Character{
 						Grapheme: "│",
-						Width:    1},
+						Width:    1,
+					},
 				}},
 				{C: modules.ECSPACE.C},
 			}, nil,

@@ -6,6 +6,7 @@ package pulse
 #include <stdlib.h>
 */
 import "C"
+
 import (
 	"errors"
 	"unsafe"

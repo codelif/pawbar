@@ -84,7 +84,6 @@ func (wsMod *HyprWorkspaceModule) handleMouseEvent(e modules.Event, ev vaxis.Mou
 	case vaxis.MouseLeftButton:
 		go hypr.GoToWorkspace(e.Cell.Metadata)
 	}
-
 }
 
 func (wsMod *HyprWorkspaceModule) Channels() (<-chan bool, chan<- modules.Event) {
@@ -153,8 +152,8 @@ func (wsMod *HyprWorkspaceModule) createWorkspace(id int, name string) {
 		wsMod.specialId = id
 		wsMod.special = true
 	}
-
 }
+
 func (wsMod *HyprWorkspaceModule) destroyWorkspace(id int) {
 	delete(wsMod.ws, id)
 	if id == wsMod.specialId {
@@ -209,9 +208,11 @@ func (wsMod *HyprWorkspaceModule) handleHyprEvent(e hypr.HyprEvent) bool {
 	return true
 }
 
-var SPECIAL = vaxis.Style{Foreground: modules.ACTIVE, Background: modules.SPECIAL}
-var ACTIVE = vaxis.Style{Foreground: modules.BLACK, Background: modules.ACTIVE}
-var URGENT = vaxis.Style{Foreground: modules.BLACK, Background: modules.URGENT}
+var (
+	SPECIAL = vaxis.Style{Foreground: modules.ACTIVE, Background: modules.SPECIAL}
+	ACTIVE  = vaxis.Style{Foreground: modules.BLACK, Background: modules.ACTIVE}
+	URGENT  = vaxis.Style{Foreground: modules.BLACK, Background: modules.URGENT}
+)
 
 func (wsMod *HyprWorkspaceModule) Render() []modules.EventCell {
 	var wss []int

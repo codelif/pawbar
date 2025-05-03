@@ -12,13 +12,17 @@ import (
 	"github.com/codelif/pawbar/internal/services"
 )
 
-const ipcMagic = "i3-ipc"
-const I3_IPC_MESSAGE_TYPE_SUBSCRIBE = 2
-const IPC_GET_WORKSPACES = 1
-const msgTypeGetTree = 4
+const (
+	ipcMagic                      = "i3-ipc"
+	I3_IPC_MESSAGE_TYPE_SUBSCRIBE = 2
+	IPC_GET_WORKSPACES            = 1
+	msgTypeGetTree                = 4
+)
 
-var event I3Event
-var wevent I3WEvent
+var (
+	event  I3Event
+	wevent I3WEvent
+)
 
 type Service struct {
 	callbacks map[string][]chan<- interface{}
@@ -179,7 +183,6 @@ func readResponse(conn net.Conn) (uint32, []byte, error) {
 }
 
 func (i *Service) sockMsg() {
-
 	conn, err := connectToI3()
 	if err != nil {
 		fmt.Println(err)

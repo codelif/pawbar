@@ -38,6 +38,7 @@ func (h *Service) Start() error {
 	h.running = true
 	return nil
 }
+
 func (h *Service) Stop() error {
 	return nil
 }

@@ -53,13 +53,11 @@ func (c *CpuModule) Render() []modules.EventCell {
 	const threshold = 90
 
 	if usage > threshold {
-
 		if c.highStart.IsZero() {
 			c.highStart = time.Now()
 		} else if !c.highTriggered && time.Since(c.highStart) >= c.required {
 			c.highTriggered = true
 		}
-
 	} else {
 		c.highStart = time.Time{}
 		c.highTriggered = false

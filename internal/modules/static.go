@@ -20,7 +20,6 @@ func (sm *StaticModule) Render() []EventCell {
 
 func (sm *StaticModule) Run() (<-chan bool, chan<- Event, error) {
 	return nil, nil, nil
-
 }
 
 func (sm *StaticModule) Channels() (<-chan bool, chan<- Event) {

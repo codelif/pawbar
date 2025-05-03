@@ -12,8 +12,10 @@ import (
 	"time"
 )
 
-var NotifyIO NotificationWriter
-var Logger *log.Logger
+var (
+	NotifyIO NotificationWriter
+	Logger   *log.Logger
+)
 
 type NotificationWriter struct{}
 
@@ -53,7 +55,7 @@ func InitLogger() (*log.Logger, *os.File) {
 		}
 
 		device := os.Args[1]
-		Fd, err = os.OpenFile(device, os.O_WRONLY, 0620)
+		Fd, err = os.OpenFile(device, os.O_WRONLY, 0o620)
 		if err != nil {
 			Logger.Fatalln("There was an error opening the char device.")
 		}

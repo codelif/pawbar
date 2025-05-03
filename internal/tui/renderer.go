@@ -5,11 +5,13 @@ import (
 	"github.com/codelif/pawbar/internal/modules"
 )
 
-var modMap = make(map[string][]modules.EventCell)
-var state []modules.EventCell
-var leftModules []modules.Module
-var rightModules []modules.Module
-var width, height int
+var (
+	modMap        = make(map[string][]modules.EventCell)
+	state         []modules.EventCell
+	leftModules   []modules.Module
+	rightModules  []modules.Module
+	width, height int
+)
 
 func State() []modules.EventCell {
 	return state
@@ -109,6 +111,5 @@ outerLeft:
 				}
 			}
 		}
-
 	}
 }

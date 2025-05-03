@@ -90,7 +90,6 @@ func mainLoop(cfgPath string) int {
 			tui.PartialRender(win, m)
 			vx.Render()
 		}
-
 	}
 	return 0
 }
@@ -101,7 +100,6 @@ func updateMouseShape(
 	old *vaxis.MouseShape,
 	render bool,
 ) {
-
 	target := ec.MouseShape
 	if target == "" {
 		target = vaxis.MouseShapeDefault

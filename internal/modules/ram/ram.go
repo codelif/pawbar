@@ -50,7 +50,6 @@ func (r *RamModule) Run() (<-chan bool, chan<- modules.Event, error) {
 				}
 			}
 		}
-
 	}()
 
 	return r.receive, r.send, nil
@@ -82,7 +81,6 @@ func (r *RamModule) formatString(v *mem.VirtualMemoryStat) string {
 		return rstring
 	}
 	return ""
-
 }
 
 func (r *RamModule) Render() []modules.EventCell {

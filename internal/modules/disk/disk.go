@@ -80,7 +80,6 @@ func (d *DiskModule) handleMouseEvent(ev vaxis.Mouse) {
 		d.format = UsedPercent
 		d.receive <- true
 	}
-
 }
 
 func (d *DiskModule) formatString(du *disk.UsageStat) string {
@@ -103,7 +102,6 @@ func (d *DiskModule) formatString(du *disk.UsageStat) string {
 }
 
 func (d *DiskModule) Render() []modules.EventCell {
-
 	du, err := disk.Usage("/")
 	if err != nil {
 		return nil
