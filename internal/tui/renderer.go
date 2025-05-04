@@ -12,6 +12,7 @@ var (
 	middleModules   []modules.Module
 	rightModules    []modules.Module
 	width, height   int
+
 )
 
 func State() []modules.EventCell {
@@ -48,9 +49,11 @@ func PartialRender(win vaxis.Window, m modules.Module) {
 	render(win)
 }
 
+
 func refreshModMap(l,m,r []modules.Module) {
 	for _, mod := range append(append(l, m...), r...) {
 		modMap[mod] = mod.Render()
+
 	}
 }
 
