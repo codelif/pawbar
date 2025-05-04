@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	modMap        = make(map[string][]modules.EventCell)
+	modMap        = make(map[modules.Module][]modules.EventCell)
 	state         []modules.EventCell
 	leftModules   []modules.Module
 	rightModules  []modules.Module
@@ -42,13 +42,13 @@ func FullRender(win vaxis.Window) {
 }
 
 func PartialRender(win vaxis.Window, m modules.Module) {
-	modMap[m.Name()] = m.Render()
+	modMap[m] = m.Render()
 	render(win)
 }
 
 func refreshModMap(l, r []modules.Module) {
 	for _, m := range append(l, r...) {
-		modMap[m.Name()] = m.Render()
+		modMap[m] = m.Render()
 	}
 }
 
@@ -61,7 +61,7 @@ func render(win vaxis.Window) {
 	rightModulesLength := 0
 outerRight:
 	for _, mod := range rightModules {
-		modRender := modMap[mod.Name()]
+		modRender := modMap[mod]
 		modLength := len(modRender)
 		for i := range modLength {
 			if rightModulesLength >= width {
@@ -87,7 +87,7 @@ outerRight:
 	available := width - rightModulesLength
 outerLeft:
 	for _, mod := range leftModules {
-		for _, c := range modMap[mod.Name()] {
+		for _, c := range modMap[mod] {
 
 			if leftModulesLength >= available-1 {
 				for range available - leftModulesLength {
