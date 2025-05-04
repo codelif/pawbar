@@ -102,6 +102,9 @@ func (mod *Module) Render() []modules.EventCell {
 	for _, w := range ws {
 		wsName := w.Name
 		if w.Special {
+			if !w.Active {
+				continue
+			}
 			wsName = "S"
 		}
 
