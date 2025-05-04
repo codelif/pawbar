@@ -16,7 +16,8 @@ type Format int
 const (
 	FormatDefault Format = iota
 	FormatAlt1
-)
+	FormatAlt2
+	)
 
 type ClockModule struct {
 	receive chan bool
@@ -56,6 +57,9 @@ func (mod *ClockModule) timeFormatString() string {
 		return time.Now().Format("2006-01-02 15:04:05")
 	case FormatAlt1:
 		return time.Now().Format("Mon 15:04")
+	case FormatAlt2:
+		return time.Now().Format("2 January 2006 Monday 15:04")
+
 	}
 	return time.Now().Format("2006-01-02 15:04:05")
 }
@@ -76,7 +80,9 @@ func (mod *ClockModule) cycle() {
 	case FormatDefault:
 		mod.format = FormatAlt1
 	case FormatAlt1:
-		mod.format = FormatDefault
+		mod.format = FormatAlt2
+	case FormatAlt2:
+		mod.format= FormatDefault
 	}
 }
 
