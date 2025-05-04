@@ -98,6 +98,11 @@ func (i *Service) Start() error {
 	if i.running {
 		return nil
 	}
+  
+  if os.Getenv("I3SOCK") == "" {
+    return fmt.Errorf("i3 or sway is not running.")
+  }
+
 	i.callbacks = make(map[string][]chan<- interface{})
 	go i.sockMsg()
 	i.running = true
