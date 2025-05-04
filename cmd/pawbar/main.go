@@ -31,7 +31,7 @@ func mainLoop(cfgPath string) int {
 	win := vx.Window()
 	win.Clear()
 
-	modev, l, r, err := config.InitModules(cfgPath)
+	modev, l,m, r, err := config.InitModules(cfgPath)
 	if err != nil {
 		utils.Logger.Fatalln("Failed to init modules from config:", err)
 	}
@@ -44,7 +44,7 @@ func mainLoop(cfgPath string) int {
 	utils.Logger.Printf("Panel Size (cells): %d, %d\n", w, h)
 	mouseShape := vaxis.MouseShapeDefault
 
-	tui.Init(w, h, l, r)
+	tui.Init(w, h, l, m, r)
 	tui.FullRender(win)
 	vx.Render()
 
