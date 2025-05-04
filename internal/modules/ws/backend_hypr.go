@@ -53,7 +53,6 @@ func (b *hyprBackend) refreshWorkspaceCache() {
 	b.ws = make(map[int]*Workspace)
 
 	workspaces := hypr.GetWorkspaces()
-	// active := hypr.GetActiveWorkspace()
 
 	for _, w := range workspaces {
 		b.ws[w.Id] = &Workspace{
@@ -130,8 +129,6 @@ func (b *hyprBackend) handleEvent(e hypr.HyprEvent) bool {
 }
 
 func (b *hyprBackend) setActiveWorkspace(id int) {
-	// b.ws[mod.activeId].active = false
-
 	for _, w := range b.ws {
 		if !w.Special {
 			w.Active = false
@@ -140,7 +137,6 @@ func (b *hyprBackend) setActiveWorkspace(id int) {
 
 	b.ws[id].Active = true
 	b.ws[id].Urgent = false
-	// b.activeId = id
 }
 
 func (b *hyprBackend) createWorkspace(id int, name string) {
@@ -150,17 +146,10 @@ func (b *hyprBackend) createWorkspace(id int, name string) {
 		Active:  false,
 		Special: strings.HasPrefix(name, "special:"),
 	}
-	// if name == "special:magic" {
-	// 	mod.specialId = id
-	// 	mod.special = true
-	// }
 }
 
 func (b *hyprBackend) destroyWorkspace(id int) {
 	delete(b.ws, id)
-	// if id == b.specialId {
-	// 	b.special = false
-	// }
 }
 
 func (b *hyprBackend) activateSpecialWorkspace(name string) {
