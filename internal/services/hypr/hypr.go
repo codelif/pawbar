@@ -30,10 +30,10 @@ func (h *Service) Start() error {
 	if h.running {
 		return nil
 	}
-  
-  if os.Getenv("HYPRLAND_INSTANCE_SIGNATURE") == "" {
-    return fmt.Errorf("Hyprland is not running.")
-  }
+
+	if os.Getenv("HYPRLAND_INSTANCE_SIGNATURE") == "" {
+		return fmt.Errorf("Hyprland is not running.")
+	}
 
 	h.callbacks = make(map[string][]chan<- HyprEvent)
 	go h.run()

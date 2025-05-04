@@ -39,14 +39,14 @@ func (b *i3Backend) loop() {
 				b.instance, b.title = i3.GetTitleClass()
 				b.signal()
 			} else {
-        utils.Logger.Println("DEBUG: ws: i3: Unknown event on window event channel:", e)
+				utils.Logger.Println("DEBUG: ws: i3: Unknown event on window event channel:", e)
 			}
-    case e:= <-b.ev2:
+		case e := <-b.ev2:
 			if _, ok := e.(i3.I3Event); ok {
 				b.instance, b.title = i3.GetTitleClass()
 				b.signal()
 			} else {
-        utils.Logger.Println("DEBUG: ws: i3: Unknown event type on workspace event channel:", e)
+				utils.Logger.Println("DEBUG: ws: i3: Unknown event type on workspace event channel:", e)
 			}
 		}
 	}

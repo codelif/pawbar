@@ -98,10 +98,10 @@ func (i *Service) Start() error {
 	if i.running {
 		return nil
 	}
-  
-  if os.Getenv("I3SOCK") == "" {
-    return fmt.Errorf("i3 or sway is not running.")
-  }
+
+	if os.Getenv("I3SOCK") == "" {
+		return fmt.Errorf("i3 or sway is not running.")
+	}
 
 	i.callbacks = make(map[string][]chan<- interface{})
 	go i.sockMsg()
@@ -328,7 +328,7 @@ func GetTitleClass() (string, string) {
 	}
 
 	var focusedProps *WindowProperties
-  var appid, name string
+	var appid, name string
 
 	var findFocused func(n *I3Node)
 	findFocused = func(n *I3Node) {
@@ -336,8 +336,8 @@ func GetTitleClass() (string, string) {
 			return
 		}
 		if n.Focused && isSway {
-      appid = n.AppId
-      name = n.Name
+			appid = n.AppId
+			name = n.Name
 			return
 		}
 

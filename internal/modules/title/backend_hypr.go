@@ -39,11 +39,10 @@ func newHyprBackend(s *hypr.Service) backend {
 
 func (b *hyprBackend) loop() {
 	for e := range b.ev {
-    b.class, b.title, _ = strings.Cut(e.Data, ",")
-    b.signal()
+		b.class, b.title, _ = strings.Cut(e.Data, ",")
+		b.signal()
 	}
 }
-
 
 func (b *hyprBackend) signal() {
 	select {
@@ -52,8 +51,7 @@ func (b *hyprBackend) signal() {
 	}
 }
 
-
 func (b *hyprBackend) Window() Window {
-  return Window{Title: b.title, Class: b.class}
+	return Window{Title: b.title, Class: b.class}
 }
 func (b *hyprBackend) Events() <-chan struct{} { return b.sig }

@@ -62,6 +62,7 @@ func (mod *Module) Run() (<-chan bool, chan<- modules.Event, error) {
 
 	return mod.receive, mod.send, nil
 }
+
 func (mod *Module) handleMouseEvent(e modules.Event, ev vaxis.Mouse) {
 	if ev.EventType != vaxis.EventPress {
 		return

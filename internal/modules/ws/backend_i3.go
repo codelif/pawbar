@@ -41,7 +41,6 @@ func (b *i3Backend) loop() {
 		} else {
 			utils.Logger.Println("DEBUG: ws: i3: Unknown event type", e)
 		}
-
 	}
 }
 
