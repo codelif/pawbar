@@ -1,101 +1,51 @@
 package config
 
 import (
+	"os"
 	"slices"
 
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/utils"
+	"gopkg.in/yaml.v3"
 )
 
-func LoadModulesFromFile(configPath string) ([]modules.Module, []modules.Module,[]modules.Module, error) {
-	barConfig, err := LoadBarConfig(configPath)
-	if err != nil {
-		return nil, nil,nil, err
-	}
-
-	var left []modules.Module
-	for _, modName := range barConfig.Left {
-		factory, ok := moduleFactories[modName]
-		if !ok {
-			utils.Logger.Printf("Unknown module: '%s'\n", modName)
-			continue
-		}
-		left = append(left, factory())
-	}
-
-	var middle []modules.Module
-	for _, modName := range barConfig.Middle {
-		factory, ok := moduleFactories[modName]
-		if !ok {
-			utils.Logger.Printf("Unknown module: '%s'\n", modName)
-			continue
-		}
-		middle = append(middle, factory())
-	}
-
-	// Build right modules
-	var right []modules.Module
-	for _, modName := range barConfig.Right {
-		factory, ok := moduleFactories[modName]
-		if !ok {
-			utils.Logger.Printf("Unknown module: '%s'\n", modName)
-			continue
-		}
-		right = append(right, factory())
-	}
+func InstantiateModules(cfg *BarConfig) (left, middle, right []modules.Module) {
+	left = instantiate(cfg.Left)
+	middle = instantiate(cfg.Middle)
+	right = instantiate(cfg.Right)
 	slices.Reverse(right)
 
-	return left,middle, right, nil
+	return left, middle, right
 }
 
-func InitModules(configPath string) (chan modules.Module, []modules.Module,[]modules.Module, []modules.Module, error) {
-	tleft,tmiddle, tright, err := LoadModulesFromFile(configPath)
+func Parse(path string) (*BarConfig, error) {
+	b, err := os.ReadFile(path)
 	if err != nil {
-		return nil, nil,nil, nil, err
+		return nil, err
 	}
 
-	// runServices(append(tleft, tright...))
-	modev := make(chan modules.Module)
-
-	var left []modules.Module
-	var middle []modules.Module
-	var right []modules.Module
-
-	for _, mod := range tleft {
-		rec, _, err := mod.Run()
-		if err == nil {
-			go runModuleEventLoop(mod, rec, modev)
-			left = append(left, mod)
-		} else {
-			utils.Logger.Println(err)
-		}
-	}
-
-	for _, mod := range tmiddle {
-		rec, _, err := mod.Run()
-		if err == nil {
-			go runModuleEventLoop(mod, rec, modev)
-			middle = append(middle, mod)
-		} else {
-			utils.Logger.Println(err)
-		}
-	}
-
-	for _, mod := range tright {
-		rec, _, err := mod.Run()
-		if err == nil {
-			go runModuleEventLoop(mod, rec, modev)
-			right = append(right, mod)
-		} else {
-			utils.Logger.Println(err)
-		}
-	}
-
-	return modev, left,middle, right, nil
+	var cfg BarConfig
+	err = yaml.Unmarshal(b, &cfg)
+	return &cfg, err
 }
 
-func runModuleEventLoop(mod modules.Module, rec <-chan bool, modev chan<- modules.Module) {
-	for <-rec {
-		modev <- mod
+func instantiate(specs []ModuleSpec) []modules.Module {
+	var out []modules.Module
+	for _, s := range specs {
+		f, ok := factories[s.Name]
+		if !ok {
+			utils.Logger.Printf("unknown module '%q'\n", s.Name)
+			continue
+		}
+
+		m, err := f(s.Params)
+		if err != nil {
+			utils.Logger.Printf("error parsing config for '%s': %v\n", s.Name, err)
+			continue
+		}
+
+		out = append(out, m)
 	}
+
+	return out
 }

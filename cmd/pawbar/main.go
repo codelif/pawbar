@@ -6,6 +6,7 @@ import (
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
+	_ "github.com/codelif/pawbar/internal/modules/all"
 	"github.com/codelif/pawbar/internal/tui"
 	"github.com/codelif/pawbar/internal/utils"
 )
@@ -31,10 +32,14 @@ func mainLoop(cfgPath string) int {
 	win := vx.Window()
 	win.Clear()
 
-	modev, l,m, r, err := config.InitModules(cfgPath)
+	cfg, err := config.Parse(cfgPath)
 	if err != nil {
-		utils.Logger.Fatalln("Failed to init modules from config:", err)
+		utils.Logger.Printf("config error: %v\n", err)
 	}
+
+	l, m, r := config.InstantiateModules(cfg)
+
+	modev, l, m, r := modules.Init(l, m, r)
 
 	screenEvents := vx.Events()
 

@@ -6,8 +6,16 @@ import (
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
+	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
+	"gopkg.in/yaml.v3"
 )
+
+func init() {
+	config.Register("locale", func(n *yaml.Node) (modules.Module, error) {
+		return &LocaleModule{}, nil
+	})
+}
 
 func New() modules.Module {
 	return &LocaleModule{}

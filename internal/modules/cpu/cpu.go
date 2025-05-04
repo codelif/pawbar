@@ -5,9 +5,17 @@ import (
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
+	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/shirou/gopsutil/v3/cpu"
+	"gopkg.in/yaml.v3"
 )
+
+func init() {
+	config.Register("cpu", func(n *yaml.Node) (modules.Module, error) {
+		return &CpuModule{}, nil
+	})
+}
 
 func New() modules.Module {
 	return &CpuModule{}

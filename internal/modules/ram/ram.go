@@ -5,9 +5,17 @@ import (
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
+	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/shirou/gopsutil/v3/mem"
+	"gopkg.in/yaml.v3"
 )
+
+func init() {
+	config.Register("ram", func(n *yaml.Node) (modules.Module, error) {
+		return &RamModule{}, nil
+	})
+}
 
 func New() modules.Module {
 	return &RamModule{}

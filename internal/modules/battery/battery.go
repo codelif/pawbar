@@ -11,9 +11,17 @@ import (
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
+	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/jochenvg/go-udev"
+	"gopkg.in/yaml.v3"
 )
+
+func init() {
+	config.Register("battery", func(n *yaml.Node) (modules.Module, error) {
+		return &Battery{}, nil
+	})
+}
 
 var (
 	ICONS_DISCHARGING = []rune{'󰂃', '󰁺', '󰁻', '󰁼', '󰁽', '󰁾', '󰁿', '󰂀', '󰂁', '󰂂', '󰁹'}

@@ -5,10 +5,18 @@ import (
 	"os"
 
 	"git.sr.ht/~rockorager/vaxis"
+	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/services/hypr"
 	"github.com/codelif/pawbar/internal/services/i3"
+	"gopkg.in/yaml.v3"
 )
+
+func init() {
+	config.Register("ws", func(n *yaml.Node) (modules.Module, error) {
+		return &Module{}, nil
+	})
+}
 
 type Workspace struct {
 	ID      int

@@ -4,8 +4,16 @@ import (
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
+	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
+	"gopkg.in/yaml.v3"
 )
+
+func init() {
+	config.Register("clock", func(n *yaml.Node) (modules.Module, error) {
+		return &ClockModule{}, nil
+	})
+}
 
 func New() modules.Module {
 	return &ClockModule{}
@@ -17,7 +25,7 @@ const (
 	FormatDefault Format = iota
 	FormatAlt1
 	FormatAlt2
-	)
+)
 
 type ClockModule struct {
 	receive chan bool
@@ -82,7 +90,7 @@ func (mod *ClockModule) cycle() {
 	case FormatAlt1:
 		mod.format = FormatAlt2
 	case FormatAlt2:
-		mod.format= FormatDefault
+		mod.format = FormatDefault
 	}
 }
 

@@ -3,9 +3,17 @@ package hyprws
 import (
 	"errors"
 
+	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/services/pulse"
+	"gopkg.in/yaml.v3"
 )
+
+func init() {
+	config.Register("volume", func(n *yaml.Node) (modules.Module, error) {
+		return &VolumeModule{}, nil
+	})
+}
 
 func New() modules.Module {
 	return &VolumeModule{}
