@@ -79,7 +79,11 @@ func (mod *ClockModule) handleMouseEvent(ev vaxis.Mouse) {
 		case vaxis.MouseLeftButton:
 			mod.cycle()
 			mod.receive <- true
+    case vaxis.MouseMiddleButton:
+      mod.format = FormatDefault
+      mod.receive <- true
 		}
+    
 	}
 }
 
