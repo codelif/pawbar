@@ -10,6 +10,7 @@ import (
 	"os/exec"
 
 	"github.com/codelif/pawbar/internal/services"
+	"github.com/codelif/pawbar/internal/utils"
 )
 
 const (
@@ -61,8 +62,8 @@ type Workspace struct {
 }
 
 type WindowProperties struct {
-	Instance string `json:"instance"`
-	Title    string `json:"title"`
+	Class string `json:"class"`
+	Title string `json:"title"`
 }
 
 type I3Node struct {
@@ -70,6 +71,8 @@ type I3Node struct {
 	Nodes            []I3Node          `json:"nodes"`
 	FloatingNodes    []I3Node          `json:"floating_nodes"`
 	WindowProperties *WindowProperties `json:"window_properties"`
+	Name             string            `json:"name"`
+	AppId            string            `json:"app_id"`
 }
 
 func Register() (*Service, bool) {
@@ -181,7 +184,7 @@ func readResponse(conn net.Conn) (uint32, []byte, error) {
 func (i *Service) sockMsg() {
 	conn, err := connectToI3()
 	if err != nil {
-		fmt.Println(err)
+		utils.Logger.Println(err)
 		os.Exit(1)
 	}
 	defer conn.Close()
@@ -189,34 +192,34 @@ func (i *Service) sockMsg() {
 	subscription := []string{"window", "workspace"}
 	payload, err := json.Marshal(subscription)
 	if err != nil {
-		fmt.Printf("Error marshaling subscription payload: %v\n", err)
+		utils.Logger.Printf("Error marshaling subscription payload: %v\n", err)
 		os.Exit(1)
 	}
 
 	if err := sendI3Message(conn, I3_IPC_MESSAGE_TYPE_SUBSCRIBE, payload); err != nil {
-		fmt.Println(err)
+		utils.Logger.Println(err)
 		os.Exit(1)
 	}
 
 	ack, err := readI3Ack(conn)
 	if err != nil {
-		fmt.Println(err)
+		utils.Logger.Println(err)
 		os.Exit(1)
 	}
 
-	fmt.Println("Subscription Acknowledgment:", ack)
+	utils.Logger.Println("Subscription Acknowledgment:", ack)
 
 	for {
 		eventType, eventPayload, err := readResponse(conn)
 		if err != nil {
-			fmt.Println("Error reading response:", err)
+			utils.Logger.Println("Error reading response:", err)
 			break
 		}
 
 		switch eventType {
 		case 0x80000000:
 			if err := json.Unmarshal(eventPayload, &event); err != nil {
-				fmt.Println("Error unmarshaling event:", err)
+				utils.Logger.Println("Error unmarshaling event:", err)
 				continue
 			}
 
@@ -227,7 +230,7 @@ func (i *Service) sockMsg() {
 			}
 		case 0x80000003:
 			if err := json.Unmarshal(eventPayload, &wevent); err != nil {
-				fmt.Println("Error unmarshaling event:", err)
+				utils.Logger.Println("Error unmarshaling event:", err)
 				continue
 			}
 
@@ -243,7 +246,7 @@ func (i *Service) sockMsg() {
 func GetWorkspaces() []Workspace {
 	conn, err := connectToI3()
 	if err != nil {
-		fmt.Println(err)
+		utils.Logger.Println(err)
 		os.Exit(1)
 	}
 	defer conn.Close()
@@ -251,20 +254,20 @@ func GetWorkspaces() []Workspace {
 	payload := []byte("")
 
 	if err := sendI3Message(conn, IPC_GET_WORKSPACES, payload); err != nil {
-		fmt.Println(err)
+		utils.Logger.Println(err)
 		os.Exit(1)
 	}
 
 	eventType, eventPayload, err := readResponse(conn)
-	fmt.Println("event of type:", eventType)
+	utils.Logger.Println("event of type:", eventType)
 	if err != nil {
-		fmt.Println(err)
+		utils.Logger.Println(err)
 		return nil
 	}
 
 	var workspaces []Workspace
 	if err = json.Unmarshal(eventPayload, &workspaces); err != nil {
-		fmt.Println("Error unmarshaling JSON:", err)
+		utils.Logger.Println("Error unmarshaling JSON:", err)
 		return nil
 	}
 
@@ -274,7 +277,7 @@ func GetWorkspaces() []Workspace {
 func GoToWorkspace(name string) {
 	cmd := exec.Command("i3-msg", "workspace", name)
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("Error executing command: %v\n", err)
+		utils.Logger.Printf("Error executing command: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -289,10 +292,12 @@ func GetActiveWorkspace() Workspace {
 	return Workspace{}
 }
 
+var isSway = os.Getenv("SWAYSOCK") != ""
+
 func GetTitleClass() (string, string) {
 	conn, err := connectToI3()
 	if err != nil {
-		fmt.Println(err)
+		utils.Logger.Println(err)
 		os.Exit(1)
 	}
 	defer conn.Close()
@@ -300,29 +305,37 @@ func GetTitleClass() (string, string) {
 	payload := []byte("")
 
 	if err := sendI3Message(conn, msgTypeGetTree, payload); err != nil {
-		fmt.Println(err)
+		utils.Logger.Println(err)
 		os.Exit(1)
 	}
 
 	eventType, eventPayload, err := readResponse(conn)
-	fmt.Println("event of type:", eventType)
+	utils.Logger.Println("event of type:", eventType)
 	if err != nil {
-		fmt.Println(err)
+		utils.Logger.Println(err)
 		return "", ""
 	}
 
 	var root I3Node
 	if err := json.Unmarshal(eventPayload, &root); err != nil {
-		fmt.Printf("Failed to parse JSON: %v\n", err)
+		utils.Logger.Printf("Failed to parse JSON: %v\n", err)
 		return "", ""
 	}
 
 	var focusedProps *WindowProperties
+  var appid, name string
+
 	var findFocused func(n *I3Node)
 	findFocused = func(n *I3Node) {
 		if focusedProps != nil {
 			return
 		}
+		if n.Focused && isSway {
+      appid = n.AppId
+      name = n.Name
+			return
+		}
+
 		if n.Focused && n.WindowProperties != nil {
 			focusedProps = n.WindowProperties
 			return
@@ -336,9 +349,13 @@ func GetTitleClass() (string, string) {
 	}
 	findFocused(&root)
 
+	if isSway {
+		return appid, name
+	}
+
 	if focusedProps == nil {
 		return "", ""
 	}
 
-	return focusedProps.Instance, focusedProps.Title
+	return focusedProps.Class, focusedProps.Title
 }

@@ -10,14 +10,18 @@ import (
 	"github.com/codelif/pawbar/internal/modules/disk"
 	"github.com/codelif/pawbar/internal/modules/hyprtitle"
 	"github.com/codelif/pawbar/internal/modules/hyprws"
-	"github.com/codelif/pawbar/internal/modules/i3title"
 	"github.com/codelif/pawbar/internal/modules/i3ws"
+	"github.com/codelif/pawbar/internal/modules/i3title"
 	"github.com/codelif/pawbar/internal/modules/locale"
 	"github.com/codelif/pawbar/internal/modules/ram"
+	"github.com/codelif/pawbar/internal/modules/title"
+	"github.com/codelif/pawbar/internal/modules/ws"
 )
 
 var moduleFactories = map[string]func() modules.Module{
 	"clock":     clock.New,
+	"ws":        ws.New,
+	"title":     title.New,
 	"hyprtitle": hyprtitle.New,
 	"hyprws":    hyprws.New,
 	"battery":   battery.New,
