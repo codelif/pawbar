@@ -92,6 +92,7 @@ outerRight:
 		}
 	}
 
+<<<<<<< Updated upstream
 	anchor := width / 2
 	rightEdge := width - rightModulesLength
 	available := rightEdge - anchor
@@ -114,13 +115,25 @@ outerMiddle:
 				}
 				break outerMiddle
 			}
+=======
+middleLeftLength, middleRightLength := 0, 0
 
-			c := modRender[half-i-1]
-			x := anchor - middleLeftLength - 1
-			win.SetCell(x, 0, c.C)
-			state[x] = c
-			middleLeftLength++
+// First, flatten all middle modules into a single slice
+modRender := make([]modules.EventCell, 0, len(middleModules)*10)
+for _, mod := range middleModules {
+    modRender = append(modRender, modMap[mod]...)
+}
 
+anchor := width / 2
+rightEdge := width - rightModulesLength
+available := rightEdge - anchor
+half := len(modRender) / 2
+>>>>>>> Stashed changes
+
+leftCells := modRender[:half]
+rightCells := modRender[half:]
+
+<<<<<<< Updated upstream
 			if c.C.Width > 1 {
 				empty := vaxis.Cell{Style: c.C.Style}
 				for j := 0; j < c.C.Width-1; j++ {
@@ -178,6 +191,59 @@ outerMiddle:
 			}
 		}
 	}
+=======
+for i := len(leftCells) - 1; i >= 0; i-- {
+    c := leftCells[i]
+    w := c.C.Width
+    if anchor - middleLeftLength - w < 0 {
+        for ; middleLeftLength < anchor; middleLeftLength++ {
+            x := anchor - middleLeftLength - 1
+            ell := modules.Cell('…', vaxis.Style{})
+            win.SetCell(x, 0, ell)
+            state[x] = modules.EventCell{C: ell, Mod: nil}
+        }
+        break
+    }
+
+    for j := 0; j < w; j++ {
+        x := anchor - middleLeftLength - 1
+        if j == 0 {
+            win.SetCell(x, 0, c.C)
+            state[x] = c
+        } else {
+            pad := vaxis.Cell{Style: c.C.Style}
+            win.SetCell(x, 0, pad)
+            state[x] = modules.EventCell{C: pad, Metadata: c.Metadata, Mod: c.Mod, MouseShape: c.MouseShape}
+        }
+        middleLeftLength++
+    }
+}
+
+
+for _, c := range rightCells {
+    w := c.C.Width
+    // check overflow on right
+    if middleRightLength + w > available {
+        pos := anchor + available - 1
+        ell := modules.Cell('…', vaxis.Style{})
+        win.SetCell(pos, 0, ell)
+        state[pos] = modules.EventCell{C: ell, Mod: nil}
+        break
+    }
+    for j := 0; j < w; j++ {
+        x := anchor + middleRightLength
+        if j == 0 {
+            win.SetCell(x, 0, c.C)
+            state[x] = c
+        } else {
+            pad := vaxis.Cell{Style: c.C.Style}
+            win.SetCell(x, 0, pad)
+            state[x] = modules.EventCell{C: pad, Metadata: c.Metadata, Mod: c.Mod, MouseShape: c.MouseShape}
+        }
+        middleRightLength++
+    }
+}
+>>>>>>> Stashed changes
 
 	leftModulesLength := 0
 	availableForleft := width/2 - middleLeftLength
