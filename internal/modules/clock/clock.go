@@ -4,33 +4,18 @@ import (
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
-	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
-	"gopkg.in/yaml.v3"
-)
-
-func init() {
-	config.Register("clock", func(n *yaml.Node) (modules.Module, error) {
-		return &ClockModule{}, nil
-	})
-}
-
-func New() modules.Module {
-	return &ClockModule{}
-}
-
-type Format int
-
-const (
-	FormatDefault Format = iota
-	FormatAlt1
-	FormatAlt2
+	"github.com/itchyny/timefmt-go"
 )
 
 type ClockModule struct {
 	receive chan bool
 	send    chan modules.Event
-	format  Format
+
+	cfg        conf
+	leftIdx    int
+	rightIdx   int
+	usingRight bool
 }
 
 func (mod *ClockModule) Dependencies() []string {
@@ -42,7 +27,7 @@ func (mod *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	mod.send = make(chan modules.Event)
 
 	go func() {
-		t := time.NewTicker(5 * time.Second)
+		t := time.NewTicker(mod.cfg.tick)
 		for {
 			select {
 			case <-t.C:
@@ -59,47 +44,41 @@ func (mod *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	return mod.receive, mod.send, nil
 }
 
-func (mod *ClockModule) timeFormatString() string {
-	switch mod.format {
-	case FormatDefault:
-		return time.Now().Format("2006-01-02 15:04:05")
-	case FormatAlt1:
-		return time.Now().Format("Mon 15:04")
-	case FormatAlt2:
-		return time.Now().Format("2 January 2006 Monday 15:04")
-
-	}
-	return time.Now().Format("2006-01-02 15:04:05")
-}
-
 // this is a blocking function, only use it in event loop
 func (mod *ClockModule) handleMouseEvent(ev vaxis.Mouse) {
 	if ev.EventType == vaxis.EventPress {
 		switch ev.Button {
 		case vaxis.MouseLeftButton:
-			mod.cycle()
-			mod.receive <- true
-    case vaxis.MouseMiddleButton:
-      mod.format = FormatDefault
-      mod.receive <- true
+			mod.usingRight = false
+			mod.leftIdx = (mod.leftIdx + 1) % len(mod.cfg.left)
+		case vaxis.MouseRightButton:
+			if len(mod.cfg.right) == 0 {
+				break
+			}
+			if !mod.usingRight {
+				mod.rightIdx = 0
+			} else {
+				mod.rightIdx = (mod.rightIdx + 1) % len(mod.cfg.right)
+			}
+			mod.usingRight = true
+		case vaxis.MouseMiddleButton:
+			mod.usingRight = false
+			mod.leftIdx = 0
 		}
-    
+
+		mod.receive <- true
 	}
 }
 
-func (mod *ClockModule) cycle() {
-	switch mod.format {
-	case FormatDefault:
-		mod.format = FormatAlt1
-	case FormatAlt1:
-		mod.format = FormatAlt2
-	case FormatAlt2:
-		mod.format = FormatDefault
+func (mod *ClockModule) layout() string {
+	if mod.usingRight && len(mod.cfg.right) > 0 {
+		return mod.cfg.right[mod.rightIdx]
 	}
+	return mod.cfg.left[mod.leftIdx]
 }
 
 func (mod *ClockModule) Render() []modules.EventCell {
-	rch := vaxis.Characters(mod.timeFormatString())
+	rch := vaxis.Characters(timefmt.Format(time.Now(), mod.layout()))
 	r := make([]modules.EventCell, len(rch))
 	for i, ch := range rch {
 		r[i] = modules.EventCell{
