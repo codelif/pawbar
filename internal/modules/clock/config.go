@@ -6,7 +6,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/codelif/pawbar/internal/config"
+	c "github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 )
 
@@ -21,7 +21,7 @@ import (
 // NOTE: include an example in every module's config.go (also this message)
 
 func init() {
-	config.Register("clock", factory)
+	c.Register("clock", factory)
 }
 
 type cfgYaml struct {
@@ -32,14 +32,14 @@ type cfgYaml struct {
 	Tick string `yaml:"tick"`
 }
 
-type conf struct {
+type config struct {
 	left  []string
 	right []string
 	tick  time.Duration
 }
 
-func defaultConfig() conf {
-	return conf{
+func defaultConfig() config {
+	return config{
 		left: []string{
 			"%Y-%m-%d %H:%M:%S",
 			"%a %H:%M",
@@ -50,7 +50,7 @@ func defaultConfig() conf {
 	}
 }
 
-func (c *conf) validate() error {
+func (c *config) validate() error {
 	if len(c.left) == 0 {
 		return fmt.Errorf("clock: at least one left format is required")
 	}
@@ -60,7 +60,7 @@ func (c *conf) validate() error {
 func factory(n *yaml.Node) (modules.Module, error) {
 	cfg := defaultConfig()
 
-	if n != nil {
+	if n != nil && n.Kind == yaml.MappingNode {
 		var y cfgYaml
 		if err := n.Decode(&y); err != nil {
 			return nil, err

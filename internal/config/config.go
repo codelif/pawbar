@@ -40,7 +40,7 @@ func instantiate(specs []ModuleSpec) []modules.Module {
 
 		m, err := f(s.Params)
 		if err != nil {
-			utils.Logger.Printf("error parsing config for '%s': %v\n", s.Name, err)
+			utils.Logger.Printf("config error: %v", err)
 			continue
 		}
 

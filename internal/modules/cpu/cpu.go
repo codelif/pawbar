@@ -1,32 +1,25 @@
 package cpu
 
 import (
-	"fmt"
+	"bytes"
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
-	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
+	"github.com/codelif/pawbar/internal/mouse"
 	"github.com/shirou/gopsutil/v3/cpu"
-	"gopkg.in/yaml.v3"
 )
 
-func init() {
-	config.Register("cpu", func(n *yaml.Node) (modules.Module, error) {
-		return &CpuModule{}, nil
-	})
-}
-
-func New() modules.Module {
-	return &CpuModule{}
-}
-
 type CpuModule struct {
-	receive       chan bool
-	send          chan modules.Event
+	receive chan bool
+	send    chan modules.Event
+
+	opts  Options
+	cfg   Config
+	mouse mouse.Mixin[Options]
+
 	highStart     time.Time
 	highTriggered bool
-	required      time.Duration
 }
 
 func (mod *CpuModule) Dependencies() []string {
@@ -37,14 +30,36 @@ func (mod *CpuModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	mod.receive = make(chan bool)
 	mod.send = make(chan modules.Event)
 
+	mod.mouse = mouse.Mixin[Options]{
+		Handlers: mod.cfg.OnClicks,
+		Apply: func(ov *Options) bool {
+			newOpts := mod.opts
+			if !mouse.Overlay(&newOpts, ov) {
+				return false
+			}
+
+			mod.cfg = newConfig(newOpts)
+			mod.opts = newOpts
+			return true
+		},
+    Cursor: mod.cfg.Cursor,
+	}
+
 	go func() {
-		t := time.NewTicker(3 * time.Second)
+		t := time.NewTicker(mod.cfg.Tick)
 		defer t.Stop()
 		for {
 			select {
 			case <-t.C:
 				mod.receive <- true
-			case <-mod.send:
+			case e := <-mod.send:
+				switch ev := e.VaxisEvent.(type) {
+				case vaxis.Mouse:
+
+					if mod.mouse.Handle(ev) {
+						mod.receive <- true
+					}
+				}
 			}
 		}
 	}()
@@ -54,16 +69,16 @@ func (mod *CpuModule) Run() (<-chan bool, chan<- modules.Event, error) {
 
 func (mod *CpuModule) Render() []modules.EventCell {
 	percent, err := cpu.Percent(0, false)
-	if err != nil {
+	if err != nil || len(percent) == 0 {
 		return nil
 	}
 	usage := int(percent[0])
-	const threshold = 90
 
+	threshold := mod.cfg.ThrPercent
 	if usage > threshold {
 		if mod.highStart.IsZero() {
 			mod.highStart = time.Now()
-		} else if !mod.highTriggered && time.Since(mod.highStart) >= mod.required {
+		} else if !mod.highTriggered && time.Since(mod.highStart) >= mod.cfg.ThrFor {
 			mod.highTriggered = true
 		}
 	} else {
@@ -71,17 +86,23 @@ func (mod *CpuModule) Render() []modules.EventCell {
 		mod.highTriggered = false
 	}
 
-	s := vaxis.Style{}
+	style := vaxis.Style{}
 	if mod.highTriggered {
-		s.Foreground = modules.URGENT
+		style.Foreground = mod.cfg.ThrColor
+	} else {
+		style.Foreground = mod.cfg.FgColor
 	}
 
-	icon := ''
-	rch := vaxis.Characters(fmt.Sprintf("%c %d%%", icon, usage))
+	style.Background = mod.cfg.BgColor
+
+	var buf bytes.Buffer
+	_ = mod.cfg.Tmpl.Execute(&buf, struct{ Percent int }{usage})
+
+	rch := vaxis.Characters(buf.String())
 	r := make([]modules.EventCell, len(rch))
 
 	for i, ch := range rch {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: mod}
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: style}, Mod: mod, MouseShape: mod.mouse.Cursor}
 	}
 	return r
 }

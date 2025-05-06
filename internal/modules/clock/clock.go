@@ -12,7 +12,7 @@ type ClockModule struct {
 	receive chan bool
 	send    chan modules.Event
 
-	cfg        conf
+	cfg        config
 	leftIdx    int
 	rightIdx   int
 	usingRight bool
