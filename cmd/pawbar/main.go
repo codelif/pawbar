@@ -35,6 +35,7 @@ func mainLoop(cfgPath string) int {
 	cfg, err := config.Parse(cfgPath)
 	if err != nil {
 		utils.Logger.Printf("config error: %v\n", err)
+		return 1
 	}
 
 	l, m, r := config.InstantiateModules(cfg)
