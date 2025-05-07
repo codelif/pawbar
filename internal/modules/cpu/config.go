@@ -4,7 +4,7 @@ import (
 	"text/template"
 	"time"
 
-	c "github.com/codelif/pawbar/internal/config"
+	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 )
 
@@ -42,23 +42,23 @@ import (
 // can define a yaml type in internal/config/types.go
 
 func init() {
-	c.RegisterModule("cpu", defaultOptions(), func(o Options) (modules.Module, error) { return &CpuModule{opts: o}, nil })
+	config.RegisterModule("cpu", defaultOptions(), func(o Options) (modules.Module, error) { return &CpuModule{opts: o}, nil })
 }
 
 type ThresholdOptions struct {
-	Percent c.Percent  `yaml:"percent"`
-	For     c.Duration `yaml:"for"`
-	Color   c.Color    `yaml:"color"`
+	Percent config.Percent  `yaml:"percent"`
+	For     config.Duration `yaml:"for"`
+	Color   config.Color    `yaml:"color"`
 }
 
 type Options struct {
-	Fg        c.Color                        `yaml:"fg"`
-	Bg        c.Color                        `yaml:"bg"`
-	Cursor    c.Cursor                       `yaml:"cursor"`
-	Tick      c.Duration                     `yaml:"tick"`
-	Format    c.Format                       `yaml:"format"`
-	Threshold ThresholdOptions               `yaml:"threshold"`
-	OnClick   c.OnClickActions[ClickOptions] `yaml:"onclick"`
+	Fg        config.Color                        `yaml:"fg"`
+	Bg        config.Color                        `yaml:"bg"`
+	Cursor    config.Cursor                       `yaml:"cursor"`
+	Tick      config.Duration                     `yaml:"tick"`
+	Format    config.Format                       `yaml:"format"`
+	Threshold ThresholdOptions                    `yaml:"threshold"`
+	OnClick   config.OnClickActions[ClickOptions] `yaml:"onclick"`
 }
 
 // these field names need to match exactly the
@@ -68,24 +68,24 @@ type Options struct {
 // Also Rob Pike is such a goated guy
 // Read his wise words: https://go.dev/blog/laws-of-reflection
 type ClickOptions struct {
-	Fg     *c.Color    `yaml:"fg"`
-	Bg     *c.Color    `yaml:"bg"`
-	Cursor *c.Cursor   `yaml:"cursor"`
-	Tick   *c.Duration `yaml:"tick"`
-	Format *c.Format   `yaml:"format"`
+	Fg     *config.Color    `yaml:"fg"`
+	Bg     *config.Color    `yaml:"bg"`
+	Cursor *config.Cursor   `yaml:"cursor"`
+	Tick   *config.Duration `yaml:"tick"`
+	Format *config.Format   `yaml:"format"`
 }
 
 func defaultOptions() Options {
 	f, _ := template.New("format").Parse(" {{.Percent}}%")
-	urgClr, _ := c.ParseColor("@urgent")
+	urgClr, _ := config.ParseColor("@urgent")
 	return Options{
-		Format: c.Format{Template: f},
-		Tick:   c.Duration(5 * time.Second),
+		Format: config.Format{Template: f},
+		Tick:   config.Duration(5 * time.Second),
 		Threshold: ThresholdOptions{
-			Percent: 4,
-			For:     c.Duration(3 * time.Second),
-			Color:   c.Color(urgClr),
+			Percent: 90,
+			For:     config.Duration(7 * time.Second),
+			Color:   config.Color(urgClr),
 		},
-		OnClick: c.OnClickActions[ClickOptions]{},
+		OnClick: config.OnClickActions[ClickOptions]{},
 	}
 }
