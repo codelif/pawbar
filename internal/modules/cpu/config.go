@@ -31,7 +31,7 @@ import (
 //     format: hello
 //
 // this will just alternate between this state and initial state
-// also note fields not defined (like bg, cursor, tick in above example) 
+// also note fields not defined (like bg, cursor, tick in above example)
 // use their initial values they don't carry from previous alternate
 //
 // all of this will be true for all options with config.OnClickActions field
@@ -61,10 +61,10 @@ type Options struct {
 	OnClick   c.OnClickActions[ClickOptions] `yaml:"onclick"`
 }
 
-// these field names need to match exactly the 
+// these field names need to match exactly the
 // ones in Options (coz ya know, reflections ;)
 // kill me. But they do enable cleaner per-module config code
-// so it was worth it. 
+// so it was worth it.
 // Also Rob Pike is such a goated guy
 // Read his wise words: https://go.dev/blog/laws-of-reflection
 type ClickOptions struct {
@@ -89,4 +89,3 @@ func defaultOptions() Options {
 		OnClick: c.OnClickActions[ClickOptions]{},
 	}
 }
-

@@ -62,13 +62,13 @@ func (mod *CpuModule) handleMouse(ev vaxis.Mouse) {
 	if !ok {
 		return
 	}
-  
-  // y know the biz, run, notify, etc
-  // though I could add hyprnotify support
-  // like the custom hints (color, size, etc)
+
+	// y know the biz, run, notify, etc
+	// though I could add hyprnotify support
+	// like the custom hints (color, size, etc)
 	act.DispatchAction()
 
-  // we cycle the alternate states and i love this
+	// we cycle the alternate states and i love this
 	if act.Next(&mod.initialOpts, &mod.opts) {
 		mod.receive <- true
 	}
@@ -78,7 +78,6 @@ func (mod *CpuModule) handleMouse(ev vaxis.Mouse) {
 		mod.currentTickerInterval = mod.opts.Tick.Go()
 		mod.ticker = time.NewTicker(mod.currentTickerInterval)
 	}
-
 }
 
 func (mod *CpuModule) Render() []modules.EventCell {
