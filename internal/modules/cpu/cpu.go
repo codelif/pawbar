@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
+	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
-	"github.com/codelif/pawbar/internal/mouse"
 	"github.com/shirou/gopsutil/v3/cpu"
 )
 
@@ -14,12 +14,14 @@ type CpuModule struct {
 	receive chan bool
 	send    chan modules.Event
 
-	opts  Options
-	cfg   Config
-	mouse mouse.Mixin[Options]
+	opts        Options
+	initialOpts Options
 
 	highStart     time.Time
 	highTriggered bool
+
+	currentTickerInterval time.Duration
+	ticker                *time.Ticker
 }
 
 func (mod *CpuModule) Dependencies() []string {
@@ -29,42 +31,54 @@ func (mod *CpuModule) Dependencies() []string {
 func (mod *CpuModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	mod.receive = make(chan bool)
 	mod.send = make(chan modules.Event)
-
-	mod.mouse = mouse.Mixin[Options]{
-		Handlers: mod.cfg.OnClicks,
-		Apply: func(ov *Options) bool {
-			newOpts := mod.opts
-			if !mouse.Overlay(&newOpts, ov) {
-				return false
-			}
-
-			mod.cfg = newConfig(newOpts)
-			mod.opts = newOpts
-			return true
-		},
-    Cursor: mod.cfg.Cursor,
-	}
+	mod.initialOpts = mod.opts
 
 	go func() {
-		t := time.NewTicker(mod.cfg.Tick)
-		defer t.Stop()
+		mod.currentTickerInterval = mod.opts.Tick.Go()
+		mod.ticker = time.NewTicker(mod.currentTickerInterval)
+		defer mod.ticker.Stop()
 		for {
 			select {
-			case <-t.C:
+			case <-mod.ticker.C:
 				mod.receive <- true
 			case e := <-mod.send:
 				switch ev := e.VaxisEvent.(type) {
 				case vaxis.Mouse:
-
-					if mod.mouse.Handle(ev) {
-						mod.receive <- true
-					}
+					mod.handleMouse(ev)
 				}
 			}
 		}
 	}()
 
 	return mod.receive, mod.send, nil
+}
+
+func (mod *CpuModule) handleMouse(ev vaxis.Mouse) {
+	if ev.EventType != vaxis.EventPress {
+		return
+	}
+	btn := config.ButtonName(ev)
+	act, ok := mod.opts.OnClick[btn]
+	if !ok {
+		return
+	}
+  
+  // y know the biz, run, notify, etc
+  // though I could add hyprnotify support
+  // like the custom hints (color, size, etc)
+	act.DispatchAction()
+
+  // we cycle the alternate states and i love this
+	if act.Next(&mod.initialOpts, &mod.opts) {
+		mod.receive <- true
+	}
+
+	if mod.opts.Tick.Go() != mod.currentTickerInterval {
+		mod.ticker.Stop()
+		mod.currentTickerInterval = mod.opts.Tick.Go()
+		mod.ticker = time.NewTicker(mod.currentTickerInterval)
+	}
+
 }
 
 func (mod *CpuModule) Render() []modules.EventCell {
@@ -74,11 +88,11 @@ func (mod *CpuModule) Render() []modules.EventCell {
 	}
 	usage := int(percent[0])
 
-	threshold := mod.cfg.ThrPercent
+	threshold := mod.opts.Threshold.Percent.Go()
 	if usage > threshold {
 		if mod.highStart.IsZero() {
 			mod.highStart = time.Now()
-		} else if !mod.highTriggered && time.Since(mod.highStart) >= mod.cfg.ThrFor {
+		} else if !mod.highTriggered && time.Since(mod.highStart) >= mod.opts.Threshold.For.Go() {
 			mod.highTriggered = true
 		}
 	} else {
@@ -88,21 +102,21 @@ func (mod *CpuModule) Render() []modules.EventCell {
 
 	style := vaxis.Style{}
 	if mod.highTriggered {
-		style.Foreground = mod.cfg.ThrColor
+		style.Foreground = mod.opts.Threshold.Color.Go()
 	} else {
-		style.Foreground = mod.cfg.FgColor
+		style.Foreground = mod.opts.Fg.Go()
 	}
 
-	style.Background = mod.cfg.BgColor
+	style.Background = mod.opts.Bg.Go()
 
 	var buf bytes.Buffer
-	_ = mod.cfg.Tmpl.Execute(&buf, struct{ Percent int }{usage})
+	_ = mod.opts.Format.Execute(&buf, struct{ Percent int }{usage})
 
 	rch := vaxis.Characters(buf.String())
 	r := make([]modules.EventCell, len(rch))
 
 	for i, ch := range rch {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: style}, Mod: mod, MouseShape: mod.mouse.Cursor}
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: style}, Mod: mod, MouseShape: mod.opts.Cursor.Go()}
 	}
 	return r
 }

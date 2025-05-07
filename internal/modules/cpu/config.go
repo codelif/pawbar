@@ -1,153 +1,92 @@
 package cpu
 
 import (
-	"fmt"
 	"text/template"
 	"time"
 
-	"git.sr.ht/~rockorager/vaxis"
 	c "github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
-	mouse "github.com/codelif/pawbar/internal/mouse"
-	"gopkg.in/yaml.v3"
 )
 
+// Dev NOTE:
+// - cpu:
+//     tick: 10s
+//     cursor: text
+//     onclick:
+//       left:
+//         notify: "wow"
+//         run: ["pavucontrol"]
+//         config:
+//           - cursor: pointer
+//             format: wow
+//           - format: "{{.Percent}} this is shit"
+//             fg: yellow
+//             bg: blue
+//           - tick: 1s
+//
+// In config:, it can be a list like above or just a single alternative:
+// left:
+//   config:
+//     fg: aliceblue
+//     format: hello
+//
+// this will just alternate between this state and initial state
+// also note fields not defined (like bg, cursor, tick in above example) 
+// use their initial values they don't carry from previous alternate
+//
+// all of this will be true for all options with config.OnClickActions field
+// (they also need to call the relevent OnClickAction function in the loop)
+// see internal/modules/cpu/cpu.go and internal/config/click.go for more info
+
+// you can also attach a Validate function to Options but try to avoid if you
+// can define a yaml type in internal/config/types.go
+
 func init() {
-	c.Register("cpu", factory)
+	c.RegisterModule("cpu", defaultOptions(), func(o Options) (modules.Module, error) { return &CpuModule{opts: o}, nil })
 }
 
 type ThresholdOptions struct {
-	Percent int    `yaml:"percent"`
-	For     string `yaml:"for"`
-	Color   string `yaml:"color"`
+	Percent c.Percent  `yaml:"percent"`
+	For     c.Duration `yaml:"for"`
+	Color   c.Color    `yaml:"color"`
 }
 
 type Options struct {
-	c.Common  `yaml:",inline"`
-	Cursor    string             `yaml:"cursor"`
-	Tick      string             `yaml:"tick"`
-	Threshold ThresholdOptions   `yaml:"threshold"`
-	OnClicks  mouse.Map[Options] `yaml:"on-click"`
+	Fg        c.Color                        `yaml:"fg"`
+	Bg        c.Color                        `yaml:"bg"`
+	Cursor    c.Cursor                       `yaml:"cursor"`
+	Tick      c.Duration                     `yaml:"tick"`
+	Format    c.Format                       `yaml:"format"`
+	Threshold ThresholdOptions               `yaml:"threshold"`
+	OnClick   c.OnClickActions[ClickOptions] `yaml:"onclick"`
 }
 
-func (o Options) GetOnClicks() mouse.Map[Options] { return o.OnClicks }
-func (o Options) GetCursor() string { return o.Cursor }
+// these field names need to match exactly the 
+// ones in Options (coz ya know, reflections ;)
+// kill me. But they do enable cleaner per-module config code
+// so it was worth it. 
+// Also Rob Pike is such a goated guy
+// Read his wise words: https://go.dev/blog/laws-of-reflection
+type ClickOptions struct {
+	Fg     *c.Color    `yaml:"fg"`
+	Bg     *c.Color    `yaml:"bg"`
+	Cursor *c.Cursor   `yaml:"cursor"`
+	Tick   *c.Duration `yaml:"tick"`
+	Format *c.Format   `yaml:"format"`
+}
 
 func defaultOptions() Options {
+	f, _ := template.New("format").Parse(" {{.Percent}}%")
+	urgClr, _ := c.ParseColor("@urgent")
 	return Options{
-		Common: c.Common{
-			Format: " {{.Percent}}%",
-			Fg:     "@default",
-			Bg:     "@default",
-		},
-		Cursor: "default",
-		Tick:   "5s",
+		Format: c.Format{Template: f},
+		Tick:   c.Duration(5 * time.Second),
 		Threshold: ThresholdOptions{
-			Percent: 90,
-			For:     "3s",
-			Color:   "@urgent",
+			Percent: 4,
+			For:     c.Duration(3 * time.Second),
+			Color:   c.Color(urgClr),
 		},
+		OnClick: c.OnClickActions[ClickOptions]{},
 	}
 }
 
-func (o *Options) Validate() error {
-	if o.Format != "" {
-		if _, err := template.New("format").Parse(o.Format); err != nil {
-			return err
-		}
-	}
-
-	if o.Tick != "" {
-		if _, err := time.ParseDuration(o.Tick); err != nil {
-			return fmt.Errorf("cpu: bad tick: %w", err)
-		}
-	}
-
-	if o.Threshold.Percent < 0 || o.Threshold.Percent > 100 {
-		return fmt.Errorf("cpu: threshold.percent must be 0–100")
-	}
-
-	if o.Threshold.For != "" {
-		if _, err := time.ParseDuration(o.Threshold.For); err != nil {
-			return fmt.Errorf("cpu: threshold.for: %w", err)
-		}
-	}
-
-	if _, err := c.ParseColor(o.Threshold.Color); err != nil {
-		return err
-	}
-
-	if _, err := c.ParseColor(o.Fg); err != nil {
-		return err
-	}
-
-	if _, err := c.ParseColor(o.Bg); err != nil {
-		return err
-	}
-
-	for btn, h := range o.OnClicks {
-		if h.Config != nil {
-			if err := h.Config.Validate(); err != nil {
-				return fmt.Errorf("cpu: on-click.%s: %w", btn, err)
-			}
-		}
-		if h.IsEmpty() {
-			return fmt.Errorf("cpu: on-click.%s is empty", btn)
-		}
-	}
-
-	return nil
-}
-
-type Config struct {
-	Tmpl             *template.Template
-	FgColor, BgColor vaxis.Color
-	Tick             time.Duration
-
-	ThrPercent int
-	ThrFor     time.Duration
-	ThrColor   vaxis.Color
-
-	Cursor   vaxis.MouseShape
-	OnClicks mouse.Map[Options]
-}
-
-// does not validate options
-func newConfig(o Options) Config {
-	tmpl, _ := template.New("cpu").Parse(o.Format)
-	tick, _ := time.ParseDuration(o.Tick)
-	forDur, _ := time.ParseDuration(o.Threshold.For)
-
-	fgCol, _ := c.ParseColor(o.Fg)
-	bgCol, _ := c.ParseColor(o.Bg)
-	thrCol, _ := c.ParseColor(o.Threshold.Color)
-
-	return Config{
-		Tmpl:       tmpl,
-		Tick:       tick,
-		FgColor:    fgCol,
-		BgColor:    bgCol,
-		ThrColor:   thrCol,
-		ThrPercent: o.Threshold.Percent,
-		ThrFor:     forDur,
-    Cursor: mouse.ParseCursor(o.Cursor),
-		OnClicks:   o.OnClicks,
-	}
-}
-
-func factory(n *yaml.Node) (modules.Module, error) {
-	opts := defaultOptions()
-	if err := c.Decode(n, &opts); err != nil {
-		return nil, err
-	}
-	if err := opts.Validate(); err != nil {
-		return nil, err
-	}
-
-	cfg := newConfig(opts)
-
-	return &CpuModule{
-		opts: opts,
-		cfg:  cfg,
-	}, nil
-}
