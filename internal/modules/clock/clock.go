@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
+	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/itchyny/timefmt-go"
 )
@@ -12,10 +13,11 @@ type ClockModule struct {
 	receive chan bool
 	send    chan modules.Event
 
-	cfg        config
-	leftIdx    int
-	rightIdx   int
-	usingRight bool
+	opts        Options
+	initialOpts Options
+
+	currentTickerInterval time.Duration
+	ticker                *time.Ticker
 }
 
 func (mod *ClockModule) Dependencies() []string {
@@ -25,12 +27,15 @@ func (mod *ClockModule) Dependencies() []string {
 func (mod *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	mod.receive = make(chan bool)
 	mod.send = make(chan modules.Event)
+	mod.initialOpts = mod.opts
 
 	go func() {
-		t := time.NewTicker(mod.cfg.tick)
+		mod.currentTickerInterval = mod.opts.Tick.Go()
+		mod.ticker = time.NewTicker(mod.currentTickerInterval)
+		defer mod.ticker.Stop()
 		for {
 			select {
-			case <-t.C:
+			case <-mod.ticker.C:
 				mod.receive <- true
 			case e := <-mod.send:
 				switch ev := e.VaxisEvent.(type) {
@@ -46,48 +51,47 @@ func (mod *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 
 // this is a blocking function, only use it in event loop
 func (mod *ClockModule) handleMouseEvent(ev vaxis.Mouse) {
-	if ev.EventType == vaxis.EventPress {
-		switch ev.Button {
-		case vaxis.MouseLeftButton:
-			mod.usingRight = false
-			mod.leftIdx = (mod.leftIdx + 1) % len(mod.cfg.left)
-		case vaxis.MouseRightButton:
-			if len(mod.cfg.right) == 0 {
-				break
-			}
-			if !mod.usingRight {
-				mod.rightIdx = 0
-			} else {
-				mod.rightIdx = (mod.rightIdx + 1) % len(mod.cfg.right)
-			}
-			mod.usingRight = true
-		case vaxis.MouseMiddleButton:
-			mod.usingRight = false
-			mod.leftIdx = 0
-		}
+	if ev.EventType != vaxis.EventPress {
+		return
+	}
 
+	btn := config.ButtonName(ev)
+	act, ok := mod.opts.OnClick[btn]
+	if !ok {
+		return
+	}
+	act.DispatchAction()
+
+	// we cycle the alternate states and i love this
+	if act.Next(&mod.initialOpts, &mod.opts) {
 		mod.receive <- true
 	}
-}
 
-func (mod *ClockModule) layout() string {
-	if mod.usingRight && len(mod.cfg.right) > 0 {
-		return mod.cfg.right[mod.rightIdx]
+	if mod.opts.Tick.Go() != mod.currentTickerInterval {
+		mod.ticker.Stop()
+		mod.currentTickerInterval = mod.opts.Tick.Go()
+		mod.ticker = time.NewTicker(mod.currentTickerInterval)
 	}
-	return mod.cfg.left[mod.leftIdx]
+
 }
 
 func (mod *ClockModule) Render() []modules.EventCell {
-	rch := vaxis.Characters(timefmt.Format(time.Now(), mod.layout()))
+
+	var s vaxis.Style
+	s.Foreground = mod.opts.Fg.Go()
+	s.Background = mod.opts.Bg.Go()
+
+	rch := vaxis.Characters(timefmt.Format(time.Now(), mod.opts.Format))
 	r := make([]modules.EventCell, len(rch))
 	for i, ch := range rch {
 		r[i] = modules.EventCell{
 			C: vaxis.Cell{
 				Character: ch,
+        Style: s,
 			},
 			Metadata:   "",
 			Mod:        mod,
-			MouseShape: vaxis.MouseShapeClickable,
+			MouseShape: mod.opts.Cursor.Go(),
 		}
 	}
 	return r
