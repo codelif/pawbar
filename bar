@@ -14,6 +14,7 @@ panelOpts=(
   --lines=1
   --config="$HOME/.config/pawbar/kitty.conf"
   --focus-policy=on-demand
+  --class="$(basename $barExecutable)"
 )
 kittyOpts=(
   allow_remote_control=yes

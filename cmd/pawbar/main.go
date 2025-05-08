@@ -78,6 +78,7 @@ func mainLoop(cfgPath string) int {
 					isRunning = false
 					vx.PostEvent(vaxis.QuitEvent{})
 				}
+
 			case vaxis.FocusOut:
 				if prevHoverMod != nil {
 					_, send := prevHoverMod.Channels()
@@ -94,6 +95,7 @@ func mainLoop(cfgPath string) int {
 				mouseX, mouseY = ev.Col, ev.Row
 
 				if mouseY != 0 {
+					vx.PostEvent(vaxis.FocusOut{})
 					continue
 				}
 				c := tui.State()[mouseX]
