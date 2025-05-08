@@ -72,11 +72,9 @@ func (mod *ClockModule) handleMouseEvent(ev vaxis.Mouse) {
 		mod.currentTickerInterval = mod.opts.Tick.Go()
 		mod.ticker = time.NewTicker(mod.currentTickerInterval)
 	}
-
 }
 
 func (mod *ClockModule) Render() []modules.EventCell {
-
 	var s vaxis.Style
 	s.Foreground = mod.opts.Fg.Go()
 	s.Background = mod.opts.Bg.Go()
@@ -87,7 +85,7 @@ func (mod *ClockModule) Render() []modules.EventCell {
 		r[i] = modules.EventCell{
 			C: vaxis.Cell{
 				Character: ch,
-        Style: s,
+				Style:     s,
 			},
 			Metadata:   "",
 			Mod:        mod,

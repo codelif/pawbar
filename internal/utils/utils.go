@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"cmp"
 	"errors"
 	"io"
 	"io/fs"
@@ -39,6 +40,18 @@ func (w *NotificationWriter) Write(p []byte) (n int, err error) {
 	}
 
 	return 0, errors.New("utils:NotifWriter:Write: Unreachable")
+}
+
+func Clamp[T cmp.Ordered](n, low, high T) T {
+	if n < low {
+		return low
+	}
+
+	if n > high {
+		return high
+	}
+
+	return n
 }
 
 func InitLogger() (*log.Logger, *os.File) {

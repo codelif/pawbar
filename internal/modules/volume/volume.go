@@ -8,6 +8,7 @@ import (
 	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/services/pulse"
+	"github.com/codelif/pawbar/internal/utils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -131,7 +132,7 @@ func (mod *VolumeModule) Render() []modules.EventCell {
 		return r
 	} else {
 		vol := int(mod.Volume)
-		idx := (len(ICONS_VOLUME) - 1) * vol / 100
+		idx := utils.Clamp(vol*len(ICONS_VOLUME)/100, 0, len(ICONS_VOLUME)-1)
 		icon := ICONS_VOLUME[idx]
 		rch := vaxis.Characters(fmt.Sprintf("%c %d%%", icon, vol))
 		r := make([]modules.EventCell, len(rch))
