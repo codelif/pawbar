@@ -74,9 +74,8 @@ func (mod *CpuModule) handleMouse(ev vaxis.Mouse) {
 	}
 
 	if mod.opts.Tick.Go() != mod.currentTickerInterval {
-		mod.ticker.Stop()
 		mod.currentTickerInterval = mod.opts.Tick.Go()
-		mod.ticker = time.NewTicker(mod.currentTickerInterval)
+		mod.ticker.Reset(mod.currentTickerInterval)
 	}
 }
 
