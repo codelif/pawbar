@@ -12,9 +12,9 @@ import (
 	_ "github.com/codelif/pawbar/internal/modules/locale"
 	_ "github.com/codelif/pawbar/internal/modules/ram"
 	_ "github.com/codelif/pawbar/internal/modules/title"
+	_ "github.com/codelif/pawbar/internal/modules/volume"
 	_ "github.com/codelif/pawbar/internal/modules/ws"
 	"gopkg.in/yaml.v3"
-	// _ "github.com/codelif/pawbar/internal/modules/volume"
 )
 
 func init() {

@@ -50,6 +50,8 @@ func (p *PulseService) Start() error {
 	}
 
 	p.exit = make(chan bool)
+	p.running = true
+
 	go func() {
 		for p.running {
 			select {
@@ -96,4 +98,18 @@ func (p *PulseService) GetDefaultSink() (string, error) {
 	}
 
 	return getDefaultSink()
+}
+
+func (p *PulseService) SetSinkVolume(sink string, volume float64) error {
+	if !p.running {
+		return fmt.Errorf("pulse service not running")
+	}
+	return setVolume(sink, volume)
+}
+
+func (p *PulseService) SetSinkMute(sink string, mute bool) error {
+	if !p.running {
+		return fmt.Errorf("pulse service not running")
+	}
+	return setMute(sink, mute)
 }
