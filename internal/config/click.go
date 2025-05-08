@@ -129,6 +129,11 @@ func (m *MouseActions[T]) Dispatch(
 
 func (m *MouseActions[T]) HoverIn(liveOpts any) bool {
 	hoverAct, ok := m.Actions["hover"]
+
+	if ok {
+		hoverAct.DispatchAction()
+	}
+
 	if !ok || len(hoverAct.Configs) == 0 {
 		return false
 	}
