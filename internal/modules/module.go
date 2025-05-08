@@ -38,6 +38,18 @@ type Event struct {
 	VaxisEvent vaxis.Event
 }
 
+type FocusIn struct {
+	NewMod  Module
+	PrevMod Module
+}
+type FocusOut struct {
+	NewMod  Module
+	PrevMod Module
+}
+
+func (FocusIn) String() string  { return "FocusIn" }
+func (FocusOut) String() string { return "FocusOut" }
+
 var (
 	ECSPACE = EventCell{
 		C: vaxis.Cell{Character: vaxis.Character{

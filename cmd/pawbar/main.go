@@ -44,6 +44,9 @@ func mainLoop(cfgPath string) int {
 
 	screenEvents := vx.Events()
 
+	var prevHoverMod modules.Module
+	var prevHoverCell modules.EventCell
+
 	w, h := win.Size()
 	pw, ph := 0, 0
 	mouseX, mouseY := 0, 0
@@ -75,6 +78,18 @@ func mainLoop(cfgPath string) int {
 					isRunning = false
 					vx.PostEvent(vaxis.QuitEvent{})
 				}
+			case vaxis.FocusOut:
+				if prevHoverMod != nil {
+					_, send := prevHoverMod.Channels()
+					send <- modules.Event{
+						Cell: prevHoverCell,
+						VaxisEvent: modules.FocusOut{
+							PrevMod: prevHoverMod,
+							NewMod:  nil,
+						},
+					}
+          prevHoverMod = nil
+				}
 			case vaxis.Mouse:
 				mouseX, mouseY = ev.Col, ev.Row
 
@@ -82,8 +97,36 @@ func mainLoop(cfgPath string) int {
 					continue
 				}
 				c := tui.State()[mouseX]
-				if c.Mod != nil {
-					_, send := c.Mod.Channels()
+
+				curMod := c.Mod
+				if curMod != prevHoverMod {
+					if prevHoverMod != nil {
+						_, send := prevHoverMod.Channels()
+						send <- modules.Event{
+							Cell: prevHoverCell,
+							VaxisEvent: modules.FocusOut{
+								PrevMod: prevHoverMod,
+								NewMod:  curMod,
+							},
+						}
+					}
+
+					if curMod != nil {
+						_, send := curMod.Channels()
+						send <- modules.Event{
+							Cell: c,
+							VaxisEvent: modules.FocusIn{
+								PrevMod: prevHoverMod,
+								NewMod:  curMod,
+							},
+						}
+					}
+					prevHoverMod = curMod
+					prevHoverCell = c
+				}
+
+				if curMod != nil {
+					_, send := curMod.Channels()
 					send <- modules.Event{Cell: c, VaxisEvent: ev}
 				}
 				updateMouseShape(vx, c, &mouseShape, true)

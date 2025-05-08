@@ -21,7 +21,7 @@ func RegisterModule[T any](
 	constructor func(T) (modules.Module, error),
 ) {
 	factories[name] = func(node *yaml.Node) (modules.Module, error) {
-		if err := validateOnClickNode(node); err != nil {
+		if err := validateOnMouseNode(node); err != nil {
 			return nil, fmt.Errorf("%s: %w", name, err)
 		}
 		opts := defaultOpts
@@ -36,12 +36,27 @@ func RegisterModule[T any](
 			}
 		}
 
-		if f := reflect.ValueOf(&opts).Elem().FieldByName("OnClick"); f.IsValid() {
-			for _, key := range f.MapKeys() {
-				act, ok := f.MapIndex(key).Interface().(interface{ Validate() error })
-				if ok {
-					if err := act.Validate(); err != nil {
-						return nil, fmt.Errorf("%s.onclick.%s: %w", name, key.String(), err)
+		if fv := reflect.ValueOf(&opts).Elem().FieldByName("OnClick"); fv.IsValid() {
+			var m reflect.Value
+
+			switch fv.Kind() {
+			case reflect.Map:
+				m = fv
+
+			case reflect.Struct:
+				if sub := fv.FieldByName("Actions"); sub.IsValid() && sub.Kind() == reflect.Map {
+					m = sub
+				}
+			}
+
+			if m.IsValid() {
+				for _, key := range m.MapKeys() {
+					val := m.MapIndex(key).Interface()
+					if v, ok := val.(interface{ Validate() error }); ok {
+						if err := v.Validate(); err != nil {
+							return nil, fmt.Errorf("%s.onclick.%s: %w",
+								name, key.String(), err)
+						}
 					}
 				}
 			}

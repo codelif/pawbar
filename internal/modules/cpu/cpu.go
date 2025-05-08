@@ -44,7 +44,26 @@ func (mod *CpuModule) Run() (<-chan bool, chan<- modules.Event, error) {
 			case e := <-mod.send:
 				switch ev := e.VaxisEvent.(type) {
 				case vaxis.Mouse:
-					mod.handleMouse(ev)
+					if ev.EventType != vaxis.EventPress {
+						break
+					}
+					btn := config.ButtonName(ev)
+					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
+						mod.receive <- true
+					}
+					mod.ensureTickInterval()
+
+				case modules.FocusIn:
+					if mod.opts.OnClick.HoverIn(&mod.opts) {
+						mod.receive <- true
+					}
+					mod.ensureTickInterval()
+
+				case modules.FocusOut:
+					if mod.opts.OnClick.HoverOut(&mod.opts) {
+						mod.receive <- true
+					}
+					mod.ensureTickInterval()
 				}
 			}
 		}
@@ -53,26 +72,7 @@ func (mod *CpuModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	return mod.receive, mod.send, nil
 }
 
-func (mod *CpuModule) handleMouse(ev vaxis.Mouse) {
-	if ev.EventType != vaxis.EventPress {
-		return
-	}
-	btn := config.ButtonName(ev)
-	act, ok := mod.opts.OnClick[btn]
-	if !ok {
-		return
-	}
-
-	// y know the biz, run, notify, etc
-	// though I could add hyprnotify support
-	// like the custom hints (color, size, etc)
-	act.DispatchAction()
-
-	// we cycle the alternate states and i love this
-	if act.Next(&mod.initialOpts, &mod.opts) {
-		mod.receive <- true
-	}
-
+func (mod *CpuModule) ensureTickInterval() {
 	if mod.opts.Tick.Go() != mod.currentTickerInterval {
 		mod.currentTickerInterval = mod.opts.Tick.Go()
 		mod.ticker.Reset(mod.currentTickerInterval)

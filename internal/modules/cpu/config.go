@@ -12,7 +12,7 @@ import (
 // - cpu:
 //     tick: 10s
 //     cursor: text
-//     onclick:
+//     onmouse:
 //       left:
 //         notify: "wow"
 //         run: ["pavucontrol"]
@@ -52,13 +52,13 @@ type ThresholdOptions struct {
 }
 
 type Options struct {
-	Fg        config.Color                        `yaml:"fg"`
-	Bg        config.Color                        `yaml:"bg"`
-	Cursor    config.Cursor                       `yaml:"cursor"`
-	Tick      config.Duration                     `yaml:"tick"`
-	Format    config.Format                       `yaml:"format"`
-	Threshold ThresholdOptions                    `yaml:"threshold"`
-	OnClick   config.OnClickActions[ClickOptions] `yaml:"onclick"`
+	Fg        config.Color                      `yaml:"fg"`
+	Bg        config.Color                      `yaml:"bg"`
+	Cursor    config.Cursor                     `yaml:"cursor"`
+	Tick      config.Duration                   `yaml:"tick"`
+	Format    config.Format                     `yaml:"format"`
+	Threshold ThresholdOptions                  `yaml:"threshold"`
+	OnClick   config.MouseActions[MouseOptions] `yaml:"onmouse"`
 }
 
 // these field names need to match exactly the
@@ -67,7 +67,7 @@ type Options struct {
 // so it was worth it.
 // Also Rob Pike is such a goated guy
 // Read his wise words: https://go.dev/blog/laws-of-reflection
-type ClickOptions struct {
+type MouseOptions struct {
 	Fg     *config.Color    `yaml:"fg"`
 	Bg     *config.Color    `yaml:"bg"`
 	Cursor *config.Cursor   `yaml:"cursor"`
@@ -86,6 +86,6 @@ func defaultOptions() Options {
 			For:     config.Duration(7 * time.Second),
 			Color:   config.Color(urgClr),
 		},
-		OnClick: config.OnClickActions[ClickOptions]{},
+		OnClick: config.MouseActions[MouseOptions]{},
 	}
 }

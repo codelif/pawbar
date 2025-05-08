@@ -33,6 +33,7 @@ func ButtonName(ev vaxis.Mouse) string {
 var allowedButtons = []string{
 	"left", "right", "middle",
 	"wheel-up", "wheel-down", "wheel-left", "wheel-right",
+	"hover", //yea its a button now ;)
 }
 
 var allowedButtonsSet = func() map[string]struct{} {
@@ -56,7 +57,48 @@ func ParseCursor(s string) (vaxis.MouseShape, error) {
 	}
 }
 
-type OnClickAction[T any] struct {
+func validateOnMouseNode(node *yaml.Node) error {
+	if node == nil || node.Kind != yaml.MappingNode {
+		return nil
+	}
+	for i := 0; i < len(node.Content); i += 2 {
+		if node.Content[i].Value == "onmouse" {
+			val := node.Content[i+1]
+			if val.Kind != yaml.MappingNode {
+				return fmt.Errorf("onmouse must be a map")
+			}
+			for j := 0; j < len(val.Content); j += 2 {
+				btn := val.Content[j].Value
+				if _, ok := allowedButtonsSet[btn]; !ok {
+					return fmt.Errorf("invalid onmouse key %q; must be one of %v",
+						btn, allowedButtons)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+type MouseActions[T any] struct {
+	Actions map[string]*MouseAction[T]
+
+	hoverActive   bool
+	hoverSnapshot T
+	hoverIndex    int
+}
+
+// yea, couldn't be bothered to validate the whole thing here
+// TODO: unmarshal and validate here
+func (m *MouseActions[T]) UnmarshalYAML(node *yaml.Node) error {
+	var tmp map[string]*MouseAction[T]
+	if err := node.Decode(&tmp); err != nil {
+		return err
+	}
+	m.Actions = tmp
+	return nil
+}
+
+type MouseAction[T any] struct {
 	Run     []string `yaml:"run"`
 	Notify  string   `yaml:"notify"`
 	Configs []T      `yaml:"config"`
@@ -65,12 +107,120 @@ type OnClickAction[T any] struct {
 	inited     bool
 }
 
-type OnClickActions[T any] map[string]*OnClickAction[T]
+func (m *MouseActions[T]) Dispatch(
+	button string,
+	initOpts, liveOpts any,
+) bool {
 
-func (a *OnClickAction[T]) UnmarshalYAML(n *yaml.Node) error {
+	act, ok := m.Actions[button]
+	if !ok {
+		return false
+	}
+
+	act.DispatchAction()
+
+	clicked := act.Next(initOpts, liveOpts)
+
+	if m.hoverActive {
+		m.hoverSnapshot = snapTFields[T](liveOpts, act.Configs)
+	}
+
+	return clicked
+}
+
+func (m *MouseActions[T]) HoverIn(liveOpts any) bool {
+
+	hoverAct, ok := m.Actions["hover"]
+	if !ok || len(hoverAct.Configs) == 0 {
+		return false
+	}
+
+	if !m.hoverActive {
+		m.hoverActive = true
+		m.hoverSnapshot = snapTFields[T](liveOpts, hoverAct.Configs)
+	}
+
+	idx := m.hoverIndex % len(hoverAct.Configs)
+	applyOverride(hoverAct.Configs[idx], liveOpts)
+	m.hoverIndex++
+	return true
+}
+
+func (m *MouseActions[T]) HoverOut(liveOpts any) bool {
+
+	if !m.hoverActive {
+		return false
+	}
+	m.hoverActive = false
+
+	restoreTFields[T](m.hoverSnapshot, liveOpts)
+	return true
+}
+
+func snapTFields[T any](liveOpts any, cfgs []T) T {
+	liveV := reflect.ValueOf(liveOpts)
+	if liveV.Kind() == reflect.Ptr {
+		liveV = liveV.Elem()
+	}
+	tT := reflect.TypeOf(cfgs).Elem()
+	snap := reflect.New(tT).Elem()
+	for i := 0; i < tT.NumField(); i++ {
+		fd := tT.Field(i)
+		lf := liveV.FieldByName(fd.Name)
+		if !lf.IsValid() {
+			continue
+		}
+		p := reflect.New(fd.Type.Elem())
+		p.Elem().Set(lf)
+		snap.Field(i).Set(p)
+	}
+	return snap.Interface().(T)
+}
+
+func restoreTFields[T any](snap T, liveOpts any) {
+	liveV := reflect.ValueOf(liveOpts)
+	if liveV.Kind() == reflect.Ptr {
+		liveV = liveV.Elem()
+	}
+	snapV := reflect.ValueOf(snap)
+	if snapV.Kind() == reflect.Ptr {
+		snapV = snapV.Elem()
+	}
+	for i := 0; i < snapV.NumField(); i++ {
+		f := snapV.Field(i)
+		if f.Kind() == reflect.Ptr && !f.IsNil() {
+			name := snapV.Type().Field(i).Name
+			if lf := liveV.FieldByName(name); lf.CanSet() {
+				lf.Set(f.Elem())
+			}
+		}
+	}
+}
+
+func applyOverride[T any](cfg T, liveOpts any) {
+	liveV := reflect.ValueOf(liveOpts)
+	if liveV.Kind() == reflect.Ptr {
+		liveV = liveV.Elem()
+	}
+	part := reflect.ValueOf(cfg)
+	if part.Kind() == reflect.Ptr {
+		part = part.Elem()
+	}
+	for i := 0; i < part.NumField(); i++ {
+		f := part.Field(i)
+		if f.Kind() == reflect.Ptr && !f.IsNil() {
+			name := part.Type().Field(i).Name
+			if lf := liveV.FieldByName(name); lf.CanSet() {
+				lf.Set(f.Elem())
+			}
+		}
+	}
+}
+
+func (a *MouseAction[T]) UnmarshalYAML(n *yaml.Node) error {
 	// must be a mapping: run:, notify:, config:
 	if n.Kind != yaml.MappingNode {
-		return fmt.Errorf("onclick action must be a map, got %v", n.Kind)
+		return fmt.Errorf("onmouse action must be a map, got %v", n.Kind)
 	}
 
 	var runNode, notifyNode, configNode *yaml.Node
@@ -90,12 +240,12 @@ func (a *OnClickAction[T]) UnmarshalYAML(n *yaml.Node) error {
 	if runNode != nil {
 		if runNode.Kind == yaml.SequenceNode {
 			if err := runNode.Decode(&a.Run); err != nil {
-				return fmt.Errorf("onclick: bad run: %w", err)
+				return fmt.Errorf("onmouse: bad run: %w", err)
 			}
 		} else {
 			var s string
 			if err := runNode.Decode(&s); err != nil {
-				return fmt.Errorf("onclick: bad run: %w", err)
+				return fmt.Errorf("onmouse: bad run: %w", err)
 			}
 			a.Run = []string{s}
 		}
@@ -103,7 +253,7 @@ func (a *OnClickAction[T]) UnmarshalYAML(n *yaml.Node) error {
 
 	if notifyNode != nil {
 		if err := notifyNode.Decode(&a.Notify); err != nil {
-			return fmt.Errorf("onclick: bad notify: %w", err)
+			return fmt.Errorf("onmouse: bad notify: %w", err)
 		}
 	}
 
@@ -112,26 +262,26 @@ func (a *OnClickAction[T]) UnmarshalYAML(n *yaml.Node) error {
 		case yaml.SequenceNode:
 			var list []T
 			if err := configNode.Decode(&list); err != nil {
-				return fmt.Errorf("onclick: bad config list: %w", err)
+				return fmt.Errorf("onmouse: bad config list: %w", err)
 			}
 			a.Configs = list
 
 		case yaml.MappingNode:
 			var single T
 			if err := configNode.Decode(&single); err != nil {
-				return fmt.Errorf("onclick: bad config map: %w", err)
+				return fmt.Errorf("onmouse: bad config map: %w", err)
 			}
 			a.Configs = []T{single}
 
 		default:
-			return fmt.Errorf("onclick.config must be a map or sequence of maps, got %v", configNode.Kind)
+			return fmt.Errorf("onmouse.config must be a map or sequence of maps, got %v", configNode.Kind)
 		}
 	}
 
 	return nil
 }
 
-func (a *OnClickAction[T]) DispatchAction() {
+func (a *MouseAction[T]) DispatchAction() {
 	if a.Notify != "" {
 		go exec.Command("notify-send", a.Notify).Start()
 	}
@@ -140,7 +290,7 @@ func (a *OnClickAction[T]) DispatchAction() {
 	}
 }
 
-func (a *OnClickAction[T]) appendInitial(opts any) {
+func (a *MouseAction[T]) appendInitial(opts any) {
 	if len(a.Configs) == 0 {
 		return
 	}
@@ -168,7 +318,7 @@ func (a *OnClickAction[T]) appendInitial(opts any) {
 	a.Configs = append(a.Configs, newCfg.Interface().(T))
 }
 
-func (a *OnClickAction[T]) Next(initOpts, liveOpts any) bool {
+func (a *MouseAction[T]) Next(initOpts, liveOpts any) bool {
 	if !a.inited && len(a.Configs) > 0 {
 		a.inited = true
 		a.appendInitial(initOpts)
@@ -219,26 +369,4 @@ func (a *OnClickAction[T]) Next(initOpts, liveOpts any) bool {
 	a.clickIndex = (a.clickIndex + 1) % len(a.Configs)
 
 	return true
-}
-
-func validateOnClickNode(node *yaml.Node) error {
-	if node == nil || node.Kind != yaml.MappingNode {
-		return nil
-	}
-	for i := 0; i < len(node.Content); i += 2 {
-		if node.Content[i].Value == "onclick" {
-			val := node.Content[i+1]
-			if val.Kind != yaml.MappingNode {
-				return fmt.Errorf("onclick must be a map")
-			}
-			for j := 0; j < len(val.Content); j += 2 {
-				btn := val.Content[j].Value
-				if _, ok := allowedButtonsSet[btn]; !ok {
-					return fmt.Errorf("invalid onclick button %q; must be one of %v",
-						btn, allowedButtons)
-				}
-			}
-		}
-	}
-	return nil
 }
