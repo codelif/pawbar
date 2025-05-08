@@ -60,147 +60,125 @@ func render(win vaxis.Window) {
 	}
 	win.Clear()
 
-	rightModulesLength := 0
-outerRight:
-	for _, mod := range rightModules {
-		modRender := modMap[mod]
-		modLength := len(modRender)
-		for i := range modLength {
-			if rightModulesLength >= width {
-				break outerRight
-			}
-			c := modRender[modLength-i-1]
-			win.SetCell(width-rightModulesLength-1, 0, c.C)
-			state[width-rightModulesLength-1] = c
-			rightModulesLength++
+	leftCells := flatten(leftModules)
+	midCells := flatten(middleModules)
+	rightCells := flatten(rightModules)
 
-			if c.C.Width > 1 {
-				emptyCell := vaxis.Cell{Style: c.C.Style}
-				for range c.C.Width - 1 {
-					win.SetCell(width-rightModulesLength-1, 0, emptyCell)
+	leftW := totalWidth(leftCells)
+	midW := totalWidth(midCells)
+	rightW := totalWidth(rightCells)
 
-					state[width-rightModulesLength-1] = modules.EventCell{
-						C:          emptyCell,
-						Metadata:   c.Metadata,
-						Mod:        c.Mod,
-						MouseShape: c.MouseShape,
-					}
-
-					rightModulesLength++
-				}
-			}
-		}
+	if rightW > width {
+		rightCells = trimStart(rightCells, width)
+		rightW = totalWidth(rightCells)
+		midCells = nil
 	}
 
-	middleLeftLength, middleRightLength := 0, 0
-
-	// First, flatten all middle modules into a single slice
-	modRender := make([]modules.EventCell, 0, len(middleModules)*10)
-	for _, mod := range middleModules {
-		modRender = append(modRender, modMap[mod]...)
+	if leftW > width-rightW {
+		leftCells = trimEnd(leftCells, width-rightW)
+		leftW = totalWidth(leftCells)
+		midCells = nil
 	}
 
-	anchor := width / 2
-	rightEdge := width - rightModulesLength
-	available := rightEdge - anchor
-	half := len(modRender) / 2
-
-	leftCells := modRender[:half]
-	rightCells := modRender[half:]
-
-	for i := len(leftCells) - 1; i >= 0; i-- {
-		c := leftCells[i]
-		w := c.C.Width
-
-		if anchor-middleLeftLength-w < 0 {
-
-			for ; middleLeftLength < anchor; middleLeftLength++ {
-				x := anchor - middleLeftLength - 1
-				ell := modules.Cell('…', vaxis.Style{})
-				win.SetCell(x, 0, ell)
-				state[x] = modules.EventCell{C: ell, Mod: nil}
-			}
-			break
-		}
-
-		for j := 0; j < w; j++ {
-			x := anchor - middleLeftLength - 1
-			if j == 0 {
-				win.SetCell(x, 0, c.C)
-				state[x] = c
-			} else {
-				pad := vaxis.Cell{Style: c.C.Style}
-				win.SetCell(x, 0, pad)
-				state[x] = modules.EventCell{C: pad, Metadata: c.Metadata, Mod: c.Mod, MouseShape: c.MouseShape}
-			}
-			middleLeftLength++
-		}
+	if leftW+rightW == width {
+		midCells = nil
 	}
 
+	leftStart := 0
+	rightStart := width - rightW
+
+	midStart := (width - midW) / 2
+	midEnd := midStart + midW
+
+	if len(midCells) > 0 && leftW >= midStart {
+		ell := modules.Cell('…', vaxis.Style{})
+		midCells = append([]modules.EventCell{{C: ell}}, midCells[leftW-midStart+1:]...)
+		midW = totalWidth(midCells)
+		midStart = leftW
+	}
+
+	if len(midCells) > 0 && midEnd >= rightStart {
+		ell := modules.Cell('…', vaxis.Style{})
+		midCells = append(midCells[:midW-midEnd+rightStart-1], modules.EventCell{C: ell})
+	}
+
+	x := midStart
+	for _, c := range midCells {
+		x = writeCell(win, x, c)
+	}
+
+	x = leftStart
+	for _, c := range leftCells {
+		x = writeCell(win, x, c)
+	}
+
+	x = rightStart
 	for _, c := range rightCells {
-		w := c.C.Width
-		// check overflow on right
-		if middleRightLength+w > available {
-			pos := anchor + available - 1
+		x = writeCell(win, x, c)
+	}
+}
+
+func writeCell(win vaxis.Window, x int, c modules.EventCell) int {
+	win.SetCell(x, 0, c.C)
+	state[x] = c
+
+	for w := 1; w < c.C.Width; w++ {
+		empty := vaxis.Cell{Style: c.C.Style}
+		win.SetCell(x+w, 0, empty)
+		state[x+w] = modules.EventCell{
+			C:          empty,
+			Metadata:   c.Metadata,
+			Mod:        c.Mod,
+			MouseShape: c.MouseShape,
+		}
+	}
+	return x + c.C.Width
+}
+
+func flatten(mods []modules.Module) []modules.EventCell {
+	// each module will probably require more than 3 cells
+	// ws with 1 workspace requires 3, so most of them will
+	// take more than that right? right? (foreshadowing)
+	out := make([]modules.EventCell, 0, len(mods)*3)
+	for _, m := range mods {
+		out = append(out, modMap[m]...)
+	}
+	return out
+}
+
+// this keeps account for grapheme widths
+// so this is safe for anchor calculations; probably?
+func totalWidth(cells []modules.EventCell) int {
+	w := 0
+	for _, c := range cells {
+		w += c.C.Width
+	}
+	return w
+}
+
+// also adds ellipsis at the start. ellipsis huh, weird word
+func trimStart(cells []modules.EventCell, limit int) []modules.EventCell {
+	w := 0
+	for i := len(cells) - 1; i >= 0; i-- {
+		c := cells[i]
+		if w+c.C.Width > limit {
 			ell := modules.Cell('…', vaxis.Style{})
-			win.SetCell(pos, 0, ell)
-			state[pos] = modules.EventCell{C: ell, Mod: nil}
-			break
+			return append([]modules.EventCell{{C: ell}}, cells[i+1:]...)
 		}
+		w += c.C.Width
+	}
+	return cells
+}
 
-		for j := 0; j < w; j++ {
-			x := anchor + middleRightLength
-			if j == 0 {
-				win.SetCell(x, 0, c.C)
-				state[x] = c
-			} else {
-				pad := vaxis.Cell{Style: c.C.Style}
-				win.SetCell(x, 0, pad)
-				state[x] = modules.EventCell{C: pad, Metadata: c.Metadata, Mod: c.Mod, MouseShape: c.MouseShape}
-			}
-			middleRightLength++
+// also adds ellipsis at the end. ellipsis huh, indeed a weird word
+func trimEnd(cells []modules.EventCell, limit int) []modules.EventCell {
+	w := 0
+	for i, c := range cells {
+		if w+c.C.Width > limit {
+			ell := modules.Cell('…', vaxis.Style{})
+			return append(cells[:i-1], modules.EventCell{C: ell})
 		}
+		w += c.C.Width
 	}
-
-	leftModulesLength := 0
-	var availableForleft int
-	if len(middleModules) == 0 {
-		availableForleft = width - rightModulesLength
-	} else {
-		availableForleft = width/2 - middleLeftLength
-	}
-outerLeft:
-	for _, mod := range leftModules {
-		for _, c := range modMap[mod] {
-
-			if leftModulesLength >= availableForleft-1 {
-				for range availableForleft - leftModulesLength {
-					state[leftModulesLength] = modules.EventCell{C: modules.Cell('…', vaxis.Style{}), Mod: nil}
-					win.SetCell(leftModulesLength, 0, state[leftModulesLength].C)
-					leftModulesLength++
-				}
-				break outerLeft
-			}
-
-			win.SetCell(leftModulesLength, 0, c.C)
-			state[leftModulesLength] = c
-			leftModulesLength++
-
-			if c.C.Width > 1 {
-				emptyCell := vaxis.Cell{Style: c.C.Style}
-				for range c.C.Width - 1 {
-					win.SetCell(leftModulesLength, 0, emptyCell)
-
-					state[leftModulesLength] = modules.EventCell{
-						C:          emptyCell,
-						Metadata:   c.Metadata,
-						Mod:        c.Mod,
-						MouseShape: c.MouseShape,
-					}
-
-					leftModulesLength++
-				}
-			}
-		}
-	}
+	return cells
 }

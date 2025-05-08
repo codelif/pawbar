@@ -2,7 +2,6 @@ package config
 
 import (
 	"os"
-	"slices"
 
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/utils"
@@ -13,7 +12,6 @@ func InstantiateModules(cfg *BarConfig) (left, middle, right []modules.Module) {
 	left = instantiate(cfg.Left)
 	middle = instantiate(cfg.Middle)
 	right = instantiate(cfg.Right)
-	slices.Reverse(right)
 
 	return left, middle, right
 }
