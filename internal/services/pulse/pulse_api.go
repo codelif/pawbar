@@ -9,6 +9,9 @@ import "C"
 
 import (
 	"errors"
+	"fmt"
+	"os"
+	"runtime"
 	"unsafe"
 )
 
@@ -101,8 +104,15 @@ func goSinkEventCallback(cSink *C.char, volume C.double, muted C.int) {
 
 func monitor() (<-chan SinkEvent, error) {
 	sinkEventChan = make(chan SinkEvent, 10)
-	if C.pulse_subscribe((C.sink_event_callback_t)(C.sink_event_callback_cgo)) != 0 {
-		return nil, errors.New("failed to subscribe to sink events")
-	}
+
+	go func() {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+		// drive the callbacks until pulse service will unsubscribe
+		if C.pulse_subscribe((C.sink_event_callback_t)(C.sink_event_callback_cgo)) != 0 {
+			fmt.Fprintln(os.Stderr, "pulse_subscribe failed")
+		}
+	}()
+
 	return sinkEventChan, nil
 }

@@ -2,7 +2,9 @@ package volume
 
 import (
 	"errors"
+	"fmt"
 
+	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/services/pulse"
@@ -19,6 +21,11 @@ type VolumeModule struct {
 	events  <-chan pulse.SinkEvent
 }
 
+var (
+	ICONS_VOLUME      = []rune{'󰕿', '󰖀', '󰕾'}
+	MUTE         rune = '󰖁'
+)
+
 func init() {
 	config.Register("volume", func(n *yaml.Node) (modules.Module, error) {
 		return &VolumeModule{}, nil
@@ -33,7 +40,7 @@ func (mod *VolumeModule) Name() string {
 	return "volume"
 }
 
-func (mod *VolumeModule) Decndencies() []string {
+func (mod *VolumeModule) Dependencies() []string {
 	return []string{"pulse"}
 }
 
@@ -113,5 +120,25 @@ func (mod *VolumeModule) Channels() (<-chan bool, chan<- modules.Event) {
 }
 
 func (mod *VolumeModule) Render() []modules.EventCell {
-	return []modules.EventCell{}
+	if mod.Muted {
+		rch := vaxis.Characters(fmt.Sprintf("%c %s", MUTE, "MUTED"))
+		r := make([]modules.EventCell, len(rch))
+		s := vaxis.Style{}
+		s.Foreground = vaxis.RGBColor(169, 169, 169)
+		for i, ch := range rch {
+			r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: mod}
+		}
+		return r
+	} else {
+		vol := int(mod.Volume)
+		idx := (len(ICONS_VOLUME) - 1) * vol / 100
+		icon := ICONS_VOLUME[idx]
+		rch := vaxis.Characters(fmt.Sprintf("%c %d%%", icon, vol))
+		r := make([]modules.EventCell, len(rch))
+		for i, ch := range rch {
+			r[i] = modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: mod}
+		}
+		return r
+
+	}
 }
