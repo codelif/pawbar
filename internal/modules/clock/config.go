@@ -12,7 +12,7 @@ import (
 //  clock:
 //     format: "%Y-%m-%d %H:%M:%S"
 //     tick:   5s                                   # interval
-//     onclick:
+//     onmouse:
 //       left:
 //         config:
 //           format: "%a %H:%M"
@@ -32,7 +32,7 @@ type Options struct {
 	Cursor  config.Cursor                     `yaml:"cursor"`
 	Tick    config.Duration                   `yaml:"tick"`
 	Format  string                            `yaml:"format"`
-	OnClick config.MouseActions[ClickOptions] `yaml:"onclick"`
+	OnClick config.MouseActions[ClickOptions] `yaml:"onmouse"`
 }
 
 type ClickOptions struct {
