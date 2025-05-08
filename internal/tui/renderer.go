@@ -163,7 +163,12 @@ outerRight:
 	}
 
 	leftModulesLength := 0
-	availableForleft := width/2 - middleLeftLength
+	var availableForleft int
+	if len(middleModules) == 0 {
+		availableForleft = width - rightModulesLength
+	} else {
+		availableForleft = width/2 - middleLeftLength
+	}
 outerLeft:
 	for _, mod := range leftModules {
 		for _, c := range modMap[mod] {
