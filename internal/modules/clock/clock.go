@@ -68,7 +68,6 @@ func (mod *ClockModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	return mod.receive, mod.send, nil
 }
 
-
 func (mod *ClockModule) ensureTickInterval() {
 	if mod.opts.Tick.Go() != mod.currentTickerInterval {
 		mod.currentTickerInterval = mod.opts.Tick.Go()

@@ -27,11 +27,11 @@ func init() {
 }
 
 type Options struct {
-	Fg      config.Color                        `yaml:"fg"`
-	Bg      config.Color                        `yaml:"bg"`
-	Cursor  config.Cursor                       `yaml:"cursor"`
-	Tick    config.Duration                     `yaml:"tick"`
-	Format  string                              `yaml:"format"`
+	Fg      config.Color                      `yaml:"fg"`
+	Bg      config.Color                      `yaml:"bg"`
+	Cursor  config.Cursor                     `yaml:"cursor"`
+	Tick    config.Duration                   `yaml:"tick"`
+	Format  string                            `yaml:"format"`
 	OnClick config.MouseActions[ClickOptions] `yaml:"onclick"`
 }
 

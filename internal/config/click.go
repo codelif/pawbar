@@ -33,7 +33,7 @@ func ButtonName(ev vaxis.Mouse) string {
 var allowedButtons = []string{
 	"left", "right", "middle",
 	"wheel-up", "wheel-down", "wheel-left", "wheel-right",
-	"hover", //yea its a button now ;)
+	"hover", // yea its a button now ;)
 }
 
 var allowedButtonsSet = func() map[string]struct{} {
@@ -111,7 +111,6 @@ func (m *MouseActions[T]) Dispatch(
 	button string,
 	initOpts, liveOpts any,
 ) bool {
-
 	act, ok := m.Actions[button]
 	if !ok {
 		return false
@@ -129,7 +128,6 @@ func (m *MouseActions[T]) Dispatch(
 }
 
 func (m *MouseActions[T]) HoverIn(liveOpts any) bool {
-
 	hoverAct, ok := m.Actions["hover"]
 	if !ok || len(hoverAct.Configs) == 0 {
 		return false
@@ -147,7 +145,6 @@ func (m *MouseActions[T]) HoverIn(liveOpts any) bool {
 }
 
 func (m *MouseActions[T]) HoverOut(liveOpts any) bool {
-
 	if !m.hoverActive {
 		return false
 	}

@@ -88,7 +88,7 @@ func mainLoop(cfgPath string) int {
 							NewMod:  nil,
 						},
 					}
-          prevHoverMod = nil
+					prevHoverMod = nil
 				}
 			case vaxis.Mouse:
 				mouseX, mouseY = ev.Col, ev.Row
