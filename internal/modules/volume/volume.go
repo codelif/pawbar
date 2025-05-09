@@ -76,6 +76,15 @@ func (mod *VolumeModule) Run() (<-chan bool, chan<- modules.Event, error) {
 					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
 						mod.receive <- true
 					}
+				case modules.FocusIn:
+					if mod.opts.OnClick.HoverIn(&mod.opts) {
+						mod.receive <- true
+					}
+
+				case modules.FocusOut:
+					if mod.opts.OnClick.HoverOut(&mod.opts) {
+						mod.receive <- true
+					}
 				}
 
 			case e := <-mod.events:
