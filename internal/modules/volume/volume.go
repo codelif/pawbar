@@ -1,36 +1,26 @@
 package volume
 
 import (
+	"bytes"
 	"errors"
-	"fmt"
 
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/services/pulse"
 	"github.com/codelif/pawbar/internal/utils"
-	"gopkg.in/yaml.v3"
 )
 
 type VolumeModule struct {
-	receive chan bool
-	send    chan modules.Event
-	svc     *pulse.PulseService
-	sink    string
-	Volume  float64
-	Muted   bool
-	events  <-chan pulse.SinkEvent
-}
-
-var (
-	ICONS_VOLUME      = []rune{'󰕿', '󰖀', '󰕾'}
-	MUTE         rune = '󰖁'
-)
-
-func init() {
-	config.Register("volume", func(n *yaml.Node) (modules.Module, error) {
-		return &VolumeModule{}, nil
-	})
+	receive     chan bool
+	send        chan modules.Event
+	svc         *pulse.PulseService
+	sink        string
+	Volume      float64
+	Muted       bool
+	events      <-chan pulse.SinkEvent
+	opts        Options
+	initialOpts Options
 }
 
 func New() modules.Module {
@@ -71,11 +61,23 @@ func (mod *VolumeModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	mod.receive = make(chan bool)
 	mod.send = make(chan modules.Event)
 	mod.events = svc.IssueListener()
+	mod.initialOpts = mod.opts
 
 	go func() {
 		for {
 			select {
-			case <-mod.send:
+			case e := <-mod.send:
+				switch ev := e.VaxisEvent.(type) {
+				case vaxis.Mouse:
+					if ev.EventType != vaxis.EventPress {
+						break
+					}
+					btn := config.ButtonName(ev)
+					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
+						mod.receive <- true
+					}
+				}
+
 			case e := <-mod.events:
 				if e.Sink != mod.sink {
 					continue
@@ -121,23 +123,52 @@ func (mod *VolumeModule) Channels() (<-chan bool, chan<- modules.Event) {
 }
 
 func (mod *VolumeModule) Render() []modules.EventCell {
+	style := vaxis.Style{}
+
 	if mod.Muted {
-		rch := vaxis.Characters(fmt.Sprintf("%c %s", MUTE, "MUTED"))
+
+		style.Foreground = mod.opts.Muted.Fg.Go()
+		style.Background = mod.opts.Muted.Bg.Go()
+
+		text := mod.opts.Muted.MuteFormat
+		rch := vaxis.Characters(text)
 		r := make([]modules.EventCell, len(rch))
-		s := vaxis.Style{}
-		s.Foreground = vaxis.RGBColor(169, 169, 169)
+
 		for i, ch := range rch {
-			r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: mod}
+			r[i] = modules.EventCell{
+				C:          vaxis.Cell{Character: ch, Style: style},
+				Mod:        mod,
+				MouseShape: mod.opts.Cursor.Go(),
+			}
 		}
 		return r
 	} else {
+
+		style.Foreground = mod.opts.Fg.Go()
+		style.Background = mod.opts.Bg.Go()
+
 		vol := int(mod.Volume)
-		idx := utils.Clamp(vol*len(ICONS_VOLUME)/100, 0, len(ICONS_VOLUME)-1)
-		icon := ICONS_VOLUME[idx]
-		rch := vaxis.Characters(fmt.Sprintf("%c %d%%", icon, vol))
+		icons := mod.opts.Icons
+		idx := utils.Clamp(vol*len(icons)/100, 0, len(icons)-1)
+		icon := icons[idx]
+		data := struct {
+			Icon    string
+			Percent int
+		}{
+			Icon:    string(icon),
+			Percent: vol,
+		}
+
+		var buf bytes.Buffer
+		_ = mod.opts.Format.Execute(&buf, data)
+		rch := vaxis.Characters(buf.String())
 		r := make([]modules.EventCell, len(rch))
 		for i, ch := range rch {
-			r[i] = modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: mod}
+			r[i] = modules.EventCell{
+				C:          vaxis.Cell{Character: ch, Style: style},
+				Mod:        mod,
+				MouseShape: mod.opts.Cursor.Go(),
+			}
 		}
 		return r
 
