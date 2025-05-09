@@ -122,10 +122,22 @@ func (b *hyprBackend) handleEvent(e hypr.HyprEvent) bool {
 		b.activateSpecialWorkspace(e.Data[:strings.IndexRune(e.Data, ',')])
 	case "urgent":
 		b.setWorkspaceUrgent(e.Data)
+	case "renameworkspace":
+		idr, name, _ := strings.Cut(e.Data, ",")
+		id, _ := strconv.Atoi(idr)
+		b.renameWorkspace(id, name)
 	default:
 		return false
 	}
 	return true
+}
+
+func (b *hyprBackend) renameWorkspace(id int, name string) {
+	for _, w := range b.ws {
+		if w.ID == id {
+			w.Name = name
+		}
+	}
 }
 
 func (b *hyprBackend) setActiveWorkspace(id int) {
