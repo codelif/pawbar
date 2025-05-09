@@ -27,7 +27,15 @@ func mainLoop(cfgPath string) int {
 		utils.Logger.Println("There was an error initializing Vaxis.")
 		return 1
 	}
-	defer vx.Close() // no need for recover since its done in vaxis
+
+	defer func() {
+		err := recover()
+		vx.Close()
+		if err != nil {
+			utils.Logger.Printf("unexpected error: %v\n", err)
+		}
+		return
+	}()
 
 	win := vx.Window()
 	win.Clear()
