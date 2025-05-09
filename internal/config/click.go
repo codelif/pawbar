@@ -120,7 +120,7 @@ func (m *MouseActions[T]) Dispatch(
 
 	clicked := act.Next(initOpts, liveOpts)
 
-	if m.hoverActive {
+	if m.hoverActive && clicked {
 		m.hoverSnapshot = snapTFields[T](liveOpts, act.Configs)
 	}
 
