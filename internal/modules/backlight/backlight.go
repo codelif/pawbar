@@ -12,14 +12,7 @@ import (
 	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/jochenvg/go-udev"
-	"gopkg.in/yaml.v3"
 )
-
-func init() {
-	config.Register("backlight", func(n *yaml.Node) (modules.Module, error) {
-		return &Backlight{}, nil
-	})
-}
 
 var ICONS_BACKLIGHT = []rune{'󰃞', '󰃟', '󰃝', '󰃠'}
 
@@ -31,6 +24,8 @@ type Backlight struct {
 	MaxBrightness     int
 	currentBrightness int
 	Type              string
+	opts              Options
+	initialOpts       Options
 }
 
 func New() modules.Module {
