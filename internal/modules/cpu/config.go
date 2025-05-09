@@ -48,7 +48,8 @@ func init() {
 type ThresholdOptions struct {
 	Percent config.Percent  `yaml:"percent"`
 	For     config.Duration `yaml:"for"`
-	Color   config.Color    `yaml:"color"`
+	Fg      config.Color    `yaml:"fg"`
+	Bg      config.Color    `yaml:"bg"`
 }
 
 type Options struct {
@@ -84,7 +85,7 @@ func defaultOptions() Options {
 		Threshold: ThresholdOptions{
 			Percent: 90,
 			For:     config.Duration(7 * time.Second),
-			Color:   config.Color(urgClr),
+			Fg:      config.Color(urgClr),
 		},
 		OnClick: config.MouseActions[MouseOptions]{},
 	}
