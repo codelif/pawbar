@@ -80,15 +80,15 @@ func render(win vaxis.Window) {
 		midCells = nil
 	}
 
-	if leftW+rightW == width {
-		midCells = nil
-	}
-
 	leftStart := 0
 	rightStart := width - rightW
 
 	midStart := (width - midW) / 2
 	midEnd := midStart + midW
+
+	if leftW+rightW == width || leftW >= midEnd || rightStart <= midStart {
+		midCells = nil
+	}
 
 	if len(midCells) > 0 && leftW >= midStart {
 		ell := modules.Cell('…', vaxis.Style{})
