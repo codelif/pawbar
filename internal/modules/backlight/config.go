@@ -39,7 +39,7 @@ func defaultOptions() Options {
 					Run: []string{"brightnessctl", "set", "+5%"},
 				},
 				"wheel-down": {
-					Run: []string{"brightnessctl", "set", "-5%"},
+					Run: []string{"brightnessctl", "set", "5%-"},
 				},
 			},
 		},
