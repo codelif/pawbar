@@ -23,7 +23,11 @@ func Parse(path string) (*BarConfig, error) {
 	}
 
 	var cfg BarConfig
-	err = yaml.Unmarshal(b, &cfg)
+	if err = yaml.Unmarshal(b, &cfg); err != nil {
+		return nil, err
+	}
+	cfg.Bar.FillDefaults()
+
 	return &cfg, err
 }
 

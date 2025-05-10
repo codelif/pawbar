@@ -9,7 +9,43 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type BarSettings struct{}
+type BarSettings struct {
+	TruncatePriority []string `yaml:"truncate_priority"`
+	Ellipsis         *bool    `yaml:"ellipsis"`
+}
+
+func (b *BarSettings) UnmarshalYAML(n *yaml.Node) error {
+	type plain BarSettings
+	if err := n.Decode((*plain)(b)); err != nil {
+		return err
+	}
+
+	if len(b.TruncatePriority) != 3 {
+		return fmt.Errorf("truncate_priority: exactly 3 anchors needed, %d provided", len(b.TruncatePriority))
+	}
+
+	set := map[string]bool{"left": false, "middle": false, "right": false}
+	for _, a := range b.TruncatePriority {
+		if _, ok := set[a]; !ok {
+      return fmt.Errorf(`truncate_priority: invalid anchor %q, valid options are: ["left", "middle", "right"]`, a)
+		}
+		if set[a] {
+			return fmt.Errorf("truncate_priority: %q listed twice", a)
+		}
+		set[a] = true
+	}
+	return nil
+}
+
+func (b *BarSettings) FillDefaults() {
+	if len(b.TruncatePriority) == 0 {
+		b.TruncatePriority = []string{"right", "left", "middle"}
+	}
+	if b.Ellipsis == nil {
+		t := true
+		b.Ellipsis = &t
+	}
+}
 
 type BarConfig struct {
 	Bar    BarSettings  `yaml:"bar"`

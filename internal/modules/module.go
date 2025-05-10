@@ -52,19 +52,21 @@ func (FocusOut) String() string { return "FocusOut" }
 
 var (
 	ECSPACE = EventCell{
-		C: vaxis.Cell{Character: vaxis.Character{
-			Grapheme: " ",
-			Width:    1,
-		}},
-		Metadata: "",
-		Mod:      nil,
+		C:          vaxis.Cell{Character: vaxis.Characters(" ")[0]},
+		Metadata:   "",
+		Mod:        nil,
+		MouseShape: "",
 	}
 	ECDOT = EventCell{
-		C: vaxis.Cell{Character: vaxis.Character{
-			Grapheme: ".",
-			Width:    1,
-		}},
-		Metadata: "",
-		Mod:      nil,
+		C:          vaxis.Cell{Character: vaxis.Characters(".")[0]},
+		Metadata:   "",
+		Mod:        nil,
+		MouseShape: "",
+	}
+	ECELLIPSIS = EventCell{
+		C:          vaxis.Cell{Character: vaxis.Characters("…")[0]},
+		Metadata:   "",
+		Mod:        nil,
+		MouseShape: "",
 	}
 )

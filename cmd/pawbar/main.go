@@ -61,7 +61,7 @@ func mainLoop(cfgPath string) int {
 	utils.Logger.Printf("Panel Size (cells): %d, %d\n", w, h)
 	mouseShape := vaxis.MouseShapeDefault
 
-	tui.Init(w, h, l, m, r)
+	tui.Init(w, h, l, m, r, cfg.Bar)
 	tui.FullRender(win)
 	vx.Render()
 
