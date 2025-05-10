@@ -6,12 +6,14 @@ import (
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
+	"github.com/codelif/pawbar/internal/modules"
 	"gopkg.in/yaml.v3"
 )
 
 type BarSettings struct {
 	TruncatePriority []string `yaml:"truncate_priority"`
-	Ellipsis         *bool    `yaml:"ellipsis"`
+	EnableEllipsis   *bool    `yaml:"enable_ellipsis"`
+	Ellipsis         string   `yaml:"ellipsis"`
 }
 
 func (b *BarSettings) UnmarshalYAML(n *yaml.Node) error {
@@ -27,7 +29,7 @@ func (b *BarSettings) UnmarshalYAML(n *yaml.Node) error {
 	set := map[string]bool{"left": false, "middle": false, "right": false}
 	for _, a := range b.TruncatePriority {
 		if _, ok := set[a]; !ok {
-      return fmt.Errorf(`truncate_priority: invalid anchor %q, valid options are: ["left", "middle", "right"]`, a)
+			return fmt.Errorf(`truncate_priority: invalid anchor %q, valid options are: ["left", "middle", "right"]`, a)
 		}
 		if set[a] {
 			return fmt.Errorf("truncate_priority: %q listed twice", a)
@@ -41,9 +43,13 @@ func (b *BarSettings) FillDefaults() {
 	if len(b.TruncatePriority) == 0 {
 		b.TruncatePriority = []string{"right", "left", "middle"}
 	}
-	if b.Ellipsis == nil {
+	if b.EnableEllipsis == nil {
 		t := true
-		b.Ellipsis = &t
+		b.EnableEllipsis = &t
+	}
+
+	if b.Ellipsis == "" {
+		b.Ellipsis = modules.ECELLIPSIS.C.Grapheme
 	}
 }
 

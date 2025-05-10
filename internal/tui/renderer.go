@@ -14,8 +14,10 @@ var (
 	rightModules  []modules.Module
 	width, height int
 
-	truncOrder  []string
-	useEllipsis bool
+	truncOrder    []string
+	useEllipsis   bool
+	ellipsisCells []modules.EventCell
+	ellipsisWidth int
 )
 
 type anchor int
@@ -25,17 +27,6 @@ const (
 	middle
 	right
 )
-
-func anchorOf(s string) anchor {
-	switch s {
-	case "left":
-		return left
-	case "middle":
-		return middle
-	default:
-		return right
-	}
-}
 
 type block struct {
 	cells []modules.EventCell
@@ -56,9 +47,11 @@ func Init(w, h int, l, m, r []modules.Module, barCfg config.BarSettings) {
 	rightModules = r
 
 	truncOrder = barCfg.TruncatePriority
-	useEllipsis = barCfg.Ellipsis == nil || *barCfg.Ellipsis
+	useEllipsis = barCfg.EnableEllipsis == nil || *barCfg.EnableEllipsis
+	ellipsisCells = stringToEC(barCfg.Ellipsis)
+	ellipsisWidth = totalWidth(ellipsisCells)
 
-	state = make([]modules.EventCell, width+1)
+	state = make([]modules.EventCell, width+1) // sometimes kitty can report mouse events outside reported width, like at the edge, idk why.
 	refreshModMap(leftModules, middleModules, rightModules)
 }
 
@@ -77,30 +70,6 @@ func FullRender(win vaxis.Window) {
 func PartialRender(win vaxis.Window, m modules.Module) {
 	modMap[m] = m.Render()
 	render(win)
-}
-
-func refreshModMap(l, m, r []modules.Module) {
-	for _, mod := range append(append(l, m...), r...) {
-		modMap[mod] = mod.Render()
-	}
-}
-
-// flattens modules into blocks sorted by priority.
-func buildBlocks() []block {
-	cells := map[string][]modules.EventCell{
-		"left":   flatten(leftModules),
-		"middle": flatten(middleModules),
-		"right":  flatten(rightModules),
-	}
-
-	blocks := make([]block, 0, 3)
-	for _, name := range truncOrder {
-		blocks = append(blocks, block{
-			cells: cells[name],
-			side:  anchorOf(name),
-		})
-	}
-	return blocks
 }
 
 func render(win vaxis.Window) {
@@ -175,7 +144,7 @@ func render(win vaxis.Window) {
 
 			ellW := 0
 			if useEllipsis {
-				ellW = modules.ECELLIPSIS.C.Width
+				ellW = ellipsisWidth
 			}
 			switch {
 			case firstOcc == start && lastOcc == end-1:
@@ -192,10 +161,7 @@ func render(win vaxis.Window) {
 					return
 				}
 				space := gapLen
-				if useEllipsis {
-					space -= 2 * ellW
-				}
-				if space > 0 {
+				if space-2*ellW > 0 {
 					visible := trimMiddle(block.cells, space, useEllipsis)
 
 					drawAt := gapStart + (gapLen-totalWidth(visible))/2
@@ -218,7 +184,7 @@ func render(win vaxis.Window) {
 				}
 				visible = trimEnd(block.cells, space, false)
 				if useEllipsis {
-					visible = append([]modules.EventCell{modules.ECELLIPSIS}, visible...)
+					visible = append(clone(ellipsisCells), visible...)
 				}
 				drawAt = end - totalWidth(visible)
 
@@ -233,7 +199,7 @@ func render(win vaxis.Window) {
 				}
 				visible = trimStart(block.cells, space, false)
 				if useEllipsis {
-					visible = append(visible, modules.ECELLIPSIS)
+					visible = append(visible, ellipsisCells...)
 				}
 				drawAt = start
 
@@ -269,136 +235,4 @@ func render(win vaxis.Window) {
 			}
 		}
 	}
-}
-
-// writes cell and adds padding for grapheme's with >1 width
-// returns x + {grapheme width}
-func writeCell(win vaxis.Window, x int, c modules.EventCell) int {
-	if x+c.C.Width > width {
-		return x + c.C.Width
-	}
-	win.SetCell(x, 0, c.C)
-	state[x] = c
-
-	for w := 1; w < c.C.Width; w++ {
-		empty := vaxis.Cell{Style: c.C.Style}
-		win.SetCell(x+w, 0, empty)
-		state[x+w] = modules.EventCell{
-			C:          empty,
-			Metadata:   c.Metadata,
-			Mod:        c.Mod,
-			MouseShape: c.MouseShape,
-		}
-	}
-	return x + c.C.Width
-}
-
-func flatten(mods []modules.Module) []modules.EventCell {
-	// each module will probably require more than 3 cells
-	// ws with 1 workspace requires 3, so most of them will
-	// take more than that right? right? (foreshadowing)
-	out := make([]modules.EventCell, 0, len(mods)*3)
-	for _, m := range mods {
-		out = append(out, modMap[m]...)
-	}
-	return out
-}
-
-// this keeps account for grapheme widths
-// so this is safe for anchor calculations; probably?
-func totalWidth(cells []modules.EventCell) int {
-	w := 0
-	for _, c := range cells {
-		w += c.C.Width
-	}
-	return w
-}
-
-// also adds ellipsis at the start. ellipsis huh, weird word
-func trimStart(cells []modules.EventCell, w int, ellipsis bool) []modules.EventCell {
-	if w <= 0 {
-		return nil
-	}
-	if totalWidth(cells) <= w {
-		return cells
-	}
-	if ellipsis {
-		ew := modules.ECELLIPSIS.C.Width
-		if ew >= w {
-			return nil
-		}
-		w -= ew
-	}
-	acc := 0
-	end := 0
-	for ; end < len(cells) && acc < w; end++ {
-		acc += totalWidth(cells[end : end+1])
-	}
-	trim := cells[:end]
-	if ellipsis {
-		trim = append(trim, modules.ECELLIPSIS)
-	}
-	return trim
-}
-
-// also adds ellipsis at the end. ellipsis huh, indeed a weird word
-func trimEnd(cells []modules.EventCell, w int, ellipsis bool) []modules.EventCell {
-	if w <= 0 {
-		return nil
-	}
-	if totalWidth(cells) <= w {
-		return cells
-	}
-	if ellipsis {
-		ew := modules.ECELLIPSIS.C.Width
-		if ew >= w {
-			return nil
-		}
-		w -= ew
-	}
-	acc := 0
-	start := len(cells)
-	for start > 0 && acc < w {
-		start--
-		acc += totalWidth(cells[start : start+1])
-	}
-	trim := cells[start:]
-	if ellipsis {
-		trim = append([]modules.EventCell{modules.ECELLIPSIS}, trim...)
-	}
-	return trim
-}
-
-// also adds ellipsis at the end and start. huh weird, where have I seen thi-
-func trimMiddle(cells []modules.EventCell, w int, ellipsis bool) []modules.EventCell {
-	if w <= 0 || totalWidth(cells) <= w {
-		return cells
-	}
-	ellW := 0
-	if ellipsis {
-		ellW = modules.ECELLIPSIS.C.Width * 2
-		if ellW >= w {
-			return nil
-		}
-		w -= ellW
-	}
-
-	left, right := 0, len(cells)-1
-	cur := totalWidth(cells)
-	for cur > w && left < right {
-		cur -= cells[left].C.Width
-		left++
-		if cur > w && left < right {
-			cur -= cells[right].C.Width
-			right--
-		}
-	}
-	trimmed := cells[left : right+1]
-	if ellipsis {
-		trimmed = append(
-			append([]modules.EventCell{modules.ECELLIPSIS}, trimmed...),
-			modules.ECELLIPSIS,
-		)
-	}
-	return trimmed
 }
