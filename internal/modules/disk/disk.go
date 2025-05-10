@@ -1,26 +1,23 @@
 package disk
 
 import (
-	"fmt"
+	"bytes"
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/shirou/gopsutil/v3/disk"
-	"gopkg.in/yaml.v3"
 )
 
-func init() {
-	config.Register("disk", func(n *yaml.Node) (modules.Module, error) {
-		return &DiskModule{}, nil
-	})
-}
-
 type DiskModule struct {
-	receive chan bool
-	send    chan modules.Event
-	format  Format
+	receive               chan bool
+	send                  chan modules.Event
+	format                Format
+	opts                  Options
+	initialOpts           Options
+	currentTickerInterval time.Duration
+	ticker                *time.Ticker
 }
 
 const (
@@ -42,71 +39,114 @@ func (f *Format) toggleFree() { *f ^= bitFree }
 
 const GiB = 1073741824.0
 
-func New() modules.Module {
-	return &DiskModule{}
-}
+func New() modules.Module { return &DiskModule{} }
 
-func (mod *DiskModule) Dependencies() []string {
-	return nil
+func (mod *DiskModule) Dependencies() []string { return nil }
+
+func (mod *DiskModule) syncTemplate() {
+	switch mod.format {
+	case UsedPercent:
+		mod.opts.Format = mod.initialOpts.Format
+
+	case UsedAbsolute:
+		if a := mod.opts.OnClick.Actions["left"]; a != nil &&
+			len(a.Configs) > 0 && a.Configs[0].Format != nil {
+			mod.opts.Format = *a.Configs[0].Format
+		}
+
+	case FreePercent:
+		if a := mod.opts.OnClick.Actions["right"]; a != nil &&
+			len(a.Configs) > 0 && a.Configs[0].Format != nil {
+			mod.opts.Format = *a.Configs[0].Format
+		}
+
+	case FreeAbsolute:
+		if a := mod.opts.OnClick.Actions["right"]; a != nil &&
+			len(a.Configs) > 1 && a.Configs[1].Format != nil {
+			mod.opts.Format = *a.Configs[1].Format
+		}
+	}
 }
 
 func (mod *DiskModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	mod.receive = make(chan bool)
 	mod.send = make(chan modules.Event)
+	mod.initialOpts = mod.opts
+	mod.syncTemplate()
 
 	go func() {
-		t := time.NewTicker(7 * time.Second)
-		defer t.Stop()
+		mod.currentTickerInterval = mod.opts.Tick.Go()
+		mod.ticker = time.NewTicker(mod.currentTickerInterval)
+		defer mod.ticker.Stop()
+
 		for {
 			select {
-			case <-t.C:
+			case <-mod.ticker.C:
 				mod.receive <- true
+
 			case e := <-mod.send:
 				switch ev := e.VaxisEvent.(type) {
 				case vaxis.Mouse:
-					mod.handleMouseEvent(ev)
+					if ev.EventType != vaxis.EventPress {
+						break
+					}
+					btn := config.ButtonName(ev)
+
+					formatChanged := false
+					dispatchChanged := false
+					switch btn {
+					case "left":
+						mod.format.toggleUnit()
+						formatChanged = true
+					case "right":
+						mod.format.toggleFree()
+						formatChanged = true
+					case "middle":
+						if mod.format != UsedPercent {
+							mod.format = UsedPercent
+							formatChanged = true
+						}
+					}
+
+					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
+						dispatchChanged = true
+					}
+
+					if formatChanged {
+						if !dispatchChanged {
+							mod.syncTemplate()
+						}
+					}
+
+					if formatChanged || dispatchChanged {
+						mod.receive <- true
+					}
+					mod.ensureTickInterval()
+
+				case modules.FocusIn:
+					if mod.opts.OnClick.HoverIn(&mod.opts) {
+						mod.receive <- true
+					}
+					mod.ensureTickInterval()
+
+				case modules.FocusOut:
+					if mod.opts.OnClick.HoverOut(&mod.opts) {
+						mod.receive <- true
+					}
+					mod.ensureTickInterval()
 				}
 			}
 		}
 	}()
+
 	return mod.receive, mod.send, nil
 }
 
-func (mod *DiskModule) handleMouseEvent(ev vaxis.Mouse) {
-	if ev.EventType != vaxis.EventPress {
-		return
+func (mod *DiskModule) ensureTickInterval() {
+	if d := mod.opts.Tick.Go(); d != mod.currentTickerInterval {
+		mod.currentTickerInterval = d
+		mod.ticker.Reset(d)
 	}
-
-	switch ev.Button {
-	case vaxis.MouseLeftButton:
-		mod.format.toggleUnit()
-		mod.receive <- true
-	case vaxis.MouseRightButton:
-		mod.format.toggleFree()
-		mod.receive <- true
-	case vaxis.MouseMiddleButton:
-		mod.format = UsedPercent
-		mod.receive <- true
-	}
-}
-
-func (mod *DiskModule) formatString(du *disk.UsageStat) string {
-	if du == nil {
-		return ""
-	}
-
-	switch mod.format {
-	case UsedPercent:
-		return fmt.Sprintf(" %d%%", int(du.UsedPercent))
-	case UsedAbsolute:
-		return fmt.Sprintf(" %.2fGB", float64(du.Used)/GiB)
-	case FreePercent:
-		return fmt.Sprintf(" %d%%", 100-int(du.UsedPercent))
-	case FreeAbsolute:
-		return fmt.Sprintf(" %.2fGB", float64(du.Free)/GiB)
-	}
-
-	return ""
 }
 
 func (mod *DiskModule) Render() []modules.EventCell {
@@ -115,28 +155,66 @@ func (mod *DiskModule) Render() []modules.EventCell {
 		return nil
 	}
 
+	freePercent := 100 - int(du.UsedPercent)
+	freeAbsolute := float64(du.Free) / GiB
+	usedPercent := int(du.UsedPercent)
+	usedAbsolute := float64(du.Used) / GiB
+
 	usage := int(du.UsedPercent)
-	s := vaxis.Style{}
+	style := vaxis.Style{}
 	if usage > 95 {
-		s.Foreground = modules.URGENT
+		style.Foreground = mod.opts.Threshold.FgUrg.Go()
+		style.Background = mod.opts.Threshold.BgUrg.Go()
 	} else if usage > 90 {
-		s.Foreground = modules.WARNING
+		style.Foreground = mod.opts.Threshold.FgWar.Go()
+		style.Background = mod.opts.Threshold.BgWar.Go()
+	} else {
+		style.Foreground = mod.opts.Fg.Go()
+		style.Background = mod.opts.Bg.Go()
 	}
 
-	icon := ''
-	rch := vaxis.Characters(fmt.Sprintf("%c%s", icon, mod.formatString(du)))
-	r := make([]modules.EventCell, len(rch))
+	var buf bytes.Buffer
 
+	switch mod.format {
+	case UsedPercent:
+		_ = mod.opts.Format.Execute(&buf, struct{ Percent int }{usedPercent})
+
+	case UsedAbsolute:
+		if a := mod.opts.OnClick.Actions["left"]; a != nil &&
+			len(a.Configs) > 0 && a.Configs[0].Format != nil {
+			_ = a.Configs[0].Format.Execute(&buf,
+				struct{ Absolute float64 }{usedAbsolute})
+		}
+
+	case FreePercent:
+		if a := mod.opts.OnClick.Actions["right"]; a != nil &&
+			len(a.Configs) > 0 && a.Configs[0].Format != nil {
+			_ = a.Configs[0].Format.Execute(&buf,
+				struct{ Percent int }{freePercent})
+		}
+
+	case FreeAbsolute:
+		if a := mod.opts.OnClick.Actions["right"]; a != nil &&
+			len(a.Configs) > 1 && a.Configs[1].Format != nil {
+			_ = a.Configs[1].Format.Execute(&buf,
+				struct{ Absolute float64 }{freeAbsolute})
+		}
+	}
+
+	rch := vaxis.Characters(buf.String())
+	out := make([]modules.EventCell, len(rch))
 	for i, ch := range rch {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: mod, MouseShape: vaxis.MouseShapeClickable}
+		out[i] = modules.EventCell{
+			C:          vaxis.Cell{Character: ch, Style: style},
+			Mod:        mod,
+			MouseShape: mod.opts.Cursor.Go(),
+		}
 	}
-	return r
+	return out
 }
 
 func (mod *DiskModule) Channels() (<-chan bool, chan<- modules.Event) {
 	return mod.receive, mod.send
 }
 
-func (mod *DiskModule) Name() string {
-	return "disk"
-}
+func (mod *DiskModule) Name() string { return "disk" }

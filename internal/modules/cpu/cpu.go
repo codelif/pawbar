@@ -100,12 +100,13 @@ func (mod *CpuModule) Render() []modules.EventCell {
 
 	style := vaxis.Style{}
 	if mod.highTriggered {
-		style.Foreground = mod.opts.Threshold.Color.Go()
+		style.Foreground = mod.opts.Threshold.Fg.Go()
+		style.Background = mod.opts.Threshold.Bg.Go()
+
 	} else {
 		style.Foreground = mod.opts.Fg.Go()
+		style.Background = mod.opts.Bg.Go()
 	}
-
-	style.Background = mod.opts.Bg.Go()
 
 	var buf bytes.Buffer
 	_ = mod.opts.Format.Execute(&buf, struct{ Percent int }{usage})

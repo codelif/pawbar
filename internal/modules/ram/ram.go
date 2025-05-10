@@ -1,25 +1,14 @@
 package ram
 
 import (
-	"fmt"
+	"bytes"
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/shirou/gopsutil/v3/mem"
-	"gopkg.in/yaml.v3"
 )
-
-func init() {
-	config.Register("ram", func(n *yaml.Node) (modules.Module, error) {
-		return &RamModule{}, nil
-	})
-}
-
-func New() modules.Module {
-	return &RamModule{}
-}
 
 type Format int
 
@@ -30,10 +19,18 @@ const (
 
 func (f *Format) toggle() { *f ^= 1 }
 
+func New() modules.Module {
+	return &RamModule{}
+}
+
 type RamModule struct {
-	receive chan bool
-	send    chan modules.Event
-	format  Format
+	receive               chan bool
+	send                  chan modules.Event
+	format                Format
+	opts                  Options
+	initialOpts           Options
+	currentTickerInterval time.Duration
+	ticker                *time.Ticker
 }
 
 func (mod *RamModule) Dependencies() []string {
@@ -43,18 +40,42 @@ func (mod *RamModule) Dependencies() []string {
 func (mod *RamModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	mod.receive = make(chan bool)
 	mod.send = make(chan modules.Event)
+	mod.initialOpts = mod.opts
+
 	go func() {
-		t := time.NewTicker(3 * time.Second)
-		defer t.Stop()
+		mod.currentTickerInterval = mod.opts.Tick.Go()
+		mod.ticker = time.NewTicker(mod.currentTickerInterval)
+		defer mod.ticker.Stop()
 		for {
 			select {
-			case <-t.C:
+			case <-mod.ticker.C:
 				mod.receive <- true
-
 			case e := <-mod.send:
 				switch ev := e.VaxisEvent.(type) {
 				case vaxis.Mouse:
-					mod.handleMouseEvent(ev)
+					if ev.EventType != vaxis.EventPress {
+						break
+					}
+					btn := config.ButtonName(ev)
+					if btn == "left" {
+						mod.format.toggle()
+					}
+					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
+						mod.receive <- true
+					}
+					mod.ensureTickInterval()
+
+				case modules.FocusIn:
+					if mod.opts.OnClick.HoverIn(&mod.opts) {
+						mod.receive <- true
+					}
+					mod.ensureTickInterval()
+
+				case modules.FocusOut:
+					if mod.opts.OnClick.HoverOut(&mod.opts) {
+						mod.receive <- true
+					}
+					mod.ensureTickInterval()
 				}
 			}
 		}
@@ -63,32 +84,11 @@ func (mod *RamModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	return mod.receive, mod.send, nil
 }
 
-// this is a blocking function, only use it in event loop
-func (mod *RamModule) handleMouseEvent(ev vaxis.Mouse) {
-	if ev.EventType == vaxis.EventPress {
-		switch ev.Button {
-		case vaxis.MouseLeftButton:
-			mod.format.toggle()
-			mod.receive <- true
-		}
+func (mod *RamModule) ensureTickInterval() {
+	if mod.opts.Tick.Go() != mod.currentTickerInterval {
+		mod.currentTickerInterval = mod.opts.Tick.Go()
+		mod.ticker.Reset(mod.currentTickerInterval)
 	}
-}
-
-func (mod *RamModule) formatString(v *mem.VirtualMemoryStat) string {
-	if v == nil {
-		return ""
-	}
-	switch mod.format {
-	case FormatPercentage:
-		value := int(v.UsedPercent)
-		rstring := fmt.Sprintf(" %d%%", value)
-		return rstring
-	case FormatAbsolute:
-		value := float64(v.Used) / 1073741824.00
-		rstring := fmt.Sprintf(" %.2fGB", value)
-		return rstring
-	}
-	return ""
 }
 
 func (mod *RamModule) Render() []modules.EventCell {
@@ -97,24 +97,40 @@ func (mod *RamModule) Render() []modules.EventCell {
 		return nil
 	}
 
-	thresValue := int(v.UsedPercent)
-	s := vaxis.Style{}
-	if thresValue > 90 {
-		s.Foreground = modules.URGENT
-	} else if thresValue > 80 {
-		s.Foreground = modules.WARNING
+	valuePercent := int(v.UsedPercent)
+	valueAbsolute := float64(v.Used) / 1073741824.00
+
+	style := vaxis.Style{}
+	if valuePercent > 90 {
+		style.Foreground = mod.opts.Threshold.FgUrg.Go()
+		style.Background = mod.opts.Threshold.BgUrg.Go()
+	} else if valuePercent > 80 {
+		style.Foreground = mod.opts.Threshold.FgWar.Go()
+		style.Background = mod.opts.Threshold.BgWar.Go()
+	} else {
+		style.Foreground = mod.opts.Fg.Go()
+		style.Background = mod.opts.Bg.Go()
+
 	}
 
-	icon := '󰆌'
+	var buf bytes.Buffer
+	switch mod.format {
+	case FormatPercentage:
+		_ = mod.opts.Format.Execute(&buf, struct{ Percent int }{valuePercent})
+	case FormatAbsolute:
+		leftAction := mod.opts.OnClick.Actions["left"]
+		if leftAction != nil && len(leftAction.Configs) > 0 {
+			_ = leftAction.Configs[0].Format.Execute(&buf, struct{ Absolute float64 }{valueAbsolute})
+		}
+	}
 
-	rch := vaxis.Characters(fmt.Sprintf("%c%s", icon, mod.formatString(v)))
-	r_ := make([]modules.EventCell, len(rch))
+	rch := vaxis.Characters(buf.String())
+	r := make([]modules.EventCell, len(rch))
 
 	for i, ch := range rch {
-		r_[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: mod, MouseShape: vaxis.MouseShapeClickable}
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: style}, Mod: mod, MouseShape: mod.opts.Cursor.Go()}
 	}
-
-	return r_
+	return r
 }
 
 func (mod *RamModule) Channels() (<-chan bool, chan<- modules.Event) {
