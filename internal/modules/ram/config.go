@@ -41,16 +41,29 @@ type MouseOptions struct {
 
 func defaultOptions() Options {
 	f, _ := template.New("format").Parse("󰆌 {{.Percent}}%")
+	fl, _ := template.New("format").Parse("󰆌 {{.Absolute}}GB")
 	urgClr, _ := config.ParseColor("@urgent")
 	warClr, _ := config.ParseColor("@warning")
+	leftClick := &config.MouseAction[MouseOptions]{
+		Configs: []MouseOptions{
+			{
+				Format: &config.Format{Template: fl},
+			},
+		},
+	}
 	return Options{
 		Format: config.Format{Template: f},
+		Tick:   config.Duration(5 * time.Second),
 		Threshold: ThresholdOptions{
 			PercentUrg: 90,
 			PercentWar: 80,
 			FgUrg:      config.Color(urgClr),
 			FgWar:      config.Color(warClr),
 		},
-		OnClick: config.MouseActions[MouseOptions]{},
+		OnClick: config.MouseActions[MouseOptions]{
+			Actions: map[string]*config.MouseAction[MouseOptions]{
+				"left": leftClick,
+			},
+		},
 	}
 }

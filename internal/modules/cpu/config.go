@@ -81,7 +81,7 @@ func defaultOptions() Options {
 	urgClr, _ := config.ParseColor("@urgent")
 	return Options{
 		Format: config.Format{Template: f},
-		Tick:   config.Duration(5 * time.Second),
+		Tick:   config.Duration(3 * time.Second),
 		Threshold: ThresholdOptions{
 			Percent: 90,
 			For:     config.Duration(7 * time.Second),
