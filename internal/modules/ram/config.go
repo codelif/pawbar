@@ -41,7 +41,7 @@ type MouseOptions struct {
 
 func defaultOptions() Options {
 	f, _ := template.New("format").Parse("󰆌 {{.Percent}}%")
-	fl, _ := template.New("format").Parse("󰆌 {{.Absolute}}GB")
+	fl, _ := template.New("format").Parse(`󰆌 {{printf "%.2f" .Absolute}}GB`)
 	urgClr, _ := config.ParseColor("@urgent")
 	warClr, _ := config.ParseColor("@warning")
 	leftClick := &config.MouseAction[MouseOptions]{
