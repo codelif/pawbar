@@ -92,27 +92,33 @@ func (mod *DiskModule) Run() (<-chan bool, chan<- modules.Event, error) {
 					}
 					btn := config.ButtonName(ev)
 
-					changed := false
+					formatChanged := false
+					dispatchChanged := false
 					switch btn {
 					case "left":
 						mod.format.toggleUnit()
-						changed = true
+						formatChanged = true
 					case "right":
 						mod.format.toggleFree()
-						changed = true
+						formatChanged = true
 					case "middle":
 						if mod.format != UsedPercent {
 							mod.format = UsedPercent
-							changed = true
+							formatChanged = true
 						}
 					}
 
 					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
-						changed = true
+						dispatchChanged = true
 					}
 
-					if changed {
-						mod.syncTemplate() // keep template & mode in lock-step
+					if formatChanged {
+						if !dispatchChanged {
+							mod.syncTemplate()
+						}
+					}
+
+					if formatChanged || dispatchChanged {
 						mod.receive <- true
 					}
 					mod.ensureTickInterval()
@@ -212,4 +218,3 @@ func (mod *DiskModule) Channels() (<-chan bool, chan<- modules.Event) {
 }
 
 func (mod *DiskModule) Name() string { return "disk" }
-
