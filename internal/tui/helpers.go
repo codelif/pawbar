@@ -41,7 +41,7 @@ func buildBlocks() []block {
 }
 
 func stringToEC(s string) []modules.EventCell {
-	var ecs = make([]modules.EventCell, 0, len(s))
+	ecs := make([]modules.EventCell, 0, len(s))
 	for _, c := range vaxis.Characters(s) {
 		ecs = append(ecs, modules.EventCell{C: vaxis.Cell{Character: c}})
 	}
