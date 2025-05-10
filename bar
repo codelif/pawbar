@@ -37,4 +37,4 @@ if [ "$1" = "-d" ]; then
   kittyCmd+=" $(tty)"
 fi
 
-$kittyCmd
+$kittyCmd > /dev/null 2>&1
