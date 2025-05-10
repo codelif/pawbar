@@ -1,8 +1,7 @@
 #/usr/bin/bash
 
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 kittyCmd="kitty +kitten panel"
-barDir="$SCRIPT_DIR"
+barDir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 barExecutable="$barDir/pawbar"
 
 if [ ! -f "$barExecutable" ]; then
