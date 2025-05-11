@@ -103,13 +103,10 @@ func (mod *RamModule) Render() []modules.EventCell {
 	style := vaxis.Style{}
 	if usage > mod.opts.Urgent.Percent.Go() {
 		style.Foreground = mod.opts.Urgent.Fg.Go()
-		style.Background = mod.opts.Urgent.Bg.Go()
 	} else if usage > mod.opts.Warning.Percent.Go() {
 		style.Foreground = mod.opts.Warning.Fg.Go()
-		style.Background = mod.opts.Warning.Bg.Go()
 	} else {
 		style.Foreground = mod.opts.Fg.Go()
-		style.Background = mod.opts.Bg.Go()
 	}
 
 	var buf bytes.Buffer

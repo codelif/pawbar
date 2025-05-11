@@ -2,6 +2,7 @@ package battery
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -15,18 +16,6 @@ import (
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/utils"
 	"github.com/jochenvg/go-udev"
-	"gopkg.in/yaml.v3"
-)
-
-func init() {
-	config.Register("battery", func(n *yaml.Node) (modules.Module, error) {
-		return &Battery{}, nil
-	})
-}
-
-var (
-	ICONS_DISCHARGING = []rune{'󰂃', '󰁺', '󰁻', '󰁼', '󰁽', '󰁾', '󰁿', '󰂀', '󰂁', '󰂂', '󰁹'}
-	ICONS_CHARGING    = []rune{'󰢟', '󰢜', '󰂆', '󰂇', '󰂈', '󰢝', '󰂉', '󰢞', '󰂊', '󰂋', '󰂅'}
 )
 
 func New() modules.Module {
@@ -41,6 +30,12 @@ type Battery struct {
 	mains    string
 	hoursRem int
 	minsRem  int
+
+	opts        Options
+	initialOpts Options
+
+	currentTickerInterval time.Duration
+	ticker                *time.Ticker
 }
 
 func (mod *Battery) Dependencies() []string {
@@ -63,6 +58,7 @@ func (mod *Battery) Run() (<-chan bool, chan<- modules.Event, error) {
 	mod.battery = battery
 	mod.mains = mains
 	mod.Update()
+	mod.initialOpts = mod.opts
 
 	uchan, err := mod.Udev()
 	if err != nil {
@@ -70,10 +66,12 @@ func (mod *Battery) Run() (<-chan bool, chan<- modules.Event, error) {
 	}
 
 	go func() {
-		t := time.NewTicker(5000 * time.Millisecond)
+		mod.currentTickerInterval = mod.opts.Tick.Go()
+		mod.ticker = time.NewTicker(mod.currentTickerInterval)
+		defer mod.ticker.Stop()
 		for {
 			select {
-			case <-t.C:
+			case <-mod.ticker.C:
 				if mod.Update() {
 					mod.receive <- true
 				}
@@ -81,12 +79,42 @@ func (mod *Battery) Run() (<-chan bool, chan<- modules.Event, error) {
 				if mod.Update() {
 					mod.receive <- true
 				}
-			case <-mod.send:
+			case e := <-mod.send:
+				switch ev := e.VaxisEvent.(type) {
+				case vaxis.Mouse:
+					if ev.EventType != vaxis.EventPress {
+						break
+					}
+					btn := config.ButtonName(ev)
+					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
+						mod.receive <- true
+					}
+					mod.ensureTickInterval()
+
+				case modules.FocusIn:
+					if mod.opts.OnClick.HoverIn(&mod.opts) {
+						mod.receive <- true
+					}
+					mod.ensureTickInterval()
+
+				case modules.FocusOut:
+					if mod.opts.OnClick.HoverOut(&mod.opts) {
+						mod.receive <- true
+					}
+					mod.ensureTickInterval()
+				}
 			}
 		}
 	}()
 
 	return mod.receive, mod.send, nil
+}
+
+func (mod *Battery) ensureTickInterval() {
+	if mod.opts.Tick.Go() != mod.currentTickerInterval {
+		mod.currentTickerInterval = mod.opts.Tick.Go()
+		mod.ticker.Reset(mod.currentTickerInterval)
+	}
 }
 
 func (mod *Battery) Update() bool {
@@ -154,30 +182,50 @@ func (mod *Battery) Update() bool {
 
 func (mod *Battery) Render() []modules.EventCell {
 	percent := (mod.status["now"] * 100) / (mod.status["full"])
-	s := vaxis.Style{}
+	style := vaxis.Style{}
 	icon := ' '
 	if mod.status["mains"] == 1 {
-		icon = ICONS_CHARGING[(len(ICONS_CHARGING)-1)*percent/100]
-		if mod.status["charging"] == 0 {
-			s.Foreground = modules.GOOD
+		icons := mod.opts.IconsCharging
+		icon = icons[utils.Clamp((len(icons)-1)*percent/100, 0, len(icons)-1)]
+		if mod.status["charging"] == 0 || percent >= mod.opts.Optimal.Percent.Go() {
+			style.Foreground = mod.opts.Optimal.Fg.Go()
 		}
 	} else {
-		icon = ICONS_DISCHARGING[(len(ICONS_DISCHARGING)-1)*percent/100]
-		if percent <= 15 {
-			s.Foreground = modules.URGENT
-		} else if percent <= 30 {
-			s.Foreground = modules.WARNING
+		icons := mod.opts.IconsDischarging
+		icon = icons[utils.Clamp((len(icons)-1)*percent/100, 0, len(icons)-1)]
+		if percent <= mod.opts.Urgent.Percent.Go() {
+			style.Foreground = mod.opts.Urgent.Fg.Go()
+		} else if percent <= mod.opts.Warning.Percent.Go() {
+			style.Foreground = mod.opts.Warning.Fg.Go()
+		} else if percent >= mod.opts.Optimal.Percent.Go() {
+			style.Foreground = mod.opts.Optimal.Fg.Go()
 		}
 
 	}
 
-	rch := vaxis.Characters(fmt.Sprintf("%c %d%% %d %d", icon, percent, mod.hoursRem, mod.minsRem))
+	var buf bytes.Buffer
+
+	err := mod.opts.Format.Execute(&buf, struct {
+		Icon        string
+		UsedPercent int
+		Hours       int
+		Minutes     int
+	}{
+		Icon:        string(icon),
+		UsedPercent: percent,
+		Hours:       mod.hoursRem,
+		Minutes:     mod.minsRem,
+	})
+	if err != nil {
+		return nil
+	}
+
+	rch := vaxis.Characters(buf.String())
 	r := make([]modules.EventCell, len(rch))
 
 	for i, ch := range rch {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: s}, Mod: mod}
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: style}, Mod: mod, MouseShape: mod.opts.Cursor.Go()}
 	}
-
 	return r
 }
 
