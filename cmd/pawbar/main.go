@@ -51,6 +51,7 @@ func mainLoop(cfgPath string) int {
 	modev, l, m, r := modules.Init(l, m, r)
 
 	screenEvents := vx.Events()
+	userSignals := setupUserSignals()
 
 	var prevHoverMod modules.Module
 	var prevHoverCell modules.EventCell
@@ -147,6 +148,13 @@ func mainLoop(cfgPath string) int {
 		case m := <-modev:
 			utils.Logger.Println("render:", m.Name())
 			tui.PartialRender(win, m)
+			vx.Render()
+		case s := <-userSignals:
+			utils.Logger.Printf("full render: %s", canonicalSignalName(s))
+			win = vx.Window()
+			w, h = win.Size()
+			tui.Resize(w, h)
+			tui.FullRender(win)
 			vx.Render()
 		}
 	}
