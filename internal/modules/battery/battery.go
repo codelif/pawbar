@@ -242,10 +242,16 @@ func (mod *Battery) Render() []modules.EventCell {
 		icon = icons[utils.Clamp((len(icons)-1)*percent/100, 0, len(icons)-1)]
 		if percent <= mod.opts.Urgent.Percent.Go() {
 			style.Foreground = mod.opts.Urgent.Fg.Go()
+			style.Foreground = mod.opts.Urgent.Bg.Go()
 		} else if percent <= mod.opts.Warning.Percent.Go() {
 			style.Foreground = mod.opts.Warning.Fg.Go()
+			style.Foreground = mod.opts.Warning.Bg.Go()
 		} else if percent >= mod.opts.Optimal.Percent.Go() {
 			style.Foreground = mod.opts.Optimal.Fg.Go()
+			style.Foreground = mod.opts.Optimal.Bg.Go()
+		} else {
+			style.Foreground = mod.opts.Fg.Go()
+			style.Background = mod.opts.Bg.Go()
 		}
 
 	}
