@@ -13,6 +13,7 @@ import (
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
+	"github.com/codelif/pawbar/internal/utils"
 	"github.com/jochenvg/go-udev"
 	"gopkg.in/yaml.v3"
 )
@@ -33,11 +34,13 @@ func New() modules.Module {
 }
 
 type Battery struct {
-	receive chan bool
-	send    chan modules.Event
-	status  map[string]int
-	battery string
-	mains   string
+	receive  chan bool
+	send     chan modules.Event
+	status   map[string]int
+	battery  string
+	mains    string
+	hoursRem int
+	minsRem  int
 }
 
 func (mod *Battery) Dependencies() []string {
@@ -168,7 +171,7 @@ func (mod *Battery) Render() []modules.EventCell {
 
 	}
 
-	rch := vaxis.Characters(fmt.Sprintf("%c %d%%", icon, percent))
+	rch := vaxis.Characters(fmt.Sprintf("%c %d%% %d %d", icon, percent, mod.hoursRem, mod.minsRem))
 	r := make([]modules.EventCell, len(rch))
 
 	for i, ch := range rch {
@@ -249,6 +252,45 @@ func (mod *Battery) GetSupplies() (string, string, error) {
 
 	if battery == "" || mains == "" {
 		return "", "", fmt.Errorf("WARNING(battery): Battery or mains not available. Disabling.")
+	} else {
+		powerNowPath := filepath.Join(battery, "power_now")
+		energyNowPath := filepath.Join(battery, "energy_now")
+
+		powerNowData, err := os.ReadFile(powerNowPath)
+		if err != nil {
+			// fallback to current_now
+			powerNowPath = filepath.Join(battery, "current_now")
+			powerNowData, err = os.ReadFile(powerNowPath)
+			if err != nil {
+				utils.Logger.Println("cannot read power_now or current_now")
+			}
+		}
+
+		energyNowData, err := os.ReadFile(energyNowPath)
+		if err != nil {
+			// fallback to charge_now
+			energyNowPath = filepath.Join(battery, "charge_now")
+			energyNowData, err = os.ReadFile(energyNowPath)
+			if err != nil {
+				utils.Logger.Println("cannot read energy_now or charge_now")
+			}
+		}
+
+		powerNow, err := strconv.Atoi(strings.TrimSpace(string(powerNowData)))
+		energyNow, err := strconv.Atoi(strings.TrimSpace(string(energyNowData)))
+		if err != nil {
+			utils.Logger.Println("conversion failed")
+		}
+
+		if powerNow == 0 {
+			utils.Logger.Println("powerNow is zero, cannot compute time remaining")
+		} else {
+
+			timeRemainingHours := float64(energyNow) / float64(powerNow)
+
+			mod.hoursRem = int(timeRemainingHours)
+			mod.minsRem = int((timeRemainingHours - float64(mod.hoursRem)) * 60)
+		}
 	}
 	return battery, mains, nil
 }
