@@ -133,7 +133,7 @@ func (c *Color) UnmarshalYAML(n *yaml.Node) error {
 	if err := n.Decode(&s); err != nil {
 		return err
 	}
-  
+
 	col, err := colors.ParseColor(s)
 	if err != nil {
 		return err
