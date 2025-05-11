@@ -37,8 +37,8 @@ type Options struct {
 	Tick             config.Duration                   `yaml:"tick"`
 	Format           config.Format                     `yaml:"format"`
 	FormatTimeRem    config.Format                     `yaml:"formatTimeRem"`
-	IconsDischarging []rune                            `yaml:"icons"`
-	IconsCharging    []rune                            `yaml:"icons"`
+	IconsDischarging []rune                            `yaml:"iconsDischarging"`
+	IconsCharging    []rune                            `yaml:"iconsCharging"`
 	Warning          WarningOptions                    `yaml:"warning"`
 	Urgent           UrgentOptions                     `yaml:"urgent"`
 	Optimal          OptimalOptions                    `yaml:"optimal"`
