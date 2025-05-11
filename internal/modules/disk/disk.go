@@ -7,72 +7,26 @@ import (
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
+	"github.com/codelif/pawbar/internal/lookup/units"
+	"github.com/codelif/pawbar/internal/utils"
 	"github.com/shirou/gopsutil/v3/disk"
 )
 
 type DiskModule struct {
 	receive               chan bool
 	send                  chan modules.Event
-	format                Format
 	opts                  Options
 	initialOpts           Options
 	currentTickerInterval time.Duration
 	ticker                *time.Ticker
 }
 
-const (
-	bitUnit = 1 << iota
-	bitFree
-)
-
-type Format int
-
-const (
-	UsedPercent Format = iota
-	UsedAbsolute
-	FreePercent
-	FreeAbsolute
-)
-
-func (f *Format) toggleUnit() { *f ^= bitUnit }
-func (f *Format) toggleFree() { *f ^= bitFree }
-
-const GiB = 1073741824.0
-
-func New() modules.Module { return &DiskModule{} }
-
 func (mod *DiskModule) Dependencies() []string { return nil }
-
-func (mod *DiskModule) syncTemplate() {
-	switch mod.format {
-	case UsedPercent:
-		mod.opts.Format = mod.initialOpts.Format
-
-	case UsedAbsolute:
-		if a := mod.opts.OnClick.Actions["left"]; a != nil &&
-			len(a.Configs) > 0 && a.Configs[0].Format != nil {
-			mod.opts.Format = *a.Configs[0].Format
-		}
-
-	case FreePercent:
-		if a := mod.opts.OnClick.Actions["right"]; a != nil &&
-			len(a.Configs) > 0 && a.Configs[0].Format != nil {
-			mod.opts.Format = *a.Configs[0].Format
-		}
-
-	case FreeAbsolute:
-		if a := mod.opts.OnClick.Actions["right"]; a != nil &&
-			len(a.Configs) > 1 && a.Configs[1].Format != nil {
-			mod.opts.Format = *a.Configs[1].Format
-		}
-	}
-}
 
 func (mod *DiskModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	mod.receive = make(chan bool)
 	mod.send = make(chan modules.Event)
 	mod.initialOpts = mod.opts
-	mod.syncTemplate()
 
 	go func() {
 		mod.currentTickerInterval = mod.opts.Tick.Go()
@@ -83,7 +37,6 @@ func (mod *DiskModule) Run() (<-chan bool, chan<- modules.Event, error) {
 			select {
 			case <-mod.ticker.C:
 				mod.receive <- true
-
 			case e := <-mod.send:
 				switch ev := e.VaxisEvent.(type) {
 				case vaxis.Mouse:
@@ -91,44 +44,15 @@ func (mod *DiskModule) Run() (<-chan bool, chan<- modules.Event, error) {
 						break
 					}
 					btn := config.ButtonName(ev)
-
-					formatChanged := false
-					dispatchChanged := false
-					switch btn {
-					case "left":
-						mod.format.toggleUnit()
-						formatChanged = true
-					case "right":
-						mod.format.toggleFree()
-						formatChanged = true
-					case "middle":
-						if mod.format != UsedPercent {
-							mod.format = UsedPercent
-							formatChanged = true
-						}
-					}
-
 					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
-						dispatchChanged = true
-					}
-
-					if formatChanged {
-						if !dispatchChanged {
-							mod.syncTemplate()
-						}
-					}
-
-					if formatChanged || dispatchChanged {
 						mod.receive <- true
 					}
 					mod.ensureTickInterval()
-
 				case modules.FocusIn:
 					if mod.opts.OnClick.HoverIn(&mod.opts) {
 						mod.receive <- true
 					}
 					mod.ensureTickInterval()
-
 				case modules.FocusOut:
 					if mod.opts.OnClick.HoverOut(&mod.opts) {
 						mod.receive <- true
@@ -155,50 +79,49 @@ func (mod *DiskModule) Render() []modules.EventCell {
 		return nil
 	}
 
-	freePercent := 100 - int(du.UsedPercent)
-	freeAbsolute := float64(du.Free) / GiB
 	usedPercent := int(du.UsedPercent)
-	usedAbsolute := float64(du.Used) / GiB
+	freePercent := 100 - usedPercent
 
-	usage := int(du.UsedPercent)
+	system := units.IEC
+	if mod.opts.UseSI {
+		system = units.SI
+	}
+
+	unit := mod.opts.Scale.Unit
+	if mod.opts.Scale.Dynamic || mod.opts.Scale.Unit.Name == "" {
+		unit = units.Choose(du.Total, system)
+	}
+
+	usedAbs := units.Format(du.Used, unit)
+	freeAbs := units.Format(du.Free, unit)
+	totalAbs := units.Format(du.Total, unit)
+
+	usage := usedPercent
 	style := vaxis.Style{}
-	if usage > 95 {
-		style.Foreground = mod.opts.Threshold.FgUrg.Go()
-		style.Background = mod.opts.Threshold.BgUrg.Go()
-	} else if usage > 90 {
-		style.Foreground = mod.opts.Threshold.FgWar.Go()
-		style.Background = mod.opts.Threshold.BgWar.Go()
+	if usage > mod.opts.Urgent.Percent.Go() {
+		style.Foreground = mod.opts.Urgent.Fg.Go()
+		style.Background = mod.opts.Urgent.Bg.Go()
+	} else if usage > mod.opts.Warning.Percent.Go() {
+		style.Foreground = mod.opts.Warning.Fg.Go()
+		style.Background = mod.opts.Warning.Bg.Go()
 	} else {
 		style.Foreground = mod.opts.Fg.Go()
 		style.Background = mod.opts.Bg.Go()
 	}
 
 	var buf bytes.Buffer
+	err = mod.opts.Format.Execute(&buf, struct {
+		Used, Free, Total        float64
+		UsedPercent, FreePercent int
+		Unit, Icon               string
+	}{
+		usedAbs, freeAbs, totalAbs,
+		usedPercent, freePercent,
+		unit.Name, mod.opts.Icon.Go(),
+	})
 
-	switch mod.format {
-	case UsedPercent:
-		_ = mod.opts.Format.Execute(&buf, struct{ Percent int }{usedPercent})
-
-	case UsedAbsolute:
-		if a := mod.opts.OnClick.Actions["left"]; a != nil &&
-			len(a.Configs) > 0 && a.Configs[0].Format != nil {
-			_ = a.Configs[0].Format.Execute(&buf,
-				struct{ Absolute float64 }{usedAbsolute})
-		}
-
-	case FreePercent:
-		if a := mod.opts.OnClick.Actions["right"]; a != nil &&
-			len(a.Configs) > 0 && a.Configs[0].Format != nil {
-			_ = a.Configs[0].Format.Execute(&buf,
-				struct{ Percent int }{freePercent})
-		}
-
-	case FreeAbsolute:
-		if a := mod.opts.OnClick.Actions["right"]; a != nil &&
-			len(a.Configs) > 1 && a.Configs[1].Format != nil {
-			_ = a.Configs[1].Format.Execute(&buf,
-				struct{ Absolute float64 }{freeAbsolute})
-		}
+	if err != nil {
+		utils.Logger.Printf("fixme: disk: template error: %v\n", err)
 	}
 
 	rch := vaxis.Characters(buf.String())

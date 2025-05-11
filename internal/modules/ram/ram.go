@@ -7,28 +7,17 @@ import (
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
+	"github.com/codelif/pawbar/internal/lookup/units"
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
-type Format int
-
-const (
-	FormatPercentage Format = iota
-	FormatAbsolute
-)
-
-func (f *Format) toggle() { *f ^= 1 }
-
-func New() modules.Module {
-	return &RamModule{}
-}
-
 type RamModule struct {
-	receive               chan bool
-	send                  chan modules.Event
-	format                Format
-	opts                  Options
-	initialOpts           Options
+	receive chan bool
+	send    chan modules.Event
+
+	opts        Options
+	initialOpts Options
+
 	currentTickerInterval time.Duration
 	ticker                *time.Ticker
 }
@@ -57,9 +46,6 @@ func (mod *RamModule) Run() (<-chan bool, chan<- modules.Event, error) {
 						break
 					}
 					btn := config.ButtonName(ev)
-					if btn == "left" {
-						mod.format.toggle()
-					}
 					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
 						mod.receive <- true
 					}
@@ -96,33 +82,47 @@ func (mod *RamModule) Render() []modules.EventCell {
 	if err != nil {
 		return nil
 	}
+	system := units.IEC
+	if mod.opts.UseSI {
+		system = units.SI
+	}
 
-	valuePercent := int(v.UsedPercent)
-	valueAbsolute := float64(v.Used) / 1073741824.00
+	unit := mod.opts.Scale.Unit
+	if mod.opts.Scale.Dynamic || mod.opts.Scale.Unit.Name == "" {
+		unit = units.Choose(v.Total, system)
+	}
 
+	usedAbs := units.Format(v.Used, unit)
+	freeAbs := units.Format(v.Available, unit)
+	totalAbs := units.Format(v.Total, unit)
+
+	usedPercent := int(v.UsedPercent)
+	freePercent := 100 - usedPercent
+
+	usage := usedPercent
 	style := vaxis.Style{}
-	if valuePercent > 90 {
-		style.Foreground = mod.opts.Threshold.FgUrg.Go()
-		style.Background = mod.opts.Threshold.BgUrg.Go()
-	} else if valuePercent > 80 {
-		style.Foreground = mod.opts.Threshold.FgWar.Go()
-		style.Background = mod.opts.Threshold.BgWar.Go()
+	if usage > mod.opts.Urgent.Percent.Go() {
+		style.Foreground = mod.opts.Urgent.Fg.Go()
+		style.Background = mod.opts.Urgent.Bg.Go()
+	} else if usage > mod.opts.Warning.Percent.Go() {
+		style.Foreground = mod.opts.Warning.Fg.Go()
+		style.Background = mod.opts.Warning.Bg.Go()
 	} else {
 		style.Foreground = mod.opts.Fg.Go()
 		style.Background = mod.opts.Bg.Go()
-
 	}
 
 	var buf bytes.Buffer
-	switch mod.format {
-	case FormatPercentage:
-		_ = mod.opts.Format.Execute(&buf, struct{ Percent int }{valuePercent})
-	case FormatAbsolute:
-		leftAction := mod.opts.OnClick.Actions["left"]
-		if leftAction != nil && len(leftAction.Configs) > 0 {
-			_ = leftAction.Configs[0].Format.Execute(&buf, struct{ Absolute float64 }{valueAbsolute})
-		}
-	}
+
+	err = mod.opts.Format.Execute(&buf, struct {
+		Used, Free, Total        float64
+		UsedPercent, FreePercent int
+		Unit, Icon               string
+	}{
+		usedAbs, freeAbs, totalAbs,
+		usedPercent, freePercent,
+		unit.Name, mod.opts.Icon.Go(),
+	})
 
 	rch := vaxis.Characters(buf.String())
 	r := make([]modules.EventCell, len(rch))

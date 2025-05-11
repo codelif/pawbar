@@ -2,11 +2,14 @@ package config
 
 import (
 	"fmt"
+	"strings"
 	"text/template"
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
+	"github.com/codelif/pawbar/internal/lookup/icons"
 	"github.com/codelif/pawbar/internal/modules"
+	"github.com/codelif/pawbar/internal/lookup/units"
 	"gopkg.in/yaml.v3"
 )
 
@@ -111,12 +114,12 @@ func (t *Format) UnmarshalYAML(n *yaml.Node) error {
 		return err
 	}
 
-	tmpl, err := template.New("format").Parse(s)
+	tmpl, err := NewTemplate(s)
 	if err != nil {
 		return err
 	}
 
-	*t = Format{tmpl}
+	t.Template = tmpl
 	return nil
 }
 
@@ -176,3 +179,45 @@ func (c *Cursor) UnmarshalYAML(n *yaml.Node) error {
 }
 
 func (c Cursor) Go() vaxis.MouseShape { return vaxis.MouseShape(c) }
+
+type Scale struct {
+	Dynamic bool
+	Unit    units.Unit
+}
+
+func (s *Scale) UnmarshalYAML(n *yaml.Node) error {
+	var raw string
+	if err := n.Decode(&raw); err != nil {
+		return err
+	}
+
+	raw = strings.ToLower(strings.TrimSpace(raw))
+
+	switch raw {
+	case "", "auto", "dynamic", "adaptive":
+		s.Dynamic = true
+		return nil
+	default:
+		u, err := units.ParseUnit(raw)
+		if err != nil {
+			return err
+		}
+		s.Dynamic = false
+		s.Unit = u
+		return nil
+	}
+}
+
+type Icon string
+
+func (i *Icon) UnmarshalYAML(n *yaml.Node) error {
+	var raw string
+	if err := n.Decode(&raw); err != nil {
+		return err
+	}
+
+	*i = Icon(icons.Resolve(raw))
+	return nil
+}
+
+func (i Icon) Go() string { return string(i) }

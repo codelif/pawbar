@@ -199,9 +199,13 @@ func (mod *Backlight) Render() []modules.EventCell {
 	data := struct {
 		Icon    string
 		Percent int
+		Now     int
+		Max     int
 	}{
 		Icon:    string(icon),
 		Percent: percent,
+		Now:     now,
+		Max:     maxVal,
 	}
 
 	var buf bytes.Buffer
@@ -221,7 +225,7 @@ func (mod *Backlight) Render() []modules.EventCell {
 func (mod *Backlight) Run() (<-chan bool, chan<- modules.Event, error) {
 	mod.send = make(chan modules.Event)
 	mod.receive = make(chan bool)
-
+	mod.initialOpts = mod.opts
 	mod.Update()
 
 	uchan, err := mod.Udev()

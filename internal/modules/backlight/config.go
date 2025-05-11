@@ -1,8 +1,6 @@
 package backlight
 
 import (
-	"text/template"
-
 	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 )
@@ -28,7 +26,7 @@ type MouseOptions struct {
 }
 
 func defaultOptions() Options {
-	fv, _ := template.New("format").Parse("{{.Icon}} {{.Percent}}%")
+	fv, _ := config.NewTemplate("{{.Icon}} {{.Percent}}%")
 
 	return Options{
 		Format: config.Format{Template: fv},
