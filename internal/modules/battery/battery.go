@@ -229,31 +229,37 @@ func (mod *Battery) Update() bool {
 
 func (mod *Battery) Render() []modules.EventCell {
 	percent := (mod.status["now"] * 100) / (mod.status["full"])
-	style := vaxis.Style{}
+	style := vaxis.Style{
+		Foreground: mod.opts.Fg.Go(),
+		Background: mod.opts.Bg.Go(),
+	}
 	icon := ' '
 	if mod.status["mains"] == 1 {
 		icons := mod.opts.IconsCharging
 		icon = icons[utils.Clamp((len(icons)-1)*percent/100, 0, len(icons)-1)]
 		if mod.status["charging"] == 0 || percent >= mod.opts.Optimal.Percent.Go() {
 			style.Foreground = mod.opts.Optimal.Fg.Go()
+			style.Background = mod.opts.Optimal.Bg.Go()
 		}
 	} else {
 		icons := mod.opts.IconsDischarging
 		icon = icons[utils.Clamp((len(icons)-1)*percent/100, 0, len(icons)-1)]
 		if percent <= mod.opts.Urgent.Percent.Go() {
-			style.Foreground = mod.opts.Urgent.Fg.Go()
-			style.Foreground = mod.opts.Urgent.Bg.Go()
-		} else if percent <= mod.opts.Warning.Percent.Go() {
-			style.Foreground = mod.opts.Warning.Fg.Go()
-			style.Foreground = mod.opts.Warning.Bg.Go()
-		} else if percent >= mod.opts.Optimal.Percent.Go() {
-			style.Foreground = mod.opts.Optimal.Fg.Go()
-			style.Foreground = mod.opts.Optimal.Bg.Go()
-		} else {
-			style.Foreground = mod.opts.Fg.Go()
-			style.Background = mod.opts.Bg.Go()
-		}
 
+			style.Foreground = mod.opts.Urgent.Fg.Go()
+			style.Background = mod.opts.Urgent.Bg.Go()
+
+		} else if percent <= mod.opts.Warning.Percent.Go() {
+
+			style.Foreground = mod.opts.Warning.Fg.Go()
+			style.Background = mod.opts.Warning.Bg.Go()
+
+		} else if percent >= mod.opts.Optimal.Percent.Go() {
+
+			style.Foreground = mod.opts.Optimal.Fg.Go()
+			style.Background = mod.opts.Optimal.Bg.Go()
+
+		}
 	}
 
 	var buf bytes.Buffer
