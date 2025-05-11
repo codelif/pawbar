@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	config.RegisterModule("disk", defaultOptions(), func(o Options) (modules.Module, error) { return &DiskModule{opts: o}, nil })
+	config.RegisterModule("disk", defaultOptions, func(o Options) (modules.Module, error) { return &DiskModule{opts: o}, nil })
 }
 
 type ThresholdOptions struct {

@@ -42,7 +42,7 @@ import (
 // can define a yaml type in internal/config/types.go
 
 func init() {
-	config.RegisterModule("cpu", defaultOptions(), func(o Options) (modules.Module, error) { return &CpuModule{opts: o}, nil })
+	config.RegisterModule("cpu", defaultOptions, func(o Options) (modules.Module, error) { return &CpuModule{opts: o}, nil })
 }
 
 type ThresholdOptions struct {

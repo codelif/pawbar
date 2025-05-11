@@ -17,14 +17,14 @@ func Register(name string, f Factory) { factories[name] = f }
 
 func RegisterModule[T any](
 	name string,
-	defaultOpts T,
+	defaultOpts func() T,
 	constructor func(T) (modules.Module, error),
 ) {
 	factories[name] = func(node *yaml.Node) (modules.Module, error) {
 		if err := validateOnMouseNode(node); err != nil {
 			return nil, fmt.Errorf("%s: %w", name, err)
 		}
-		opts := defaultOpts
+		opts := defaultOpts()
 
 		if node != nil {
 			var userOpts T

@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	config.RegisterModule("backlight", defaultOptions(), func(o Options) (modules.Module, error) { return &Backlight{opts: o}, nil })
+	config.RegisterModule("backlight", defaultOptions, func(o Options) (modules.Module, error) { return &Backlight{opts: o}, nil })
 }
 
 type Options struct {

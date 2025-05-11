@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	config.RegisterModule("volume", defaultOptions(), func(o Options) (modules.Module, error) { return &VolumeModule{opts: o}, nil })
+	config.RegisterModule("volume", defaultOptions, func(o Options) (modules.Module, error) { return &VolumeModule{opts: o}, nil })
 }
 
 type Mutedoptions struct {
@@ -32,6 +32,7 @@ type MouseOptions struct {
 	Bg     *config.Color  `yaml:"bg"`
 	Cursor *config.Cursor `yaml:"cursor"`
 	Format *config.Format `yaml:"format"`
+	// Icons  *[]rune        `yaml:"icons"`
 }
 
 func defaultOptions() Options {

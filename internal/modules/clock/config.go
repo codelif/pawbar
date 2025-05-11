@@ -23,7 +23,7 @@ import (
 // NOTE: include an example in every module's config.go (also this message)
 
 func init() {
-	config.RegisterModule("clock", defaultOptions(), func(o Options) (modules.Module, error) { return &ClockModule{opts: o}, nil })
+	config.RegisterModule("clock", defaultOptions, func(o Options) (modules.Module, error) { return &ClockModule{opts: o}, nil })
 }
 
 type Options struct {

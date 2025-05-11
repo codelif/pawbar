@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	config.RegisterModule("ram", defaultOptions(), func(o Options) (modules.Module, error) { return &RamModule{opts: o}, nil })
+	config.RegisterModule("ram", defaultOptions, func(o Options) (modules.Module, error) { return &RamModule{opts: o}, nil })
 }
 
 type ThresholdOptions struct {
