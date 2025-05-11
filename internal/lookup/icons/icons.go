@@ -6,13 +6,14 @@ import (
 )
 
 var table = map[string]string{
-	"disk": "",
-  "compass": "",
+	"disk":    "",
+	"compass": "",
 }
 
 func Register(name, glyph string) {
 	table[name] = glyph
 }
+
 func Lookup(name string) (string, error) {
 	g, ok := table[name]
 	if !ok {

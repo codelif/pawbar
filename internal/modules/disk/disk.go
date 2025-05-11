@@ -6,8 +6,8 @@ import (
 
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/config"
-	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/lookup/units"
+	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/utils"
 	"github.com/shirou/gopsutil/v3/disk"
 )
@@ -119,7 +119,6 @@ func (mod *DiskModule) Render() []modules.EventCell {
 		usedPercent, freePercent,
 		unit.Name, mod.opts.Icon.Go(),
 	})
-
 	if err != nil {
 		utils.Logger.Printf("fixme: disk: template error: %v\n", err)
 	}

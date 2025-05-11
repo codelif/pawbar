@@ -6,8 +6,8 @@ import (
 
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/config"
-	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/lookup/units"
+	"github.com/codelif/pawbar/internal/modules"
 	"github.com/shirou/gopsutil/v3/mem"
 )
 

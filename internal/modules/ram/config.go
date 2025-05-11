@@ -73,7 +73,7 @@ func defaultOptions() Options {
 		},
 		OnClick: config.MouseActions[MouseOptions]{
 			Actions: map[string]*config.MouseAction[MouseOptions]{
-				"left": &config.MouseAction[MouseOptions]{
+				"left": {
 					Configs: []MouseOptions{{Format: &config.Format{Template: f1}}},
 				},
 			},
