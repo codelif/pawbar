@@ -56,6 +56,8 @@ func (mod *Battery) Run() (<-chan bool, chan<- modules.Event, error) {
 	mod.status["mains"] = 0
 	mod.status["charging"] = 0
 	mod.battery = battery
+	mod.hoursRem = 0
+	mod.minsRem = 0
 	mod.mains = mains
 	mod.Update()
 	mod.initialOpts = mod.opts
@@ -154,6 +156,8 @@ func (mod *Battery) Update() bool {
 	mod.status["now"] = now
 	mod.status["full"] = full
 	mod.status["design"] = design
+	hoursRem := 0
+	minsRem := 0
 
 	change = percent_before != percent_now
 
@@ -175,6 +179,49 @@ func (mod *Battery) Update() bool {
 	if mod.status["charging"] != charging {
 		mod.status["charging"] = charging
 		change = true
+	}
+
+	powerNowPath := filepath.Join(mod.battery, "power_now")
+	energyNowPath := filepath.Join(mod.battery, "energy_now")
+
+	powerNowData, err := os.ReadFile(powerNowPath)
+	if err != nil {
+		// fallback to current_now
+		powerNowPath = filepath.Join(mod.battery, "current_now")
+		powerNowData, err = os.ReadFile(powerNowPath)
+		if err != nil {
+			utils.Logger.Println("cannot read power_now or current_now")
+		}
+	}
+
+	energyNowData, err := os.ReadFile(energyNowPath)
+	if err != nil {
+		// fallback to charge_now
+		energyNowPath = filepath.Join(mod.battery, "charge_now")
+		energyNowData, err = os.ReadFile(energyNowPath)
+		if err != nil {
+			utils.Logger.Println("cannot read energy_now or charge_now")
+		}
+	}
+
+	powerNow, err := strconv.Atoi(strings.TrimSpace(string(powerNowData)))
+	energyNow, err := strconv.Atoi(strings.TrimSpace(string(energyNowData)))
+	if err != nil {
+		utils.Logger.Println("conversion failed")
+	}
+
+	if powerNow == 0 {
+		utils.Logger.Println("powerNow is zero, cannot compute time remaining")
+	} else {
+		timeRemainingHours := float64(energyNow) / float64(powerNow)
+
+		hoursRem = int(timeRemainingHours)
+		minsRem = int((timeRemainingHours - float64(hoursRem)) * 60)
+		if hoursRem != mod.hoursRem || minsRem != mod.minsRem {
+			mod.hoursRem = hoursRem
+			mod.minsRem = minsRem
+			change = true
+		}
 	}
 
 	return change
@@ -300,45 +347,6 @@ func (mod *Battery) GetSupplies() (string, string, error) {
 
 	if battery == "" || mains == "" {
 		return "", "", fmt.Errorf("WARNING(battery): Battery or mains not available. Disabling.")
-	} else {
-		powerNowPath := filepath.Join(battery, "power_now")
-		energyNowPath := filepath.Join(battery, "energy_now")
-
-		powerNowData, err := os.ReadFile(powerNowPath)
-		if err != nil {
-			// fallback to current_now
-			powerNowPath = filepath.Join(battery, "current_now")
-			powerNowData, err = os.ReadFile(powerNowPath)
-			if err != nil {
-				utils.Logger.Println("cannot read power_now or current_now")
-			}
-		}
-
-		energyNowData, err := os.ReadFile(energyNowPath)
-		if err != nil {
-			// fallback to charge_now
-			energyNowPath = filepath.Join(battery, "charge_now")
-			energyNowData, err = os.ReadFile(energyNowPath)
-			if err != nil {
-				utils.Logger.Println("cannot read energy_now or charge_now")
-			}
-		}
-
-		powerNow, err := strconv.Atoi(strings.TrimSpace(string(powerNowData)))
-		energyNow, err := strconv.Atoi(strings.TrimSpace(string(energyNowData)))
-		if err != nil {
-			utils.Logger.Println("conversion failed")
-		}
-
-		if powerNow == 0 {
-			utils.Logger.Println("powerNow is zero, cannot compute time remaining")
-		} else {
-
-			timeRemainingHours := float64(energyNow) / float64(powerNow)
-
-			mod.hoursRem = int(timeRemainingHours)
-			mod.minsRem = int((timeRemainingHours - float64(mod.hoursRem)) * 60)
-		}
 	}
 	return battery, mains, nil
 }
