@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
+	"github.com/codelif/pawbar/internal/lookup/colors"
 	"github.com/codelif/pawbar/internal/lookup/icons"
 	"github.com/codelif/pawbar/internal/lookup/units"
 	"github.com/codelif/pawbar/internal/modules"
@@ -132,8 +133,8 @@ func (c *Color) UnmarshalYAML(n *yaml.Node) error {
 	if err := n.Decode(&s); err != nil {
 		return err
 	}
-
-	col, err := ParseColor(s)
+  
+	col, err := colors.ParseColor(s)
 	if err != nil {
 		return err
 	}

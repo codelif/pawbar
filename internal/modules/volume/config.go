@@ -4,6 +4,7 @@ import (
 	"text/template"
 
 	"github.com/codelif/pawbar/internal/config"
+	"github.com/codelif/pawbar/internal/lookup/colors"
 	"github.com/codelif/pawbar/internal/modules"
 )
 
@@ -37,7 +38,7 @@ type MouseOptions struct {
 
 func defaultOptions() Options {
 	fv, _ := template.New("format").Parse("{{.Icon}} {{.Percent}}%")
-	muteColor, _ := config.ParseColor("darkgray")
+	muteColor, _ := colors.ParseColor("darkgray")
 
 	return Options{
 		Format: config.Format{Template: fv},

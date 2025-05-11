@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/codelif/pawbar/internal/config"
+	"github.com/codelif/pawbar/internal/lookup/colors"
 	"github.com/codelif/pawbar/internal/lookup/icons"
 	"github.com/codelif/pawbar/internal/modules"
 )
@@ -56,8 +57,8 @@ func defaultOptions() Options {
 	icon, _ := icons.Lookup("compass")
 	f0, _ := config.NewTemplate("{{.Icon}} {{.UsedPercent}}%")
 	f1, _ := config.NewTemplate("{{.Icon}} {{.Used | round 2}}/{{.Total | round 2}} {{.Unit}}")
-	urgClr, _ := config.ParseColor("@urgent")
-	warClr, _ := config.ParseColor("@warning")
+	urgClr, _ := colors.ParseColor("@urgent")
+	warClr, _ := colors.ParseColor("@warning")
 	return Options{
 		Format: config.Format{Template: f0},
 		Tick:   config.Duration(10 * time.Second),

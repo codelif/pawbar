@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/codelif/pawbar/internal/config"
+	"github.com/codelif/pawbar/internal/lookup/colors"
 	"github.com/codelif/pawbar/internal/modules"
 )
 
@@ -78,7 +79,7 @@ type MouseOptions struct {
 
 func defaultOptions() Options {
 	f, _ := template.New("format").Parse(" {{.Percent}}%")
-	urgClr, _ := config.ParseColor("@urgent")
+	urgClr, _ := colors.ParseColor("@urgent")
 	return Options{
 		Format: config.Format{Template: f},
 		Tick:   config.Duration(3 * time.Second),
