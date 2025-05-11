@@ -32,10 +32,10 @@ type Options struct {
 	Cursor  config.Cursor                     `yaml:"cursor"`
 	Tick    config.Duration                   `yaml:"tick"`
 	Format  string                            `yaml:"format"`
-	OnClick config.MouseActions[ClickOptions] `yaml:"onmouse"`
+	OnClick config.MouseActions[MouseOptions] `yaml:"onmouse"`
 }
 
-type ClickOptions struct {
+type MouseOptions struct {
 	Fg     *config.Color    `yaml:"fg"`
 	Bg     *config.Color    `yaml:"bg"`
 	Cursor *config.Cursor   `yaml:"cursor"`
@@ -47,6 +47,6 @@ func defaultOptions() Options {
 	return Options{
 		Format:  "%Y-%m-%d %H:%M:%S",
 		Tick:    config.Duration(5 * time.Second),
-		OnClick: config.MouseActions[ClickOptions]{},
+		OnClick: config.MouseActions[MouseOptions]{},
 	}
 }
