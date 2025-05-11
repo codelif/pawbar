@@ -20,7 +20,7 @@ const (
 	TB = 1000 * GB
 )
 
-// I don't think anyone with more a PB/PiB of
+// I don't think anyone with more than a PB/PiB of
 // disk space cares for this, so it is what it is
 
 type Unit struct {

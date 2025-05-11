@@ -3,6 +3,7 @@ package ws
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/config"
@@ -36,6 +37,7 @@ type Module struct {
 	b       backend
 	receive chan bool
 	send    chan modules.Event
+	bname   string
 }
 
 func New() modules.Module { return &Module{} }
@@ -89,12 +91,14 @@ func (mod *Module) selectBackend() error {
 			return fmt.Errorf("Could not start hypr service.")
 		}
 		mod.b = newHyprBackend(svc)
+		mod.bname = "hypr"
 	} else if os.Getenv("I3SOCK") != "" || os.Getenv("SWAYSOCK") != "" {
 		svc, ok := i3.Register()
 		if !ok {
 			return fmt.Errorf("Could not start i3 service.")
 		}
 		mod.b = newI3Backend(svc)
+		mod.bname = "i3"
 	} else {
 		return fmt.Errorf("Could not find a wm backend for current environment.")
 	}
@@ -119,6 +123,13 @@ func (mod *Module) Render() []modules.EventCell {
 		style := vaxis.Style{}
 		mouseShape := vaxis.MouseShapeClickable
 
+		var meta string
+		if mod.bname == "hypr" {
+			meta = strconv.Itoa(w.ID)
+		} else {
+			meta = wsName
+		}
+
 		if w.Special {
 			style = SPECIAL
 			mouseShape = vaxis.MouseShapeDefault
@@ -130,7 +141,7 @@ func (mod *Module) Render() []modules.EventCell {
 		}
 
 		for _, ch := range vaxis.Characters(" " + wsName + " ") {
-			r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch, Style: style}, Metadata: wsName, Mod: mod, MouseShape: mouseShape})
+			r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch, Style: style}, Metadata: meta, Mod: mod, MouseShape: mouseShape})
 		}
 	}
 
