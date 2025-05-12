@@ -77,6 +77,17 @@ func (mod *RamModule) ensureTickInterval() {
 	}
 }
 
+func pickThreshold(p int, th []ThresholdOptions) *ThresholdOptions {
+	for _, t := range th {
+		matchUp := t.Direction.IsUp() && p >= t.Percent.Go()
+		matchDown := !t.Direction.IsUp() && p <= t.Percent.Go()
+		if matchUp || matchDown {
+			return &t
+		}
+	}
+	return nil
+}
+
 func (mod *RamModule) Render() []modules.EventCell {
 	v, err := mem.VirtualMemory()
 	if err != nil {
@@ -101,12 +112,12 @@ func (mod *RamModule) Render() []modules.EventCell {
 
 	usage := usedPercent
 	style := vaxis.Style{}
-	if usage > mod.opts.Urgent.Percent.Go() {
-		style.Foreground = mod.opts.Urgent.Fg.Go()
-		style.Background = mod.opts.Urgent.Bg.Go()
-	} else if usage > mod.opts.Warning.Percent.Go() {
-		style.Foreground = mod.opts.Warning.Fg.Go()
-		style.Background = mod.opts.Warning.Bg.Go()
+
+	t := pickThreshold(usage, mod.opts.Thresholds)
+
+	if t != nil {
+		style.Foreground = t.Fg.Go()
+		style.Background = t.Bg.Go()
 	} else {
 		style.Foreground = mod.opts.Fg.Go()
 		style.Background = mod.opts.Bg.Go()

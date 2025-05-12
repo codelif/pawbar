@@ -13,15 +13,11 @@ func init() {
 	config.RegisterModule("ram", defaultOptions, func(o Options) (modules.Module, error) { return &RamModule{opts: o}, nil })
 }
 
-type WarningOptions struct {
-	Percent config.Percent `yaml:"percent"`
-	Fg      config.Color   `yaml:"fg"`
-	Bg      config.Color   `yaml:"bg"`
-}
-type UrgentOptions struct {
-	Percent config.Percent `yaml:"percent"`
-	Fg      config.Color   `yaml:"fg"`
-	Bg      config.Color   `yaml:"bg"`
+type ThresholdOptions struct {
+	Percent   config.Percent   `yaml:"percent"`
+	Direction config.Direction `yaml:"direction"`
+	Fg        config.Color     `yaml:"fg"`
+	Bg        config.Color     `yaml:"bg"`
 }
 
 type Options struct {
@@ -35,8 +31,7 @@ type Options struct {
 	UseSI bool         `yaml:"use_si"`
 	Scale config.Scale `yaml:"unit"`
 
-	Warning WarningOptions `yaml:"warning"`
-	Urgent  UrgentOptions  `yaml:"urgent"`
+	Thresholds []ThresholdOptions `yaml:"thresholds"`
 
 	OnClick config.MouseActions[MouseOptions] `yaml:"onmouse"`
 }
@@ -64,13 +59,17 @@ func defaultOptions() Options {
 		Tick:   config.Duration(10 * time.Second),
 		UseSI:  false,
 		Icon:   config.Icon(icon),
-		Warning: WarningOptions{
-			Percent: 80,
-			Fg:      config.Color(warClr),
-		},
-		Urgent: UrgentOptions{
-			Percent: 90,
-			Fg:      config.Color(urgClr),
+		Thresholds: []ThresholdOptions{
+			{
+				Percent:   80,
+				Direction: config.Direction(true),
+				Fg:        config.Color(warClr),
+			},
+			{
+				Percent:   90,
+				Direction: config.Direction(true),
+				Fg:        config.Color(urgClr),
+			},
 		},
 		OnClick: config.MouseActions[MouseOptions]{
 			Actions: map[string]*config.MouseAction[MouseOptions]{
