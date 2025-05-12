@@ -222,3 +222,24 @@ func (i *Icon) UnmarshalYAML(n *yaml.Node) error {
 }
 
 func (i Icon) Go() string { return string(i) }
+
+type Direction bool
+
+func (d *Direction) UnmarshalYAML(n *yaml.Node) error {
+	var raw string
+	if err := n.Decode(&raw); err != nil {
+		return err
+	}
+	raw = strings.ToLower(raw)
+	switch raw {
+	case "u", "up", "upward", "upwards":
+		*d = true
+	case "", "d", "down", "downward", "downwards":
+		*d = false
+	default:
+		return fmt.Errorf("%q is not a valid direction. valid options are [%q, %q]", raw, "up", "down")
+	}
+	return nil
+}
+func (d Direction) IsUp() bool { return bool(d) }
+func (d Direction) Go() bool   { return bool(d) }

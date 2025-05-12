@@ -52,7 +52,7 @@ func (mod *Battery) Run() (<-chan bool, chan<- modules.Event, error) {
 				switch ev := e.VaxisEvent.(type) {
 				case vaxis.Mouse:
 					if ev.EventType != vaxis.EventPress {
-						break
+						continue
 					}
 					btn := config.ButtonName(ev)
 					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
@@ -75,30 +75,56 @@ func (mod *Battery) Run() (<-chan bool, chan<- modules.Event, error) {
 
 	return mod.receive, mod.send, nil
 }
-
+func pickThreshold(p int, th []ThresholdOptions) *ThresholdOptions {
+	for _, t := range th {
+		matchUp := t.Direction.IsUp() && p >= t.Percent.Go()
+		matchDown := !t.Direction.IsUp() && p <= t.Percent.Go()
+		if matchUp || matchDown {
+			return &t
+		}
+	}
+	return nil
+}
 func (mod *Battery) Render() []modules.EventCell {
 	percent := int(mod.device.Percentage)
-	style := vaxis.Style{
-		Foreground: mod.opts.Fg.Go(),
-		Background: mod.opts.Bg.Go(),
-	}
+	style := vaxis.Style{}
 
 	icon := ' '
 	eta := 0
 
 	if mod.device.State == StateCharging || mod.device.State == StateFullyCharged {
-		icon = icons.Choose(mod.opts.IconsCharging, percent)
+		icon = icons.Choose(mod.opts.Charging.Icons, percent)
 		eta = int(mod.device.TimeToFull)
-	}
-
-	if mod.device.State == StateFullyCharged {
-		style.Foreground = mod.opts.Optimal.Fg.Go()
-		style.Background = mod.opts.Optimal.Bg.Go()
+		style.Foreground = mod.opts.Charging.Fg.Go()
+		style.Background = mod.opts.Charging.Bg.Go()
 	}
 
 	if mod.device.State == StateDischarging {
-		icon = icons.Choose(mod.opts.IconsDischarging, percent)
+		icon = icons.Choose(mod.opts.Discharging.Icons, percent)
 		eta = int(mod.device.TimeToEmpty)
+		style.Foreground = mod.opts.Discharging.Fg.Go()
+		style.Background = mod.opts.Discharging.Bg.Go()
+	}
+
+	t := pickThreshold(percent, mod.opts.Thresholds)
+	if t != nil {
+		style.Foreground = t.Fg.Go()
+		style.Background = t.Bg.Go()
+	}
+
+	if mod.device.State == StateFullyCharged {
+		style.Foreground = mod.opts.Charged.Fg.Go()
+		style.Background = mod.opts.Charged.Bg.Go()
+		icon = mod.opts.Charged.Icon
+	}
+  
+  // TODO: make config items implement IsZeroer
+  //       to save my soul
+	if mod.opts.Fg.Go() != vaxis.Color(0) {
+		style.Foreground = mod.opts.Fg.Go()
+	}
+	if mod.opts.Bg.Go() != vaxis.Color(0) {
+		style.Background = mod.opts.Bg.Go()
 	}
 
 	var buf bytes.Buffer

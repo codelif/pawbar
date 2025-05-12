@@ -10,36 +10,41 @@ func init() {
 	config.RegisterModule("battery", defaultOptions, func(o Options) (modules.Module, error) { return &Battery{opts: o}, nil })
 }
 
-type WarningOptions struct {
-	Percent config.Percent `yaml:"percent"`
-	Fg      config.Color   `yaml:"fg"`
-	Bg      config.Color   `yaml:"bg"`
+type ThresholdOptions struct {
+	Percent   config.Percent   `yaml:"percent"`
+	Direction config.Direction `yaml:"direction"`
+	Fg        config.Color     `yaml:"fg"`
+	Bg        config.Color     `yaml:"bg"`
 }
 
-type UrgentOptions struct {
-	Percent config.Percent `yaml:"percent"`
-	Fg      config.Color   `yaml:"fg"`
-	Bg      config.Color   `yaml:"bg"`
+type DischargingOptions struct {
+	Fg    config.Color `yaml:"fg"`
+	Bg    config.Color `yaml:"bg"`
+	Icons []rune       `yaml:"icons"`
 }
 
-type OptimalOptions struct {
-	Percent config.Percent `yaml:"percent"`
-	Fg      config.Color   `yaml:"fg"`
-	Bg      config.Color   `yaml:"bg"`
+type ChargingOptions struct {
+	Fg    config.Color `yaml:"fg"`
+	Bg    config.Color `yaml:"bg"`
+	Icons []rune       `yaml:"icons"`
+}
+
+type ChargedOptions struct {
+	Fg   config.Color `yaml:"fg"`
+	Bg   config.Color `yaml:"bg"`
+	Icon rune         `yaml:"icon"`
 }
 
 type Options struct {
-	Fg               config.Color                      `yaml:"fg"`
-	Bg               config.Color                      `yaml:"bg"`
-	Cursor           config.Cursor                     `yaml:"cursor"`
-	Format           config.Format                     `yaml:"format"`
-	FormatTimeRem    config.Format                     `yaml:"formatTimeRem"`
-	IconsDischarging []rune                            `yaml:"iconsDischarging"`
-	IconsCharging    []rune                            `yaml:"iconsCharging"`
-	Warning          WarningOptions                    `yaml:"warning"`
-	Urgent           UrgentOptions                     `yaml:"urgent"`
-	Optimal          OptimalOptions                    `yaml:"optimal"`
-	OnClick          config.MouseActions[MouseOptions] `yaml:"onmouse"`
+	Fg          config.Color                      `yaml:"fg"`
+	Bg          config.Color                      `yaml:"bg"`
+	Cursor      config.Cursor                     `yaml:"cursor"`
+	Format      config.Format                     `yaml:"format"`
+	Discharging DischargingOptions                `yaml:"discharging"`
+	Charging    ChargingOptions                   `yaml:"charging"`
+	Charged     ChargedOptions                    `yaml:"charged"`
+	Thresholds  []ThresholdOptions                `yaml:"thresholds"`
+	OnClick     config.MouseActions[MouseOptions] `yaml:"onmouse"`
 }
 
 type MouseOptions struct {
@@ -54,22 +59,26 @@ func defaultOptions() Options {
 	fr, _ := config.NewTemplate("{{.Hours}} hrs {{ .Minutes}} mins")
 	urgClr, _ := colors.ParseColor("@urgent")
 	warClr, _ := colors.ParseColor("@warning")
-	optClr, _ := colors.ParseColor("@good")
 	return Options{
-		Format:           config.Format{Template: fv},
-		IconsDischarging: []rune{'󰂃', '󰁺', '󰁻', '󰁼', '󰁽', '󰁾', '󰁿', '󰂀', '󰂁', '󰂂', '󰁹'},
-		IconsCharging:    []rune{'󰢟', '󰢜', '󰂆', '󰂇', '󰂈', '󰢝', '󰂉', '󰢞', '󰂊', '󰂋', '󰂅'},
-		Urgent: UrgentOptions{
-			Percent: 15,
-			Fg:      config.Color(urgClr),
+		Format: config.Format{Template: fv},
+		Discharging: DischargingOptions{
+			Icons: []rune{'󰂃', '󰁺', '󰁻', '󰁼', '󰁽', '󰁾', '󰁿', '󰂀', '󰂁', '󰂂', '󰁹'},
 		},
-		Warning: WarningOptions{
-			Percent: 30,
-			Fg:      config.Color(warClr),
+		Charging: ChargingOptions{
+			Icons: []rune{'󰢟', '󰢜', '󰂆', '󰂇', '󰂈', '󰢝', '󰂉', '󰢞', '󰂊', '󰂋', '󰂅'},
 		},
-		Optimal: OptimalOptions{
-			Percent: 90,
-			Fg:      config.Color(optClr),
+		Charged: ChargedOptions{
+			Icon: '󱟢',
+		},
+		Thresholds: []ThresholdOptions{
+			{
+				Percent: 15,
+				Fg:      config.Color(urgClr),
+			},
+			{
+				Percent: 30,
+				Fg:      config.Color(warClr),
+			},
 		},
 		OnClick: config.MouseActions[MouseOptions]{
 			Actions: map[string]*config.MouseAction[MouseOptions]{
