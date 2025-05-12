@@ -3,6 +3,8 @@ package icons
 import (
 	"fmt"
 	"regexp"
+
+	"github.com/codelif/pawbar/internal/utils"
 )
 
 var table = map[string]string{
@@ -34,4 +36,9 @@ func Resolve(s string) string {
 		}
 		return m
 	})
+}
+
+// linearly chooses an icon from a sorted list based on percent
+func Choose(icons []rune, percent int) rune {
+	return icons[utils.Clamp((len(icons)-1)*percent/100, 0, len(icons)-1)]
 }

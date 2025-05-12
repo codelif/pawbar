@@ -7,6 +7,7 @@ replace git.sr.ht/~rockorager/vaxis => ./vaxis
 require (
 	dario.cat/mergo v1.0.1
 	git.sr.ht/~rockorager/vaxis v0.13.0
+	github.com/godbus/dbus/v5 v5.1.0
 	github.com/itchyny/timefmt-go v0.1.6
 	github.com/jochenvg/go-udev v0.0.0-20240801134859-b65ed646224b
 	github.com/shirou/gopsutil/v3 v3.24.5
