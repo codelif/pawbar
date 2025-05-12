@@ -46,12 +46,66 @@ var allowedButtonsSet = func() map[string]struct{} {
 
 func ParseCursor(s string) (vaxis.MouseShape, error) {
 	switch s {
-	case "pointer":
-		return vaxis.MouseShapeClickable, nil
+	case "alias":
+		return "alias", nil
+	case "cell":
+		return "cell", nil
+	case "copy":
+		return "copy", nil
+	case "crosshair":
+		return "crosshair", nil
 	case "default", "":
-		return vaxis.MouseShapeDefault, nil
+		return "default", nil
+	case "e-resize":
+		return "e", nil
+	case "ew-resize":
+		return "ew", nil
+	case "grab":
+		return "grab", nil
+	case "grabbing":
+		return "grabbing", nil
+	case "help":
+		return "help", nil
+	case "move":
+		return "move", nil
+	case "n-resize":
+		return "n", nil
+	case "ne-resize":
+		return "ne", nil
+	case "nesw-resize":
+		return "nesw", nil
+	case "no-drop":
+		return "no", nil
+	case "not-allowed":
+		return "not", nil
+	case "ns-resize":
+		return "ns", nil
+	case "nw-resize":
+		return "nw", nil
+	case "nwse-resize":
+		return "nwse", nil
+	case "pointer":
+		return "pointer", nil
+	case "progress":
+		return "progress", nil
+	case "s-resize":
+		return "s", nil
+	case "se-resize":
+		return "se", nil
+	case "sw-resize":
+		return "sw", nil
 	case "text":
-		return vaxis.MouseShapeTextInput, nil
+		return "text", nil
+	case "vertical-text":
+		return "vertical", nil
+	case "w-resize":
+		return "w", nil
+	case "wait":
+		return "wait", nil
+	case "zoom-in":
+		return "zoom", nil
+	case "zoom-out":
+		return "zoom", nil
 	default:
 		return "", fmt.Errorf("invalid cursor name: %q", s)
 	}
