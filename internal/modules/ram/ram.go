@@ -1,15 +1,84 @@
 package ram
 
 import (
+	"bufio"
 	"bytes"
+	"errors"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/lookup/units"
 	"github.com/codelif/pawbar/internal/modules"
-	"github.com/shirou/gopsutil/v3/mem"
 )
+
+type virtualMemoryStat struct {
+	Total       uint64
+	Available   uint64
+	Used        uint64
+	UsedPercent float64
+}
+
+func virtualMemory() (*virtualMemoryStat, error) {
+	f, err := os.Open("/proc/meminfo")
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var memTotal, memAvailable uint64
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "MemTotal:") {
+			fields := strings.Fields(line)
+			if len(fields) < 2 {
+				return nil, errors.New("malformed MemTotal line in /proc/meminfo")
+			}
+			v, err := strconv.ParseUint(fields[1], 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			memTotal = v * 1024
+		}
+		if strings.HasPrefix(line, "MemAvailable:") {
+			fields := strings.Fields(line)
+			if len(fields) < 2 {
+				return nil, errors.New("malformed MemAvailable line in /proc/meminfo")
+			}
+			v, err := strconv.ParseUint(fields[1], 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			memAvailable = v * 1024
+		}
+		if memTotal != 0 && memAvailable != 0 {
+			break
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	if memTotal == 0 {
+		return nil, errors.New("MemTotal not found in /proc/meminfo")
+	}
+
+	used := memTotal - memAvailable
+	usedPercent := float64(used) * 100.0 / float64(memTotal)
+
+	return &virtualMemoryStat{
+		Total:       memTotal,
+		Available:   memAvailable,
+		Used:        used,
+		UsedPercent: usedPercent,
+	}, nil
+}
 
 type RamModule struct {
 	receive chan bool
@@ -89,7 +158,7 @@ func pickThreshold(p int, th []ThresholdOptions) *ThresholdOptions {
 }
 
 func (mod *RamModule) Render() []modules.EventCell {
-	v, err := mem.VirtualMemory()
+	v, err := virtualMemory()
 	if err != nil {
 		return nil
 	}
