@@ -1,6 +1,7 @@
 package title
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 
@@ -9,14 +10,7 @@ import (
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/services/hypr"
 	"github.com/codelif/pawbar/internal/services/i3"
-	"gopkg.in/yaml.v3"
 )
-
-func init() {
-	config.Register("title", func(n *yaml.Node) (modules.Module, error) {
-		return &Module{}, nil
-	})
-}
 
 type Window struct {
 	Title string
@@ -32,6 +26,9 @@ type Module struct {
 	b       backend
 	receive chan bool
 	send    chan modules.Event
+
+	opts        Options
+	initialOpts Options
 }
 
 func New() modules.Module { return &Module{} }
@@ -48,12 +45,34 @@ func (mod *Module) Run() (<-chan bool, chan<- modules.Event, error) {
 
 	mod.receive = make(chan bool)
 	mod.send = make(chan modules.Event)
+	mod.initialOpts = mod.opts
 
 	go func() {
 		render := mod.b.Events()
 		for {
 			select {
-			case <-mod.send:
+			case e := <-mod.send:
+				switch ev := e.VaxisEvent.(type) {
+				case vaxis.Mouse:
+					if ev.EventType != vaxis.EventPress {
+						break
+					}
+					btn := config.ButtonName(ev)
+
+					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
+						mod.receive <- true
+					}
+				case modules.FocusIn:
+					if mod.opts.OnClick.HoverIn(&mod.opts) {
+						mod.receive <- true
+					}
+
+				case modules.FocusOut:
+					if mod.opts.OnClick.HoverOut(&mod.opts) {
+						mod.receive <- true
+					}
+				}
+
 			case <-render:
 				mod.receive <- true
 			}
@@ -84,21 +103,54 @@ func (mod *Module) selectBackend() error {
 }
 
 func (mod *Module) Render() []modules.EventCell {
-	var r []modules.EventCell
 	win := mod.b.Window()
-	styleBg := vaxis.Style{Foreground: modules.BLACK, Background: modules.COOL}
+	var cells []modules.EventCell
 
 	if win.Class != "" {
-		rch := vaxis.Characters(" " + win.Class + " ")
-		for _, ch := range rch {
-			r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch, Style: styleBg}, Mod: mod})
+		style := vaxis.Style{
+			Foreground: mod.opts.Class.Fg.Go(),
+			Background: mod.opts.Class.Bg.Go(),
 		}
-		r = append(r, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: " ", Width: 1}}, Mod: mod})
 
-		for _, ch := range vaxis.Characters(win.Title) {
-			r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: mod})
+		var buf bytes.Buffer
+		_ = mod.opts.Class.Format.Execute(&buf, struct{ Class string }{
+			Class: " " + win.Class + " ",
+		})
+
+		for _, ch := range vaxis.Characters(buf.String()) {
+			cells = append(cells, modules.EventCell{
+				C: vaxis.Cell{
+					Character: ch,
+					Style:     style,
+				},
+				Mod:        mod,
+				MouseShape: vaxis.MouseShapeDefault,
+			})
 		}
 	}
 
-	return r
+	if win.Title != "" {
+		style := vaxis.Style{
+			Foreground: mod.opts.Title.Fg.Go(),
+			Background: mod.opts.Title.Bg.Go(),
+		}
+
+		var buf bytes.Buffer
+		_ = mod.opts.Title.Format.Execute(&buf, struct{ Title string }{
+			Title: win.Title,
+		})
+		cells = append(cells, modules.EventCell{C: vaxis.Cell{Character: vaxis.Character{Grapheme: " ", Width: 1}}, Mod: mod})
+		for _, ch := range vaxis.Characters(buf.String()) {
+			cells = append(cells, modules.EventCell{
+				C: vaxis.Cell{
+					Character: ch,
+					Style:     style,
+				},
+				Mod:        mod,
+				MouseShape: vaxis.MouseShapeDefault,
+			})
+		}
+	}
+
+	return cells
 }
