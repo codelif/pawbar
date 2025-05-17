@@ -6,6 +6,7 @@ import (
 	"github.com/codelif/pawbar/internal/modules"
 	_ "github.com/codelif/pawbar/internal/modules/backlight"
 	_ "github.com/codelif/pawbar/internal/modules/battery"
+	_ "github.com/codelif/pawbar/internal/modules/bluetooth"
 	_ "github.com/codelif/pawbar/internal/modules/clock"
 	_ "github.com/codelif/pawbar/internal/modules/cpu"
 	_ "github.com/codelif/pawbar/internal/modules/disk"
