@@ -197,19 +197,21 @@ func (mod *bluetoothModule) Render() []modules.EventCell {
 		Device string
 	}{}
 
-	format := mod.opts.Format
+	var tpl config.Format
 
-	if !mod.powered {
-		format = mod.opts.NoConnection.Format
+	switch {
+	case !mod.powered:
+		tpl = mod.opts.NoConnection.Format
 		style.Foreground = mod.opts.NoConnection.Fg.Go()
-	}
-
-	if mod.connected {
+	case mod.connected:
 		data.Device = mod.device
+		tpl = mod.opts.Format
+	default:
+		tpl = mod.opts.Connection.Format
 	}
 
 	var buf bytes.Buffer
-	if err := format.Execute(&buf, data); err != nil {
+	if err := tpl.Execute(&buf, data); err != nil {
 		return nil
 	}
 
