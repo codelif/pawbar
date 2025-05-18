@@ -38,6 +38,45 @@ func (mod *bluetoothModule) Channels() (<-chan bool, chan<- modules.Event) {
 	return mod.receive, mod.send
 }
 
+func (mod *bluetoothModule) initState() error {
+	mgr := mod.conn.Object("org.bluez", dbus.ObjectPath("/"))
+	var objs map[dbus.ObjectPath]map[string]map[string]dbus.Variant
+	if err := mgr.Call(
+		"org.freedesktop.DBus.ObjectManager.GetManagedObjects",
+		0,
+	).Store(&objs); err != nil {
+		return fmt.Errorf("GetManagedObjects failed: %v", err)
+	}
+
+	var gotAdapter, gotDevice bool
+
+	for _, ifaces := range objs {
+		if props, ok := ifaces["org.bluez.Adapter1"]; ok && !gotAdapter {
+			if v, exists := props["Powered"]; exists {
+				mod.powered = v.Value().(bool)
+				gotAdapter = true
+			}
+		}
+		if props, ok := ifaces["org.bluez.Device1"]; ok && !gotDevice {
+			if v, exists := props["Connected"]; exists {
+				mod.connected = v.Value().(bool)
+			}
+			if v, exists := props["Name"]; exists {
+				mod.device = v.Value().(string)
+			}
+			gotDevice = true
+		}
+		if gotAdapter && gotDevice {
+			break
+		}
+	}
+
+	if !gotAdapter {
+		return fmt.Errorf("no org.bluez.Adapter1 found in managed objects")
+	}
+	return nil
+}
+
 func (mod *bluetoothModule) setConnection() error {
 	conn, err := dbus.SystemBus()
 	if err != nil {
@@ -50,6 +89,7 @@ func (mod *bluetoothModule) setConnection() error {
 	}
 	ch := make(chan *dbus.Signal, 10)
 	conn.Signal(ch)
+	mod.conn = conn
 	mod.channel = ch
 	return nil
 }
@@ -76,7 +116,6 @@ func (mod *bluetoothModule) checkActivity(signal *dbus.Signal) error {
 		if val, exists := changedProps["Connected"]; exists {
 			mod.connected = val.Value().(bool)
 
-			// get the device name
 			obj := mod.conn.Object("org.bluez", path)
 			nameVal, err := obj.GetProperty("org.bluez.Device1.Name")
 			if err != nil {
@@ -104,6 +143,11 @@ func (mod *bluetoothModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	mod.receive = make(chan bool)
 
 	mod.initialOpts = mod.opts
+	err = mod.initState()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	go func() {
 		for {
 			select {
