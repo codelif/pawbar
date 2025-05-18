@@ -26,16 +26,19 @@ bar
 
 By default the bar is configured with only a clock and a battery. You can add modules by editing `$HOME/.config/pawbar/pawbar.yaml`.
 
-It has 11 modules with two of them being hyprland specific:
+It has 13 modules :
  - `clock`: A simple date-time module (format changable on click)
+ - `wifi`: A simple wifi conenction indicator (for now, without interactive menu)
+ - `bluetooth`: A simple bluetooth conenction indicator (for now, without interactive menu)
  - `battery`: A battery module with dynamic icons and colors
- - `backlight`: A screen brightness indicator
- - `ram`: RAM usage
+ - `backlight`: A screen brightness indicator (interactable)
+ - `volume`: A Volume level indicator (interactable)
+ - `ram`: RAM usage (format changable on click)
  - `cpu`: CPU usage
  - `disk`: Disk usage (format changable on click)
  - `locale`: Current locale
- - `hyprws`: A dynamic workspace switcher (with mouse events) (change workspace on click)
- - `hyprtitle`: A window class & title display
+ - `ws`: A dynamic workspace switcher (hyprland/i3/sway) with (with mouse events) (change workspace on click)
+ - `title`: A window class & title display ((hyprland/i3/sway)
  - `space`: A single space
  - `sep`: A full height vertical bar and a space on either side
 
@@ -56,9 +59,8 @@ right:
 ## Roadmap
  - [x] Running
  - [ ] Modules and Services:
-     - [ ] volume (service is done, module remaining)
-     - [ ] wifi
-     - [ ] bluetooth
+     - [ ] wifi (with menu)
+     - [ ] bluetooth (with menu)
      - [ ] tray
      - [ ] workspace and title for more WMs
      - [ ] Suggest more
