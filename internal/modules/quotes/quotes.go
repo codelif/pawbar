@@ -3,6 +3,7 @@ package quotes
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -59,13 +60,18 @@ func (mod *Quotes) Run() (<-chan bool, chan<- modules.Event, error) {
 	}
 	mod.quote = quote
 
+	clickType := vaxis.EventRelease
+	if os.Getenv("XDG_SESSION_TYPE") == "wayland" {
+		clickType = vaxis.EventPress
+	}
+
 	go func() {
 		for {
 			select {
 			case e := <-mod.send:
 				switch ev := e.VaxisEvent.(type) {
 				case vaxis.Mouse:
-					if ev.EventType != vaxis.EventPress && ev.EventType != vaxis.EventRelease {
+					if ev.EventType != clickType {
 						break
 					}
 					btn := config.ButtonName(ev)
@@ -77,7 +83,6 @@ func (mod *Quotes) Run() (<-chan bool, chan<- modules.Event, error) {
 						}
 						mod.quote = quote
 						mod.receive <- true
-
 					}
 					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
 						mod.receive <- true
