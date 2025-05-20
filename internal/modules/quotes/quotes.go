@@ -65,13 +65,10 @@ func (mod *Quotes) Run() (<-chan bool, chan<- modules.Event, error) {
 			case e := <-mod.send:
 				switch ev := e.VaxisEvent.(type) {
 				case vaxis.Mouse:
-					if ev.EventType != vaxis.EventPress {
+					if ev.EventType != vaxis.EventPress && ev.EventType != vaxis.EventRelease {
 						break
 					}
 					btn := config.ButtonName(ev)
-					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
-						mod.receive <- true
-					}
 
 					if btn == "left" {
 						quote, err := mod.pickQuote()
@@ -79,7 +76,11 @@ func (mod *Quotes) Run() (<-chan bool, chan<- modules.Event, error) {
 							continue
 						}
 						mod.quote = quote
+						mod.receive <- true
 
+					}
+					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
+						mod.receive <- true
 					}
 
 				case modules.FocusIn:
