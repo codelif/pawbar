@@ -9,6 +9,7 @@ import (
 	_ "github.com/codelif/pawbar/internal/modules/clock"
 	_ "github.com/codelif/pawbar/internal/modules/cpu"
 	_ "github.com/codelif/pawbar/internal/modules/disk"
+	_ "github.com/codelif/pawbar/internal/modules/idleInhibitor"
 	_ "github.com/codelif/pawbar/internal/modules/locale"
 	_ "github.com/codelif/pawbar/internal/modules/ram"
 	_ "github.com/codelif/pawbar/internal/modules/title"
