@@ -110,6 +110,7 @@ func (mod *IdleModule) Run() (<-chan bool, chan<- modules.Event, error) {
 					if btn == "left" {
 						mod.format.toggle()
 						mod.stateFunc()
+						mod.receive <- true
 					}
 					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
 						mod.receive <- true
