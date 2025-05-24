@@ -8,6 +8,7 @@ import (
 	_ "github.com/codelif/pawbar/internal/modules/battery"
 	_ "github.com/codelif/pawbar/internal/modules/clock"
 	_ "github.com/codelif/pawbar/internal/modules/cpu"
+	_ "github.com/codelif/pawbar/internal/modules/custom"
 	_ "github.com/codelif/pawbar/internal/modules/disk"
 	_ "github.com/codelif/pawbar/internal/modules/locale"
 	_ "github.com/codelif/pawbar/internal/modules/ram"

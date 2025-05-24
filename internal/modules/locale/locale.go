@@ -1,6 +1,7 @@
 package locale
 
 import (
+	"bytes"
 	"os"
 	"strings"
 	"time"
@@ -8,14 +9,7 @@ import (
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
-	"gopkg.in/yaml.v3"
 )
-
-func init() {
-	config.Register("locale", func(n *yaml.Node) (modules.Module, error) {
-		return &LocaleModule{}, nil
-	})
-}
 
 func New() modules.Module {
 	return &LocaleModule{}
@@ -24,6 +18,12 @@ func New() modules.Module {
 type LocaleModule struct {
 	receive chan bool
 	send    chan modules.Event
+
+	opts        Options
+	initialOpts Options
+
+	currentTickerInterval time.Duration
+	ticker                *time.Ticker
 }
 
 func (mod *LocaleModule) Dependencies() []string {
@@ -88,14 +88,40 @@ func (mod *LocaleModule) GetLocale() (string, error) {
 func (mod *LocaleModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	mod.receive = make(chan bool)
 	mod.send = make(chan modules.Event)
+	mod.initialOpts = mod.opts
 
 	go func() {
-		t := time.NewTicker(7 * time.Second)
+		mod.currentTickerInterval = mod.opts.Tick.Go()
+		mod.ticker = time.NewTicker(mod.currentTickerInterval)
+		defer mod.ticker.Stop()
 		for {
 			select {
-			case <-t.C:
+			case <-mod.ticker.C:
 				mod.receive <- true
-			case <-mod.send:
+			case e := <-mod.send:
+				switch ev := e.VaxisEvent.(type) {
+				case vaxis.Mouse:
+					if ev.EventType != vaxis.EventPress {
+						break
+					}
+					btn := config.ButtonName(ev)
+					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
+						mod.receive <- true
+					}
+					mod.ensureTickInterval()
+
+				case modules.FocusIn:
+					if mod.opts.OnClick.HoverIn(&mod.opts) {
+						mod.receive <- true
+					}
+					mod.ensureTickInterval()
+
+				case modules.FocusOut:
+					if mod.opts.OnClick.HoverOut(&mod.opts) {
+						mod.receive <- true
+					}
+					mod.ensureTickInterval()
+				}
 			}
 		}
 	}()
@@ -103,18 +129,39 @@ func (mod *LocaleModule) Run() (<-chan bool, chan<- modules.Event, error) {
 	return mod.receive, mod.send, nil
 }
 
+func (mod *LocaleModule) ensureTickInterval() {
+	if mod.opts.Tick.Go() != mod.currentTickerInterval {
+		mod.currentTickerInterval = mod.opts.Tick.Go()
+		mod.ticker.Reset(mod.currentTickerInterval)
+	}
+}
+
 func (mod *LocaleModule) Render() []modules.EventCell {
-	rstring, err := mod.GetLocale()
+	locale, err := mod.GetLocale()
 	if err != nil {
 		return nil
 	}
 
-	rch := vaxis.Characters(rstring)
-	r := make([]modules.EventCell, len(rch))
-	for i, ch := range rch {
-		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch}, Mod: mod}
+	style := vaxis.Style{
+		Foreground: mod.opts.Fg.Go(),
+		Background: mod.opts.Bg.Go(),
 	}
 
+	data := struct {
+		Locale string
+	}{
+		Locale: locale,
+	}
+
+	var buf bytes.Buffer
+	_ = mod.opts.Format.Execute(&buf, data)
+
+	rch := vaxis.Characters(buf.String())
+	r := make([]modules.EventCell, len(rch))
+
+	for i, ch := range rch {
+		r[i] = modules.EventCell{C: vaxis.Cell{Character: ch, Style: style}, Mod: mod, MouseShape: mod.opts.Cursor.Go()}
+	}
 	return r
 }
 
