@@ -31,11 +31,21 @@ func (mod *MprisModule) Channels() (<-chan bool, chan<- modules.Event) { return 
 
 type Format int
 
-func (f *Format) toggle() { *f ^= 1 }
+func (f *Format) toggle() {
+	switch *f {
+	case FormatPlay:
+		*f = FormatPause
+	case FormatPause:
+		*f = FormatPlay
+	default:
+		*f = FormatNone
+	}
+}
 
 const (
-	FormatPause Format = iota
+	FormatNone Format = iota
 	FormatPlay
+	FormatPause
 )
 
 func (mod *MprisModule) Connection() error {
@@ -78,6 +88,8 @@ func (mod *MprisModule) CatchEvent(signal *dbus.Signal) error {
 					mod.format = FormatPlay
 				} else if status == "Paused" {
 					mod.format = FormatPause
+				} else if status == "Stopped" {
+					mod.format = FormatNone
 				}
 			}
 
