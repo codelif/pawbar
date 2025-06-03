@@ -66,6 +66,90 @@ func (mod *MprisModule) Connection() error {
 	return nil
 }
 
+func (mod *MprisModule) selectActivePlayer() (string, error) {
+	var busNames []string
+	if err := mod.conn.BusObject().Call("org.freedesktop.DBus.ListNames", 0).Store(&busNames); err != nil {
+		return "", fmt.Errorf("failed to list bus names: %w", err)
+	}
+
+	var candidate string
+	for _, name := range busNames {
+		if !strings.HasPrefix(name, "org.mpris.MediaPlayer2.") {
+			continue
+		}
+
+		obj := mod.conn.Object(name, dbus.ObjectPath("/org/mpris/MediaPlayer2"))
+		variant, err := obj.GetProperty("org.mpris.MediaPlayer2.Player.PlaybackStatus")
+		if err != nil {
+			if candidate == "" {
+				candidate = name
+			}
+			continue
+		}
+		if status, ok := variant.Value().(string); ok && (status == "Playing" || status == "Paused") {
+			return name, nil
+		}
+		if candidate == "" {
+			candidate = name
+		}
+	}
+
+	if candidate == "" {
+		return "", fmt.Errorf("no MPRIS player found on the session bus")
+	}
+	return candidate, nil
+}
+
+func (mod *MprisModule) setPlaybackFormat(status string) {
+	switch status {
+	case "Playing":
+		mod.format = FormatPlay
+	case "Paused":
+		mod.format = FormatPause
+	case "Stopped":
+		mod.format = FormatNone
+	}
+}
+
+func (mod *MprisModule) applyMetadata(metaMap map[string]dbus.Variant) {
+	if titleVar, found := metaMap["xesam:title"]; found {
+		if title, ok := titleVar.Value().(string); ok {
+			mod.title = title
+		}
+	}
+
+	if artistVar, found := metaMap["xesam:artist"]; found {
+		if artists, ok := artistVar.Value().([]string); ok && len(artists) > 0 {
+			mod.artists = artists
+		}
+	}
+}
+
+func (mod *MprisModule) InitState() error {
+	player, err := mod.selectActivePlayer()
+	if err != nil {
+		return err
+	}
+
+	obj := mod.conn.Object(player, dbus.ObjectPath("/org/mpris/MediaPlayer2"))
+
+	variant, err := obj.GetProperty("org.mpris.MediaPlayer2.Player.PlaybackStatus")
+	if err == nil {
+		if status, ok := variant.Value().(string); ok {
+			mod.setPlaybackFormat(status)
+		}
+	}
+
+	variant, err = obj.GetProperty("org.mpris.MediaPlayer2.Player.Metadata")
+	if err == nil {
+		if metaMap, ok := variant.Value().(map[string]dbus.Variant); ok {
+			mod.applyMetadata(metaMap)
+		}
+	}
+
+	return nil
+}
+
 func (mod *MprisModule) CatchEvent(signal *dbus.Signal) error {
 	if len(signal.Body) < 3 {
 		return fmt.Errorf("Distorted Signals")
@@ -84,13 +168,7 @@ func (mod *MprisModule) CatchEvent(signal *dbus.Signal) error {
 		switch prop {
 		case "PlaybackStatus":
 			if status, ok := val.Value().(string); ok {
-				if status == "Playing" {
-					mod.format = FormatPlay
-				} else if status == "Paused" {
-					mod.format = FormatPause
-				} else if status == "Stopped" {
-					mod.format = FormatNone
-				}
+				mod.setPlaybackFormat(status)
 			}
 
 		case "Metadata":
@@ -98,55 +176,16 @@ func (mod *MprisModule) CatchEvent(signal *dbus.Signal) error {
 			if !ok {
 				break
 			}
-
-			if titleVar, found := metaMap["xesam:title"]; found {
-				if title, ok := titleVar.Value().(string); ok {
-					mod.title = title
-				}
-			}
-
-			if artistVar, found := metaMap["xesam:artist"]; found {
-				if artists, ok := artistVar.Value().([]string); ok {
-					if len(artists) > 0 {
-						mod.artists = artists
-					}
-				}
-			}
+			mod.applyMetadata(metaMap)
 		}
 	}
 	return nil
 }
 
 func (mod *MprisModule) SendEvent() error {
-	var busNames []string
-	err := mod.conn.BusObject().Call("org.freedesktop.DBus.ListNames", 0).Store(&busNames)
+	activePlayer, err := mod.selectActivePlayer()
 	if err != nil {
-		return fmt.Errorf("failed to list bus names: %w", err)
-	}
-
-	var activePlayer string
-	for _, name := range busNames {
-		if strings.HasPrefix(name, "org.mpris.MediaPlayer2.") {
-			obj := mod.conn.Object(name, dbus.ObjectPath("/org/mpris/MediaPlayer2"))
-
-			variant, err := obj.GetProperty("org.mpris.MediaPlayer2.Player.PlaybackStatus")
-			if err == nil {
-				status, ok := variant.Value().(string)
-				if ok && (status == "Playing" || status == "Paused") {
-					activePlayer = name
-					break
-				}
-			} else {
-				// fallback to this player if no better match is found later
-				if activePlayer == "" {
-					activePlayer = name
-				}
-			}
-		}
-	}
-
-	if activePlayer == "" {
-		return fmt.Errorf("no MPRIS player found on the session bus")
+		return err
 	}
 
 	obj := mod.conn.Object(activePlayer, dbus.ObjectPath("/org/mpris/MediaPlayer2"))
@@ -164,6 +203,7 @@ func (mod *MprisModule) Run() (<-chan bool, chan<- modules.Event, error) {
 		return nil, nil, err
 	}
 
+	mod.InitState()
 	mod.send = make(chan modules.Event)
 	mod.receive = make(chan bool)
 
