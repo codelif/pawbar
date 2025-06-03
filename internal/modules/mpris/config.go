@@ -43,16 +43,16 @@ type MouseOptions struct {
 }
 
 func defaultOptions() Options {
-	f0, _ := config.NewTemplate("󰎆")
-	f1, _ := config.NewTemplate("{{.Icon}} {{.Artists}} {{.Title}}")
+	f0, _ := config.NewTemplate("󰫔")
+	f1, _ := config.NewTemplate("{{.Icon}} {{.Artists}}  {{.Title}}")
 	return Options{
 		Format: config.Format{Template: f0},
 		Pause: PauseOptions{
-			Icon:   '󰏥',
+			Icon:   '',
 			Format: config.Format{Template: f1},
 		},
 		Play: PlayOptions{
-			Icon:   '',
+			Icon:   '',
 			Format: config.Format{Template: f1},
 		},
 		OnClick: config.MouseActions[MouseOptions]{},
