@@ -29,7 +29,6 @@ type Options struct {
 	Cursor  config.Cursor                     `yaml:"cursor"`
 	Tick    config.Duration                   `yaml:"tick"`
 	Pause   PauseOptions                      `yaml:"pause"`
-	Icon    rune                              `yaml:"icon"`
 	Play    PlayOptions                       `yaml:"play"`
 	Format  config.Format                     `yaml:"format"`
 	OnClick config.MouseActions[MouseOptions] `yaml:"onmouse"`
@@ -44,10 +43,9 @@ type MouseOptions struct {
 }
 
 func defaultOptions() Options {
-	f0, _ := config.NewTemplate("{{.Icon}}")
-	f1, _ := config.NewTemplate("{{.Icon}} {{.Artist}} {{.Title}}")
+	f0, _ := config.NewTemplate("󰎆")
+	f1, _ := config.NewTemplate("{{.Icon}} {{.Artists}} {{.Title}}")
 	return Options{
-		Icon:   '󰎆',
 		Format: config.Format{Template: f0},
 		Pause: PauseOptions{
 			Icon:   '󰏥',
@@ -57,13 +55,6 @@ func defaultOptions() Options {
 			Icon:   '',
 			Format: config.Format{Template: f1},
 		},
-
-		OnClick: config.MouseActions[MouseOptions]{
-			Actions: map[string]*config.MouseAction[MouseOptions]{
-				"left": {
-					Configs: []MouseOptions{{Format: &config.Format{Template: f1}}},
-				},
-			},
-		},
+		OnClick: config.MouseActions[MouseOptions]{},
 	}
 }

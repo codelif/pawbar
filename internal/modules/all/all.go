@@ -10,6 +10,7 @@ import (
 	_ "github.com/codelif/pawbar/internal/modules/cpu"
 	_ "github.com/codelif/pawbar/internal/modules/disk"
 	_ "github.com/codelif/pawbar/internal/modules/locale"
+	_ "github.com/codelif/pawbar/internal/modules/mpris"
 	_ "github.com/codelif/pawbar/internal/modules/ram"
 	_ "github.com/codelif/pawbar/internal/modules/title"
 	_ "github.com/codelif/pawbar/internal/modules/volume"
