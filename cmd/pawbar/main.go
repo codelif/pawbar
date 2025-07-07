@@ -20,11 +20,6 @@ func init() {
 }
 
 func main() {
-
-	// _, Fd := utils.InitLogger()
-	// defer Fd.Close()
-
-	// panel := katnip.TopPanel("pawbar", 1)
 	panel := katnip.NewPanel(
 		"pawbar",
 		katnip.Config{
@@ -41,11 +36,6 @@ func main() {
 
 	go io.Copy(os.Stdout, panel.Reader())
 	panel.Run()
-
-	if panel.Cmd.ProcessState != nil {
-		os.Exit(panel.Cmd.ProcessState.ExitCode())
-	}
-	os.Exit(1)
 }
 
 func mainLoop(kitty *katnip.Kitty, writer io.Writer) int {
