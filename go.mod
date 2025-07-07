@@ -1,6 +1,6 @@
 module github.com/codelif/pawbar
 
-go 1.22.3
+go 1.24.4
 
 require (
 	dario.cat/mergo v1.0.1
@@ -14,6 +14,8 @@ require (
 )
 
 require (
+	github.com/codelif/katnip v0.0.0-20250707003201-c86b297f9876 // indirect
+	github.com/codelif/shmstream v0.0.0-20250615210949-892549fab185 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/jkeiser/iter v0.0.0-20200628201005-c8aa0ae784d1 // indirect
@@ -28,5 +30,5 @@ require (
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/image v0.9.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
 )

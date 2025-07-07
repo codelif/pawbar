@@ -1,9 +1,12 @@
 package main
 
 import (
+	"io"
+	"log"
 	"os"
 
 	"git.sr.ht/~rockorager/vaxis"
+	"github.com/codelif/katnip"
 	"github.com/codelif/pawbar/internal/config"
 	"github.com/codelif/pawbar/internal/modules"
 	_ "github.com/codelif/pawbar/internal/modules/all"
@@ -11,17 +14,43 @@ import (
 	"github.com/codelif/pawbar/internal/utils"
 )
 
-func main() {
-	_, Fd := utils.InitLogger()
-	defer Fd.Close()
-
-	configFile := os.Getenv("HOME") + "/.config/pawbar/pawbar.yaml"
-	exitCode := mainLoop(configFile)
-
-	os.Exit(exitCode)
+func init() {
+	katnip.RegisterFunc("pawbar", mainLoop)
 }
 
-func mainLoop(cfgPath string) int {
+func main() {
+
+	// _, Fd := utils.InitLogger()
+	// defer Fd.Close()
+
+	// panel := katnip.TopPanel("pawbar", 1)
+	panel := katnip.NewPanel(
+		"pawbar",
+		katnip.Config{
+			Size:        katnip.Vector{X: 0, Y: 1},
+			FocusPolicy: katnip.FocusOnDemand,
+			Overrides: []string{
+				"font_size=12",
+				"cursor_trail=0",
+				"paste_actions=replace-dangerous-control-codes",
+			},
+		},
+	)
+
+	go io.Copy(os.Stdout, panel.Reader())
+	panel.Run()
+
+	if panel.Cmd.ProcessState != nil {
+		os.Exit(panel.Cmd.ProcessState.ExitCode())
+	}
+	os.Exit(1)
+}
+
+func mainLoop(kitty *katnip.Kitty, writer io.Writer) int {
+	cfgPath := os.Getenv("HOME") + "/.config/pawbar/pawbar.yaml"
+
+	utils.Logger = log.New(writer, "", log.LstdFlags)
+
 	vx, err := vaxis.New(vaxis.Options{EnableSGRPixels: true})
 	if err != nil {
 		utils.Logger.Println("There was an error initializing Vaxis.")
