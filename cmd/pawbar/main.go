@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/katnip"
@@ -34,6 +35,7 @@ func main() {
 				"cursor_trail=0",
 				"paste_actions=replace-dangerous-control-codes",
 			},
+      ConfigFile: path.Join(os.Getenv("HOME"), ".config", "pawbar", "kitty.conf"),
 		},
 	)
 
