@@ -14,8 +14,8 @@ require (
 )
 
 require (
-	github.com/codelif/katnip v0.0.0-20250707003201-c86b297f9876 // indirect
-	github.com/codelif/shmstream v0.0.0-20250615210949-892549fab185 // indirect
+	github.com/codelif/katnip v0.0.0-20250708155259-8d9b83b0f4be // indirect
+	github.com/codelif/shmstream v0.0.0-20250707213419-52bb1dd21b7b // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/jkeiser/iter v0.0.0-20200628201005-c8aa0ae784d1 // indirect

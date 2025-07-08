@@ -38,10 +38,10 @@ func main() {
 	panel.Run()
 }
 
-func mainLoop(kitty *katnip.Kitty, writer io.Writer) int {
+func mainLoop(kitty *katnip.Kitty, rw io.ReadWriter) int {
 	cfgPath := os.Getenv("HOME") + "/.config/pawbar/pawbar.yaml"
 
-	utils.Logger = log.New(writer, "", log.LstdFlags)
+	utils.Logger = log.New(rw, "", log.LstdFlags)
 
 	vx, err := vaxis.New(vaxis.Options{EnableSGRPixels: true})
 	if err != nil {

@@ -16,8 +16,12 @@ github.com/codelif/katnip v0.0.0-20250707002922-222993143507 h1:5Z1/iMuGFMQmqhpY
 github.com/codelif/katnip v0.0.0-20250707002922-222993143507/go.mod h1:gGlY95R4/lgeBgFYXk/c0frVOwrwqdYdpYpD+TVIiSM=
 github.com/codelif/katnip v0.0.0-20250707003201-c86b297f9876 h1:wP9x7QZpD9XjF3W2nmj/iJNtJFvk3EJTFeozMM08CVE=
 github.com/codelif/katnip v0.0.0-20250707003201-c86b297f9876/go.mod h1:gGlY95R4/lgeBgFYXk/c0frVOwrwqdYdpYpD+TVIiSM=
+github.com/codelif/katnip v0.0.0-20250708155259-8d9b83b0f4be h1:X0qRfZvL7IbryPme4KSruTGgPegoXtmnqA8CpuI2Clk=
+github.com/codelif/katnip v0.0.0-20250708155259-8d9b83b0f4be/go.mod h1:PlcijSx8JdNS2PozDT9kNiBo+3r26jngVTzxioPyDsI=
 github.com/codelif/shmstream v0.0.0-20250615210949-892549fab185 h1:/2c6xjNq5Kk+JAHada0ZSbet74EHeeeVDlSHFeTL08Y=
 github.com/codelif/shmstream v0.0.0-20250615210949-892549fab185/go.mod h1:egLjfn0XvTi8zbz4O2E3EPFMfpQoxh0KK6vbcL5BBgw=
+github.com/codelif/shmstream v0.0.0-20250707213419-52bb1dd21b7b h1:eB+mqYl5zhNd2URmfgph1qLXm8GoQr8DZZZARl0ZPgs=
+github.com/codelif/shmstream v0.0.0-20250707213419-52bb1dd21b7b/go.mod h1:egLjfn0XvTi8zbz4O2E3EPFMfpQoxh0KK6vbcL5BBgw=
 github.com/containerd/console v1.0.3 h1:lIr7SlA5PxZyMV30bDW0MGbiOPXwc63yRuCP0ARubLw=
 github.com/containerd/console v1.0.3/go.mod h1:7LqA/THxQ86k76b8c/EMSiaJ3h1eZkMkXar0TQ1gf3U=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
