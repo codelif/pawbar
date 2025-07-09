@@ -4,7 +4,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"path"
 
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/katnip"
@@ -25,12 +24,23 @@ func main() {
 		katnip.Config{
 			Size:        katnip.Vector{X: 0, Y: 1},
 			FocusPolicy: katnip.FocusOnDemand,
-			Overrides: []string{
+			KittyOverrides: []string{
 				"font_size=12",
 				"cursor_trail=0",
 				"paste_actions=replace-dangerous-control-codes",
+				"map kitty_mod+equal  no_op",
+				"map kitty_mod+plus   no_op",
+				"map kitty_mod+kp_add no_op",
+				"map cmd+plus         no_op",
+				"map cmd+equal        no_op",
+				"map shift+cmd+equal  no_op",
+				"map kitty_mod+minus       no_op",
+				"map kitty_mod+kp_subtract no_op",
+				"map cmd+minus             no_op",
+				"map shift+cmd+minus       no_op",
+				"map kitty_mod+backspace no_op",
+				"map cmd+0               no_op",
 			},
-      ConfigFile: path.Join(os.Getenv("HOME"), ".config", "pawbar", "kitty.conf"),
 		},
 	)
 
