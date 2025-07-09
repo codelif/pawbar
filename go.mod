@@ -14,7 +14,7 @@ require (
 )
 
 require (
-	github.com/codelif/katnip v0.0.0-20250708155259-8d9b83b0f4be // indirect
+	github.com/codelif/katnip v0.0.0-20250709135727-124e0b6cf0be // indirect
 	github.com/codelif/shmstream v0.0.0-20250707213419-52bb1dd21b7b // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/fxamacker/cbor/v2 v2.8.0 // indirect

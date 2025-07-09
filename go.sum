@@ -18,6 +18,10 @@ github.com/codelif/katnip v0.0.0-20250707003201-c86b297f9876 h1:wP9x7QZpD9XjF3W2
 github.com/codelif/katnip v0.0.0-20250707003201-c86b297f9876/go.mod h1:gGlY95R4/lgeBgFYXk/c0frVOwrwqdYdpYpD+TVIiSM=
 github.com/codelif/katnip v0.0.0-20250708155259-8d9b83b0f4be h1:X0qRfZvL7IbryPme4KSruTGgPegoXtmnqA8CpuI2Clk=
 github.com/codelif/katnip v0.0.0-20250708155259-8d9b83b0f4be/go.mod h1:PlcijSx8JdNS2PozDT9kNiBo+3r26jngVTzxioPyDsI=
+github.com/codelif/katnip v0.0.0-20250709131051-87ceed57ce58 h1:u0t437MRV68uE/F6RL9nIHmElV1Ntq3viI+vsdRAt+0=
+github.com/codelif/katnip v0.0.0-20250709131051-87ceed57ce58/go.mod h1:PlcijSx8JdNS2PozDT9kNiBo+3r26jngVTzxioPyDsI=
+github.com/codelif/katnip v0.0.0-20250709135727-124e0b6cf0be h1:MLCJQtZlKcUZcsuGy3w0yUxCKXfwB8ASkdK+XvluNPk=
+github.com/codelif/katnip v0.0.0-20250709135727-124e0b6cf0be/go.mod h1:PlcijSx8JdNS2PozDT9kNiBo+3r26jngVTzxioPyDsI=
 github.com/codelif/shmstream v0.0.0-20250615210949-892549fab185 h1:/2c6xjNq5Kk+JAHada0ZSbet74EHeeeVDlSHFeTL08Y=
 github.com/codelif/shmstream v0.0.0-20250615210949-892549fab185/go.mod h1:egLjfn0XvTi8zbz4O2E3EPFMfpQoxh0KK6vbcL5BBgw=
 github.com/codelif/shmstream v0.0.0-20250707213419-52bb1dd21b7b h1:eB+mqYl5zhNd2URmfgph1qLXm8GoQr8DZZZARl0ZPgs=
