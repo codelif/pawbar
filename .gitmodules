@@ -1,3 +1,5 @@
 [submodule "vaxis"]
 	path = vaxis
-	url = https://git.sr.ht/~rockorager/vaxis
+	url = git@git.sr.ht:~codelif/vaxis
+	branch = main
+	update = rebase
