@@ -1,6 +1,8 @@
 module github.com/codelif/pawbar
 
-go 1.24.4
+go 1.24.5
+
+replace git.sr.ht/~rockorager/vaxis => ./vaxis
 
 require (
 	dario.cat/mergo v1.0.1
@@ -16,6 +18,7 @@ require (
 require (
 	github.com/codelif/katnip v0.0.0-20250709135727-124e0b6cf0be // indirect
 	github.com/codelif/shmstream v0.0.0-20250707213419-52bb1dd21b7b // indirect
+	github.com/codelif/xdgicons v0.1.1 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
@@ -27,10 +30,14 @@ require (
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/soniakeys/quant v1.0.0 // indirect
+	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
+	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/image v0.9.0 // indirect
+	golang.org/x/net v0.6.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/text v0.11.0 // indirect
 )
