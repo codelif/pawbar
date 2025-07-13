@@ -3,9 +3,10 @@ package battery
 import (
 	"errors"
 	"fmt"
+	"reflect"
+
 	"github.com/codelif/pawbar/internal/utils"
 	"github.com/godbus/dbus/v5"
-	"reflect"
 )
 
 const (
@@ -149,7 +150,6 @@ func GetDisplayDevice(conn *dbus.Conn) (UPowerDevice, error) {
 
 	var props map[string]dbus.Variant
 	err := c.Store(&props)
-
 	if err != nil {
 		utils.Logger.Printf("battery: error calling GetAll %v", err)
 		return device, err

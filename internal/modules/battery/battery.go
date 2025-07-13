@@ -29,7 +29,6 @@ func (mod *Battery) Dependencies() []string {
 }
 
 func (mod *Battery) Run() (<-chan bool, chan<- modules.Event, error) {
-
 	mod.send = make(chan modules.Event)
 	mod.receive = make(chan bool)
 	mod.initialOpts = mod.opts
@@ -75,6 +74,7 @@ func (mod *Battery) Run() (<-chan bool, chan<- modules.Event, error) {
 
 	return mod.receive, mod.send, nil
 }
+
 func pickThreshold(p int, th []ThresholdOptions) *ThresholdOptions {
 	for _, t := range th {
 		matchUp := t.Direction.IsUp() && p >= t.Percent.Go()
@@ -85,6 +85,7 @@ func pickThreshold(p int, th []ThresholdOptions) *ThresholdOptions {
 	}
 	return nil
 }
+
 func (mod *Battery) Render() []modules.EventCell {
 	percent := int(mod.device.Percentage)
 	style := vaxis.Style{}
@@ -117,9 +118,9 @@ func (mod *Battery) Render() []modules.EventCell {
 		style.Background = mod.opts.Charged.Bg.Go()
 		icon = mod.opts.Charged.Icon
 	}
-  
-  // TODO: make config items implement IsZeroer
-  //       to save my soul
+
+	// TODO: make config items implement IsZeroer
+	//       to save my soul
 	if mod.opts.Fg.Go() != vaxis.Color(0) {
 		style.Foreground = mod.opts.Fg.Go()
 	}
