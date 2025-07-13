@@ -24,6 +24,7 @@ func main() {
 		katnip.Config{
 			Size:        katnip.Vector{X: 0, Y: 1},
 			FocusPolicy: katnip.FocusOnDemand,
+			KittyCmd:    "kittyn",
 			KittyOverrides: []string{
 				"font_size=12",
 				"cursor_trail=0",
@@ -89,7 +90,7 @@ func mainLoop(kitty *katnip.Kitty, rw io.ReadWriter) int {
 
 	w, h := win.Size()
 	pw, ph := 0, 0
-	mouseX, mouseY := 0, 0
+	mouseX, _ := 0, 0
 	utils.Logger.Printf("Panel Size (cells): %d, %d\n", w, h)
 	mouseShape := vaxis.MouseShapeDefault
 
@@ -132,9 +133,9 @@ func mainLoop(kitty *katnip.Kitty, rw io.ReadWriter) int {
 					prevHoverMod = nil
 				}
 			case vaxis.Mouse:
-				mouseX, mouseY = ev.Col, ev.Row
+				mouseX, _ = ev.Col, ev.Row
 
-				if mouseY != 0 {
+				if ev.EventType == vaxis.EventLeave {
 					vx.PostEvent(vaxis.FocusOut{})
 					continue
 				}
