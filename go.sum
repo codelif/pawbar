@@ -4,6 +4,8 @@ github.com/Wifx/gonetworkmanager/v3 v3.2.0 h1:qYBNHTSCRg+cwXRFlAYrlAGyPid9MPy9vd
 github.com/Wifx/gonetworkmanager/v3 v3.2.0/go.mod h1:JPAftRDTjp5o37GNOYytCzerFU8ZjudV/jC/g41kvHE=
 github.com/codelif/katnip v0.0.0-20250709135727-124e0b6cf0be h1:MLCJQtZlKcUZcsuGy3w0yUxCKXfwB8ASkdK+XvluNPk=
 github.com/codelif/katnip v0.0.0-20250709135727-124e0b6cf0be/go.mod h1:PlcijSx8JdNS2PozDT9kNiBo+3r26jngVTzxioPyDsI=
+github.com/codelif/katnip v0.0.0-20250717050314-424507f1e469 h1:dGlL/mfKWGi5r/6+V4qwL3nrUKhj6dt8QSLVvSwdKlM=
+github.com/codelif/katnip v0.0.0-20250717050314-424507f1e469/go.mod h1:PlcijSx8JdNS2PozDT9kNiBo+3r26jngVTzxioPyDsI=
 github.com/codelif/shmstream v0.0.0-20250707213419-52bb1dd21b7b h1:eB+mqYl5zhNd2URmfgph1qLXm8GoQr8DZZZARl0ZPgs=
 github.com/codelif/shmstream v0.0.0-20250707213419-52bb1dd21b7b/go.mod h1:egLjfn0XvTi8zbz4O2E3EPFMfpQoxh0KK6vbcL5BBgw=
 github.com/containerd/console v1.0.3 h1:lIr7SlA5PxZyMV30bDW0MGbiOPXwc63yRuCP0ARubLw=
