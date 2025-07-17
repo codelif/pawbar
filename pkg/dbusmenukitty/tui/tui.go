@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
 	"git.sr.ht/~rockorager/vaxis/log"
@@ -61,6 +62,8 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	mousePressed := false
 	screenEvents := vx.Events()
 	var menuItems []menu.Item
+	var hoverTimer *time.Timer
+	var hoverItemId int32 = 0
 
 	for {
 		select {
@@ -92,6 +95,11 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 						lastMouseY = -1
 					}
 					mouseY = -1
+
+					if hoverTimer != nil {
+						hoverTimer.Stop()
+						hoverTimer = nil
+					}
 				case vaxis.EventMotion:
 					mousePixelX, mousePixelY = ev.XPixel, ev.YPixel
 					if mouseY == ev.Row {
@@ -99,17 +107,70 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 					}
 					mouseY = ev.Row
 
+					// Cancel any pending hover timer when moving to different item
+					if hoverTimer != nil {
+						hoverTimer.Stop()
+						hoverTimer = nil
+					}
+
 					// Send hover event if row changed and is valid
 					if mouseY >= 0 && mouseY < len(menuItems) && menuItems[mouseY].Type != menu.ItemSeparator {
 						if lastMouseY != mouseY {
+							currentItem := menuItems[mouseY]
+
+							// Send cancellation for previous submenu if moving to different item
+							if lastMouseY != -1 && lastMouseY != mouseY {
+								msg := menu.Message{
+									Type: menu.MsgSubmenuCancelRequested,
+									Payload: menu.MessagePayload{
+										ItemId: hoverItemId,
+									},
+								}
+								enc.Encode(msg)
+							}
+
+							// Send hover event
 							msg := menu.Message{
 								Type: menu.MsgItemHovered,
 								Payload: menu.MessagePayload{
-									ItemId: menuItems[mouseY].Id,
+									ItemId: currentItem.Id,
 								},
 							}
 							enc.Encode(msg)
 							lastMouseY = mouseY
+
+							// Start hover timer for submenu items
+							if currentItem.HasChildren && currentItem.Enabled {
+								hoverItemId = currentItem.Id
+								hoverTimer = time.AfterFunc(500*time.Millisecond, func() {
+									msg := menu.Message{
+										Type: menu.MsgSubmenuRequested,
+										Payload: menu.MessagePayload{
+											ItemId: currentItem.Id,
+											PixelX: mousePixelX,
+											PixelY: mousePixelY,
+										},
+									}
+									enc.Encode(msg)
+									hoverTimer = nil
+								})
+							}
+						}
+					} else {
+						// Hovering over separator or invalid area - cancel submenu
+						if hoverTimer != nil {
+							hoverTimer.Stop()
+							hoverTimer = nil
+						}
+						if hoverItemId != 0 {
+							msg := menu.Message{
+								Type: menu.MsgSubmenuCancelRequested,
+								Payload: menu.MessagePayload{
+									ItemId: hoverItemId,
+								},
+							}
+							enc.Encode(msg)
+							hoverItemId = 0
 						}
 					}
 				case vaxis.EventPress:
@@ -127,27 +188,14 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 					if mouseY >= 0 && mouseY < len(menuItems) && menuItems[mouseY].Type != menu.ItemSeparator && menuItems[mouseY].Enabled {
 						item := menuItems[mouseY]
 
-						if item.HasChildren {
-							// Send submenu request
-							msg := menu.Message{
-								Type: menu.MsgSubmenuRequested,
-								Payload: menu.MessagePayload{
-									ItemId: item.Id,
-									PixelX: mousePixelX,
-									PixelY: mousePixelY,
-								},
-							}
-							enc.Encode(msg)
-						} else {
-							// Send click event
-							msg := menu.Message{
-								Type: menu.MsgItemClicked,
-								Payload: menu.MessagePayload{
-									ItemId: item.Id,
-								},
-							}
-							enc.Encode(msg)
+						// Send click event for both regular items and items with children
+						msg := menu.Message{
+							Type: menu.MsgItemClicked,
+							Payload: menu.MessagePayload{
+								ItemId: item.Id,
+							},
 						}
+						enc.Encode(msg)
 					}
 				default:
 					continue
@@ -167,25 +215,13 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 						if mouseY >= 0 && mouseY < len(menuItems) && menuItems[mouseY].Type != menu.ItemSeparator && menuItems[mouseY].Enabled {
 							item := menuItems[mouseY]
 
-							if item.HasChildren {
-								msg := menu.Message{
-									Type: menu.MsgSubmenuRequested,
-									Payload: menu.MessagePayload{
-										ItemId: item.Id,
-										PixelX: mousePixelX,
-										PixelY: mousePixelY,
-									},
-								}
-								enc.Encode(msg)
-							} else {
-								msg := menu.Message{
-									Type: menu.MsgItemClicked,
-									Payload: menu.MessagePayload{
-										ItemId: item.Id,
-									},
-								}
-								enc.Encode(msg)
+							msg := menu.Message{
+								Type: menu.MsgItemClicked,
+								Payload: menu.MessagePayload{
+									ItemId: item.Id,
+								},
 							}
+							enc.Encode(msg)
 						}
 					case vaxis.KeyUp:
 						if mouseY > 0 {
@@ -196,36 +232,102 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 							drawFast(win, menuItems, mouseY, mousePressed)
 							vx.Render()
 
+							// Send hover event
 							if mouseY >= 0 && mouseY < len(menuItems) {
+								// Cancel previous hover timer
+								if hoverTimer != nil {
+									hoverTimer.Stop()
+									hoverTimer = nil
+								}
+
+								currentItem := menuItems[mouseY]
 								msg := menu.Message{
 									Type: menu.MsgItemHovered,
 									Payload: menu.MessagePayload{
-										ItemId: menuItems[mouseY].Id,
+										ItemId: currentItem.Id,
 									},
 								}
 								enc.Encode(msg)
 								lastMouseY = mouseY
+
+								// Start hover timer for submenu items
+								if currentItem.HasChildren && currentItem.Enabled {
+									hoverItemId = currentItem.Id
+									hoverTimer = time.AfterFunc(500*time.Millisecond, func() {
+										msg := menu.Message{
+											Type: menu.MsgSubmenuRequested,
+											Payload: menu.MessagePayload{
+												ItemId: currentItem.Id,
+												PixelX: mousePixelX,
+												PixelY: mousePixelY,
+											},
+										}
+										enc.Encode(msg)
+										hoverTimer = nil
+									})
+								}
 							}
 						}
 					case vaxis.KeyDown:
+						// Navigate down
 						if mouseY < len(menuItems)-1 {
 							mouseY++
+							// Skip separators
 							for mouseY < len(menuItems)-1 && menuItems[mouseY].Type == menu.ItemSeparator {
 								mouseY++
 							}
 							drawFast(win, menuItems, mouseY, mousePressed)
 							vx.Render()
 
+							// Send hover event
 							if mouseY >= 0 && mouseY < len(menuItems) {
+								// Cancel previous hover timer
+								if hoverTimer != nil {
+									hoverTimer.Stop()
+									hoverTimer = nil
+								}
+
+								currentItem := menuItems[mouseY]
 								msg := menu.Message{
 									Type: menu.MsgItemHovered,
 									Payload: menu.MessagePayload{
-										ItemId: menuItems[mouseY].Id,
+										ItemId: currentItem.Id,
 									},
 								}
 								enc.Encode(msg)
 								lastMouseY = mouseY
+
+								// Start hover timer for submenu items
+								if currentItem.HasChildren && currentItem.Enabled {
+									hoverItemId = currentItem.Id
+									hoverTimer = time.AfterFunc(500*time.Millisecond, func() {
+										msg := menu.Message{
+											Type: menu.MsgSubmenuRequested,
+											Payload: menu.MessagePayload{
+												ItemId: currentItem.Id,
+												PixelX: mousePixelX,
+												PixelY: mousePixelY,
+											},
+										}
+										enc.Encode(msg)
+										hoverTimer = nil
+									})
+								}
 							}
+						}
+					case vaxis.KeyRight:
+						// Open submenu if current item has children
+						if mouseY >= 0 && mouseY < len(menuItems) && menuItems[mouseY].HasChildren && menuItems[mouseY].Enabled {
+							item := menuItems[mouseY]
+							msg := menu.Message{
+								Type: menu.MsgSubmenuRequested,
+								Payload: menu.MessagePayload{
+									ItemId: item.Id,
+									PixelX: mousePixelX,
+									PixelY: mousePixelY,
+								},
+							}
+							enc.Encode(msg)
 						}
 					}
 				}
@@ -243,6 +345,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 				vx.Render()
 
 				if w != maxHorizontalLength || h != maxVerticalLength {
+					log.Info("i am here but I shouldn't be")
 					k.Resize(maxHorizontalLength, maxVerticalLength)
 					continue
 				}
