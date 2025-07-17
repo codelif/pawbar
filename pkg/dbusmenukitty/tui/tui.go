@@ -13,9 +13,9 @@ import (
 
 	"git.sr.ht/~rockorager/vaxis"
 	"git.sr.ht/~rockorager/vaxis/log"
+	"github.com/codelif/gorsvg"
 	"github.com/codelif/katnip"
 	"github.com/codelif/pawbar/pkg/dbusmenukitty/menu"
-	"github.com/codelif/gorsvg"
 	"github.com/codelif/xdgicons"
 	"github.com/codelif/xdgicons/missing"
 	"github.com/fxamacker/cbor/v2"
@@ -31,13 +31,14 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	l.SetOutput(io.Discard)
 
 	log.SetOutput(rw)
-	log.SetLevel(log.LevelTrace)
-	dataEvents := make(chan []menu.Item, 10)
+	log.SetLevel(log.LevelInfo)
+	msgQueue := make(chan menu.Message, 10)
 	go func() {
-		var layout []menu.Item
+		var msg menu.Message
 		for {
-			if err := dec.Decode(&layout); err == nil {
-				dataEvents <- layout
+			if err := dec.Decode(&msg); err == nil {
+
+				msgQueue <- msg
 			}
 		}
 	}()
@@ -47,6 +48,11 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 		return 1
 	}
 
+	defer func() {
+		err := recover()
+		log.Info("ERROR: %v\n", err)
+		vx.Close()
+	}()
 	// query foreground color and store (used for rendering icon SVGs later)
 	c := vx.QueryForeground()
 	rgb := c.Params()
@@ -54,50 +60,118 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 
 	win := vx.Window()
 	w, h := win.Size()
+	mouseY := -1
+	mousePressed := false
 	screenEvents := vx.Events()
-	var j []menu.Item
+	var menuItems []menu.Item
 
 	for {
 		select {
 		case ev := <-screenEvents:
-			switch ev.(type) {
+			switch ev := ev.(type) {
 			case vaxis.Redraw:
 				vx.Render()
 			case vaxis.Resize:
 				win = vx.Window()
 				win.Clear()
-				prevw, prevh := w, h
 				w, h = win.Size()
-				if prevw != w || prevh != h {
-					log.Debug("dbusmenukitty: %d, %d\n", w, h)
-					draw(win, j)
-					vx.Render()
-				}
-				// fmt.Fprintf(rw, "wow")
-				// fmt.Fprintln(rw, j)
+				log.Debug("dbusmenukitty: %d, %d\n", w, h)
+				draw(win, menuItems, mouseY, mousePressed)
+				vx.Render()
 			case vaxis.Mouse:
-				l.Printf("%#v\n", ev.(vaxis.Mouse))
-			}
-		case ev := <-dataEvents:
-			j = ev
-			maxHorizontalLength := maxLengthLabel(j)
-			maxVerticalLength := len(j)
-			if w != maxHorizontalLength || h != maxVerticalLength {
-				k.Resize(maxHorizontalLength+4, maxVerticalLength)
-				continue
-			}
+				l.Printf("%#v\n", ev)
 
-			win.Clear()
-			draw(win, j)
-			vx.Render()
+				switch ev.EventType {
+				case vaxis.EventLeave:
+					mouseY = -1
+				case vaxis.EventMotion:
+					if mouseY == ev.Row {
+						continue
+					}
+					mouseY = ev.Row
+				case vaxis.EventPress:
+					if ev.Button != vaxis.MouseLeftButton {
+						continue
+					}
+					mousePressed = true
+				case vaxis.EventRelease:
+					if ev.Button != vaxis.MouseLeftButton {
+						continue
+					}
+					mousePressed = false
+				default:
+					continue
+				}
+
+				drawFast(win, menuItems, mouseY, mousePressed) // renders only text
+				vx.Render()
+			}
+		case msg := <-msgQueue:
+			switch msg.Type {
+			case menu.MsgMenuUpdate:
+				menuItems = msg.Payload.Menu
+				maxHorizontalLength := menu.MaxLengthLabel(menuItems) + 4
+				maxVerticalLength := len(menuItems)
+				log.Info("leaf: %d %d actual: %d %d\n", maxHorizontalLength, maxVerticalLength, w, h)
+
+				win.Clear()
+				draw(win, menuItems, mouseY, mousePressed)
+				vx.Render()
+
+				if w != maxHorizontalLength || h != maxVerticalLength {
+					log.Info("i am here but I shouldn't be")
+					k.Resize(maxHorizontalLength, maxVerticalLength)
+					continue
+				}
+
+			}
 		}
 	}
 	return 1
 }
 
-func draw(win vaxis.Window, j []menu.Item) {
+func drawFast(win vaxis.Window, items []menu.Item, mouseY int, mousePressed bool) {
 	arrowHeads := []rune{'◄', '►'}
-	for i, v := range j {
+	w, _ := win.Size()
+
+	for i, v := range items {
+		if v.Type != menu.ItemSeparator {
+			var style vaxis.Style
+			prefix := "  "
+			suffix := prefix
+
+			if i == mouseY {
+				if mousePressed {
+					style.Background = vaxis.ColorBlue
+				} else {
+					style.Background = vaxis.ColorGray
+				}
+			}
+
+			if !v.Enabled {
+				style.Background = 0
+				style.Attribute |= vaxis.AttrDim
+			}
+			if v.HasChildren {
+				prefix = string(arrowHeads[0]) + string(prefix[1])
+			}
+
+			if v.IconData != nil {
+				prefix += "  "
+			} else if v.IconName != "" {
+				prefix += "  "
+			}
+
+			win.Println(i, vaxis.Segment{Text: strings.Repeat(" ", w), Style: style})
+			win.Println(i, vaxis.Segment{Text: prefix + v.Label.Display + suffix, Style: style})
+		}
+	}
+}
+
+func draw(win vaxis.Window, items []menu.Item, mouseY int, mousePressed bool) {
+	w, _ := win.Size()
+	arrowHeads := []rune{'◄', '►'}
+	for i, v := range items {
 		if v.Type == menu.ItemSeparator {
 			w, _ := win.Size()
 			win.Println(i, vaxis.Segment{
@@ -106,63 +180,57 @@ func draw(win vaxis.Window, j []menu.Item) {
 			})
 		} else {
 			var style vaxis.Style
-			var c color.Color
-			c = fgColor
+			defaultColor := fgColor
 			prefix := "  "
 			suffix := prefix
 
+			if i == mouseY {
+				if mousePressed {
+					style.Background = vaxis.ColorBlue
+				} else {
+					style.Background = vaxis.ColorGray
+				}
+			}
+
 			if !v.Enabled {
+				style.Background = 0
 				style.Attribute |= vaxis.AttrDim
-				c = colornames.Gray
+				defaultColor = colornames.Gray
 			}
 			if v.HasChildren {
 				prefix = string(arrowHeads[0]) + string(prefix[1])
 			}
 
-			win.Println(i, vaxis.Segment{Text: prefix + v.Label.Display + suffix, Style: style})
 			if v.IconData != nil {
-				// log.Println("creating image...")
 				img, err := png.Decode(bytes.NewReader(v.IconData))
 				if err != nil {
 					log.Trace("png decode error:", err)
-					img = missing.GenerateMissingIconBroken(32, fgColor)
+					img = missing.GenerateMissingIconBroken(32, defaultColor)
 				}
 
 				kimg := win.Vx.NewKittyGraphic(img)
-				// kimg.SetPadding(3)
 				kimg.Resize(2, 1)
 				iw, ih := kimg.CellSize()
 				log.Trace("kitty image size: %d, %d", iw, ih)
-				kimg.Draw(win.New(0, i, iw, ih))
+				kimg.Draw(win.New(2, i, iw, ih))
+				prefix += "  "
 			} else if v.IconName != "" {
-				img, err := renderIcon(v.Icon, c)
+				img, err := renderIcon(v.Icon, defaultColor)
 				if err != nil {
-					img = missing.GenerateMissingIcon(32, fgColor)
+					img = missing.GenerateMissingIcon(32, defaultColor)
 				}
 
 				kimg := win.Vx.NewKittyGraphic(img)
-				// kimg.SetPadding(5)
 				kimg.Resize(2, 1)
 				iw, ih := kimg.CellSize()
 				log.Trace("kitty image size: %d, %d", iw, ih)
-				kimg.Draw(win.New(0, i, iw, ih))
+				kimg.Draw(win.New(2, i, iw, ih))
+				prefix += "  "
 			}
+			win.Println(i, vaxis.Segment{Text: strings.Repeat(" ", w), Style: style})
+			win.Println(i, vaxis.Segment{Text: prefix + v.Label.Display + suffix, Style: style})
 		}
 	}
-}
-
-func maxLengthLabel(labels []menu.Item) int {
-	if len(labels) == 0 {
-		return 0
-	}
-
-	maxLen := len(labels[0].Label.Display)
-	for _, l := range labels[1:] {
-		if curLen := len(l.Label.Display); curLen > maxLen {
-			maxLen = curLen
-		}
-	}
-	return maxLen
 }
 
 func renderIcon(icon xdgicons.Icon, c color.Color) (img image.Image, err error) {

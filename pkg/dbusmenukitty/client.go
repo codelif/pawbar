@@ -51,7 +51,23 @@ func LaunchMenu(x, y int) {
 	fmt.Printf("Revision: %v\n", revision)
 	printLayout(layout, 0)
 	// fmt.Printf("%+v\n", FlattenLayout(layout))
-	CreatePanel(x, y, FlattenLayout(layout))
+	menuItems := FlattenLayout(layout)
+	maxHorizontalLength, maxVerticalLength := menu.MaxLengthLabel(menuItems)+4, len(menuItems)
+	fmt.Printf("%d, %d\n", maxHorizontalLength, maxVerticalLength)
+	kn := CreatePanel(x, y, maxHorizontalLength, maxVerticalLength)
+
+	enc := cbor.NewEncoder(kn.Writer())
+	msg := menu.Message{
+		Type: menu.MsgMenuUpdate,
+		Payload: menu.MessagePayload{
+			Menu: menuItems,
+		},
+	}
+	enc.Encode(msg)
+
+	io.Copy(os.Stdout, kn.Reader())
+	kn.Wait()
+
 }
 
 func printLayout(l Layout, indent int) {
@@ -130,15 +146,16 @@ func init() {
 	katnip.RegisterFunc("leaf", tui.Leaf)
 }
 
-func CreatePanel(x, y int, MenuItems []menu.Item) *katnip.Panel {
+func CreatePanel(x, y, w, h int) *katnip.Panel {
 	conf := katnip.Config{
-		Position:    katnip.Vector{X: x, Y: y},
-		Size:        katnip.Vector{X: 1, Y: 1},
-		Edge:        katnip.EdgeNone,
-		Layer:       katnip.LayerTop,
-		FocusPolicy: katnip.FocusOnDemand,
+		Position:       katnip.Vector{X: x, Y: y},
+		Size:           katnip.Vector{X: w, Y: h},
+		Edge:           katnip.EdgeNone,
+		Layer:          katnip.LayerTop,
+		FocusPolicy:    katnip.FocusOnDemand,
+		ConfigFile:     "NONE",
 		KittyOverrides: []string{
-			"font_size=16",
+			"font_size=14",
 			"cursor_trail=0",
 			"paste_actions=replace-dangerous-control-codes",
 			"map kitty_mod+equal       no_op",
@@ -158,10 +175,6 @@ func CreatePanel(x, y int, MenuItems []menu.Item) *katnip.Panel {
 
 	kn := katnip.NewPanel("leaf", conf)
 	kn.Start()
-	enc := cbor.NewEncoder(kn.Writer())
-	enc.Encode(MenuItems)
 
-	io.Copy(os.Stdout, kn.Reader())
-	kn.Wait()
 	return kn
 }

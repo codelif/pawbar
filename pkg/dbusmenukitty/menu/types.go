@@ -19,6 +19,22 @@ const (
 	StateIndeterminate int = -1 // can be anything other than 0&1 but set to default value
 )
 
+type MessageType int
+
+const (
+	MsgMenuUpdate MessageType = iota
+	MsgMouseUpdate
+)
+
+type MessagePayload struct {
+	Menu []Item
+}
+
+type Message struct {
+	Type    MessageType
+	Payload MessagePayload
+}
+
 type Label struct {
 	Display     string
 	AccessKey   rune
