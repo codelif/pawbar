@@ -34,6 +34,8 @@ type MessagePayload struct {
 	ItemId int32
 	MouseX int
 	MouseY int
+  PixelX int
+  PixelY int
 }
 
 type Message struct {

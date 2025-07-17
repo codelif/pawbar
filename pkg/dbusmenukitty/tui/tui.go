@@ -61,6 +61,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	win := vx.Window()
 	w, h := win.Size()
 	mouseY := -1
+	mousePixelX, mousePixelY := -1, -1
 	lastMouseY := -1
 	mousePressed := false
 	screenEvents := vx.Events()
@@ -97,11 +98,12 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 					}
 					mouseY = -1
 				case vaxis.EventMotion:
+					mousePixelX, mousePixelY = ev.XPixel, ev.YPixel
 					if mouseY == ev.Row {
 						continue
 					}
 					mouseY = ev.Row
-					
+
 					// Send hover event if row changed and is valid
 					if mouseY >= 0 && mouseY < len(menuItems) && menuItems[mouseY].Type != menu.ItemSeparator {
 						if lastMouseY != mouseY {
@@ -125,17 +127,19 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 						continue
 					}
 					mousePressed = false
-					
+
 					// Send click event if on valid item
 					if mouseY >= 0 && mouseY < len(menuItems) && menuItems[mouseY].Type != menu.ItemSeparator && menuItems[mouseY].Enabled {
 						item := menuItems[mouseY]
-						
+
 						if item.HasChildren {
 							// Send submenu request
 							msg := menu.Message{
 								Type: menu.MsgSubmenuRequested,
 								Payload: menu.MessagePayload{
 									ItemId: item.Id,
+									PixelX: mousePixelX,
+									PixelY: mousePixelY,
 								},
 							}
 							enc.Encode(msg)
@@ -167,12 +171,14 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 					case vaxis.KeyEnter:
 						if mouseY >= 0 && mouseY < len(menuItems) && menuItems[mouseY].Type != menu.ItemSeparator && menuItems[mouseY].Enabled {
 							item := menuItems[mouseY]
-							
+
 							if item.HasChildren {
 								msg := menu.Message{
 									Type: menu.MsgSubmenuRequested,
 									Payload: menu.MessagePayload{
 										ItemId: item.Id,
+										PixelX: mousePixelX,
+										PixelY: mousePixelY,
 									},
 								}
 								enc.Encode(msg)
@@ -194,7 +200,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 							}
 							drawFast(win, menuItems, mouseY, mousePressed)
 							vx.Render()
-							
+
 							if mouseY >= 0 && mouseY < len(menuItems) {
 								msg := menu.Message{
 									Type: menu.MsgItemHovered,
@@ -214,7 +220,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 							}
 							drawFast(win, menuItems, mouseY, mousePressed)
 							vx.Render()
-							
+
 							if mouseY >= 0 && mouseY < len(menuItems) {
 								msg := menu.Message{
 									Type: menu.MsgItemHovered,
