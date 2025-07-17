@@ -37,7 +37,6 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 		var msg menu.Message
 		for {
 			if err := dec.Decode(&msg); err == nil {
-
 				msgQueue <- msg
 			}
 		}
@@ -123,7 +122,6 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 					k.Resize(maxHorizontalLength, maxVerticalLength)
 					continue
 				}
-
 			}
 		}
 	}

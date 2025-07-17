@@ -67,7 +67,6 @@ func LaunchMenu(x, y int) {
 
 	io.Copy(os.Stdout, kn.Reader())
 	kn.Wait()
-
 }
 
 func printLayout(l Layout, indent int) {
@@ -148,12 +147,12 @@ func init() {
 
 func CreatePanel(x, y, w, h int) *katnip.Panel {
 	conf := katnip.Config{
-		Position:       katnip.Vector{X: x, Y: y},
-		Size:           katnip.Vector{X: w, Y: h},
-		Edge:           katnip.EdgeNone,
-		Layer:          katnip.LayerTop,
-		FocusPolicy:    katnip.FocusOnDemand,
-		ConfigFile:     "NONE",
+		Position:    katnip.Vector{X: x, Y: y},
+		Size:        katnip.Vector{X: w, Y: h},
+		Edge:        katnip.EdgeNone,
+		Layer:       katnip.LayerTop,
+		FocusPolicy: katnip.FocusOnDemand,
+		ConfigFile:  "NONE",
 		KittyOverrides: []string{
 			"font_size=14",
 			"cursor_trail=0",

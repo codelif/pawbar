@@ -1,7 +1,5 @@
 package menu
 
-
-
 func MaxLengthLabel(labels []Item) int {
 	if len(labels) == 0 {
 		return 0
