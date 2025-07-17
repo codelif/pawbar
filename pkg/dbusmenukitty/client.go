@@ -33,8 +33,8 @@ func LaunchMenu(x, y int) {
 	busname := "org.freedesktop.network-manager-applet"
 	path := "/org/ayatana/NotificationItem/nm_applet/Menu"
 
-	busname = "org.blueman.Tray"
-	path = "/org/blueman/sni/menu"
+	// busname = "org.blueman.Tray"
+	// path = "/org/blueman/sni/menu"
 
 	obj := conn.Object(busname, dbus.ObjectPath(path))
 	// obj = conn.Object(":1.25", "/org/ayatana/NotificationItem/nm_applet/Menu")
@@ -55,10 +55,16 @@ func LaunchMenu(x, y int) {
 }
 
 func printLayout(l Layout, indent int) {
-	if _, ok := l.Properties["icon-data"]; ok {
+	t, ok := l.Properties["icon-data"]
+	if ok {
 		l.Properties["icon-data"] = dbus.MakeVariant("omitted...")
 	}
 	fmt.Printf("%sId: %v\n%sProperties:%v\n%sLayout:\n\n", strings.Repeat(" ", indent*4), l.Id, strings.Repeat(" ", indent*4), l.Properties, strings.Repeat(" ", indent*4))
+
+	if ok {
+		l.Properties["icon-data"] = t
+	}
+
 	for _, li := range l.Children {
 		printLayout(li, indent+1)
 	}
@@ -94,7 +100,6 @@ func FlattenLayout(parent Layout) (items []menu.Item) {
 				icon, _ = iconLookup.FindBestIcon([]string{item.IconName + "-symbolic", item.IconName}, 48, 1)
 			}
 			item.Icon = icon
-      fmt.Println(icon, item.IconName)
 		}
 		if iconData, ok := layout.Properties["icon-data"]; ok {
 			item.IconData = iconData.Value().([]byte)

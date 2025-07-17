@@ -4,6 +4,7 @@ package gorsvg
 // #cgo LDFLAGS: -lm
 // #include "librsvg_wrapper.h"
 import "C"
+
 import (
 	// "bytes"
 	"bytes"

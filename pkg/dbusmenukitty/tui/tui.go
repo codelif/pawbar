@@ -28,9 +28,9 @@ var fgColor color.Color
 
 func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	dec := cbor.NewDecoder(rw)
-	l.SetOutput(rw)
+	l.SetOutput(io.Discard)
 
-	log.SetOutput(io.Discard)
+	log.SetOutput(rw)
 	log.SetLevel(log.LevelTrace)
 	dataEvents := make(chan []menu.Item, 10)
 	go func() {
@@ -127,7 +127,6 @@ func draw(win vaxis.Window, j []menu.Item) {
 					log.Trace("png decode error:", err)
 					img = missing.GenerateMissingIconBroken(32, fgColor)
 				}
-				// log.Printf("%#v", v.IconData)
 
 				kimg := win.Vx.NewKittyGraphic(img)
 				// kimg.SetPadding(3)
@@ -140,8 +139,6 @@ func draw(win vaxis.Window, j []menu.Item) {
 				if err != nil {
 					img = missing.GenerateMissingIcon(32, fgColor)
 				}
-
-				// img = xdgicons.GenerateMissingIconBroken(32, fgColor)
 
 				kimg := win.Vx.NewKittyGraphic(img)
 				// kimg.SetPadding(5)
@@ -167,7 +164,6 @@ func maxLengthLabel(labels []menu.Item) int {
 	}
 	return maxLen
 }
-
 
 func renderIcon(icon xdgicons.Icon, c color.Color) (img image.Image, err error) {
 	l.Printf("%v\n", icon)
