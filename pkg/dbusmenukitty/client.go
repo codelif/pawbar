@@ -4,18 +4,23 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"time"
+	"os"
 	"strings"
 
 	"github.com/codelif/katnip"
+	"github.com/codelif/pawbar/pkg/dbusmenukitty/menu"
+	"github.com/codelif/pawbar/pkg/dbusmenukitty/tui"
+	"github.com/codelif/xdgicons"
 	"github.com/fxamacker/cbor/v2"
 	"github.com/godbus/dbus/v5"
 )
 
+var iconLookup = xdgicons.NewIconLookupWithConfig(xdgicons.LookupConfig{FallbackTheme: "Adwaita"})
+
 type Layout struct {
 	Id         int32
 	Properties map[string]dbus.Variant
-	Layouts    []Layout
+	Children   []Layout
 }
 
 func LaunchMenu(x, y int) {
@@ -24,7 +29,14 @@ func LaunchMenu(x, y int) {
 		log.Fatalf("error connecting to session bus")
 	}
 	defer conn.Close()
-	obj := conn.Object("org.freedesktop.network-manager-applet", "/org/ayatana/NotificationItem/nm_applet/Menu")
+
+	busname := "org.freedesktop.network-manager-applet"
+	path := "/org/ayatana/NotificationItem/nm_applet/Menu"
+
+	busname = "org.blueman.Tray"
+	path = "/org/blueman/sni/menu"
+
+	obj := conn.Object(busname, dbus.ObjectPath(path))
 	// obj = conn.Object(":1.25", "/org/ayatana/NotificationItem/nm_applet/Menu")
 
 	var s string
@@ -37,22 +49,9 @@ func LaunchMenu(x, y int) {
 	var layout Layout
 	c.Store(&revision, &layout)
 	fmt.Printf("Revision: %v\n", revision)
-	// printLayout(layout, 0)
-
-	kn := katnip.NewPanel("leaf", katnip.Config{
-    Position: katnip.Vector{X: x, Y: y},
-		Size:  katnip.Vector{X: 40, Y: 20},
-		Edge:  katnip.EdgeNone,
-		Layer: katnip.LayerTop,
-	})
-
-	kn.Start()
-
-	w := kn.Writer()
-	e := cbor.NewEncoder(w)
-	serialiseLayout(e, layout)
-
-	kn.Wait()
+	printLayout(layout, 0)
+	// fmt.Printf("%+v\n", FlattenLayout(layout))
+	CreatePanel(x, y, FlattenLayout(layout))
 }
 
 func printLayout(l Layout, indent int) {
@@ -60,85 +59,104 @@ func printLayout(l Layout, indent int) {
 		l.Properties["icon-data"] = dbus.MakeVariant("omitted...")
 	}
 	fmt.Printf("%sId: %v\n%sProperties:%v\n%sLayout:\n\n", strings.Repeat(" ", indent*4), l.Id, strings.Repeat(" ", indent*4), l.Properties, strings.Repeat(" ", indent*4))
-	for _, li := range l.Layouts {
+	for _, li := range l.Children {
 		printLayout(li, indent+1)
 	}
 }
 
-type Label struct {
-	Display     string
-	AccessKey   rune
-	AccessIndex int
-	Found       bool
-}
-
-func ParseAccessKey(label string) Label {
-	runes := []rune(label)
-	n := len(runes)
-
-	var output []rune
-	outPos := 0
-	var result Label
-
-	for i := 0; i < n; {
-		if runes[i] == '_' {
-			if i+1 < n && runes[i+1] == '_' {
-				output = append(output, '_')
-				outPos++
-				i += 2
-			} else {
-				if !result.Found && i+1 < n {
-					result.Found = true
-					result.AccessKey = runes[i+1]
-					result.AccessIndex = outPos
-					output = append(output, runes[i+1])
-					outPos++
-					i += 2
-				} else {
-					i++
-				}
-			}
+func FlattenLayout(parent Layout) (items []menu.Item) {
+	for _, layout := range parent.Children {
+		item := menu.Item{Id: layout.Id}
+		if itemType, ok := layout.Properties["type"]; ok {
+			item.Type = itemType.Value().(string)
 		} else {
-			output = append(output, runes[i])
-			outPos++
-			i++
+			item.Type = menu.ItemStandard
 		}
+		if label, ok := layout.Properties["label"]; ok {
+			item.Label = menu.ParseLabel(label.Value().(string))
+		}
+		if enabled, ok := layout.Properties["enabled"]; ok {
+			item.Enabled = enabled.Value().(bool)
+		} else {
+			item.Enabled = true
+		}
+		if visible, ok := layout.Properties["visible"]; ok {
+			item.Visible = visible.Value().(bool)
+		} else {
+			item.Visible = true
+		}
+		if iconName, ok := layout.Properties["icon-name"]; ok {
+			item.IconName = iconName.Value().(string)
+			var icon xdgicons.Icon
+			if strings.HasSuffix(item.IconName, "-symbolic") {
+				icon, _ = iconLookup.Lookup(item.IconName)
+			} else {
+				icon, _ = iconLookup.FindBestIcon([]string{item.IconName + "-symbolic", item.IconName}, 48, 1)
+			}
+			item.Icon = icon
+      fmt.Println(icon, item.IconName)
+		}
+		if iconData, ok := layout.Properties["icon-data"]; ok {
+			item.IconData = iconData.Value().([]byte)
+		}
+		if shortcut, ok := layout.Properties["shortcut"]; ok {
+			item.Shortcut = shortcut.Value().([][]string)
+		}
+		if toggleType, ok := layout.Properties["toggle-type"]; ok {
+			item.ToggleType = toggleType.Value().(string)
+		}
+		if toggleState, ok := layout.Properties["toggle-state"]; ok {
+			item.ToggleState = toggleState.Value().(int32)
+		} else {
+			item.ToggleState = -1
+		}
+		if childrenDisplay, ok := layout.Properties["children-display"]; ok {
+			childrenDisplay := childrenDisplay.Value().(string)
+			item.HasChildren = childrenDisplay == "submenu"
+		}
+
+		items = append(items, item)
 	}
 
-	result.Display = string(output)
-	return result
-}
-
-type JLay struct {
-	Blocks []Label
-}
-
-func serialiseLayout(enc *cbor.Encoder, l Layout) {
-	j := JLay{}
-	for _, l := range l.Layouts {
-		labelV, ok := l.Properties["label"]
-		if ok {
-			label := labelV.Value().(string)
-			j.Blocks = append(j.Blocks, ParseAccessKey(label))
-		}
-	}
-
-	enc.Encode(j)
+	return items
 }
 
 func init() {
-	katnip.RegisterFunc("leaf", leaf)
+	katnip.RegisterFunc("leaf", tui.Leaf)
 }
 
-func leaf(k *katnip.Kitty, rw io.ReadWriter) int {
-	_ = cbor.NewEncoder(rw)
-	dec := cbor.NewDecoder(rw)
-
-	var l JLay
-	dec.Decode(&l)
-	for _, v := range l.Blocks {
-		fmt.Println(v.Display)
+func CreatePanel(x, y int, MenuItems []menu.Item) *katnip.Panel {
+	conf := katnip.Config{
+		Position:    katnip.Vector{X: x, Y: y},
+		Size:        katnip.Vector{X: 1, Y: 1},
+		Edge:        katnip.EdgeNone,
+		Layer:       katnip.LayerTop,
+		FocusPolicy: katnip.FocusOnDemand,
+		KittyOverrides: []string{
+			"font_size=16",
+			"cursor_trail=0",
+			"paste_actions=replace-dangerous-control-codes",
+			"map kitty_mod+equal       no_op",
+			"map kitty_mod+plus        no_op",
+			"map kitty_mod+kp_add      no_op",
+			"map cmd+plus              no_op",
+			"map cmd+equal             no_op",
+			"map shift+cmd+equal       no_op",
+			"map kitty_mod+minus       no_op",
+			"map kitty_mod+kp_subtract no_op",
+			"map cmd+minus             no_op",
+			"map shift+cmd+minus       no_op",
+			"map kitty_mod+backspace   no_op",
+			"map cmd+0                 no_op",
+		},
 	}
-	time.Sleep(10 * time.Second)
-	return 0
+
+	kn := katnip.NewPanel("leaf", conf)
+	kn.Start()
+	enc := cbor.NewEncoder(kn.Writer())
+	enc.Encode(MenuItems)
+
+	io.Copy(os.Stdout, kn.Reader())
+	kn.Wait()
+	return kn
 }
