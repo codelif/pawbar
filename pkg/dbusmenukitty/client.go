@@ -117,6 +117,11 @@ func LaunchMenu(x, y int) {
 	printLayout(layout, 0)
 
 	menuItems := FlattenLayout(layout)
+
+	CreateMenuPanel(client, x, y, menuItems, 0)
+}
+
+func CreateMenuPanel(client *DBusMenuClient, x, y int, menuItems []menu.Item, parentId int32) {
 	maxHorizontalLength, maxVerticalLength := menu.MaxLengthLabel(menuItems)+4, len(menuItems)
 	fmt.Printf("%d, %d\n", maxHorizontalLength, maxVerticalLength)
 
@@ -125,6 +130,10 @@ func LaunchMenu(x, y int) {
 	// Register with submenu manager
 	sm := menu.GetManager()
 	sm.AddPanel(kn, x, y)
+
+	defer func() {
+		sm.HandlePanelExit(kn)
+	}()
 
 	// Send initial menu to panel
 	enc := cbor.NewEncoder(kn.Writer())
@@ -179,7 +188,7 @@ func LaunchMenu(x, y int) {
 					}
 					if needUpdate {
 						// Refresh the layout if needed
-						newLayout, err := client.GetLayout()
+						newLayout, err := client.GetLayoutForParent(parentId)
 						if err != nil {
 							log.Printf("error refreshing layout: %v", err)
 						} else {
@@ -201,14 +210,10 @@ func LaunchMenu(x, y int) {
 					} else if len(submenuLayout.Children) > 0 {
 						submenuItems := FlattenLayout(submenuLayout)
 						if len(submenuItems) > 0 {
-							// Close any deeper submenus first
 							sm.CloseAllSubmenus()
-
-							// Calculate position for submenu
 							submenuX, submenuY := x+msg.Payload.PixelX+10, y+msg.Payload.PixelY
-
-							// Launch submenu panel
-							go LaunchSubmenu(client, submenuX, submenuY, submenuItems, msg.Payload.ItemId)
+							// Launch submenu panel recursively this time instead bruh
+							go CreateMenuPanel(client, submenuX, submenuY, submenuItems, msg.Payload.ItemId)
 						}
 					}
 				}
@@ -218,7 +223,7 @@ func LaunchMenu(x, y int) {
 
 	// Listen for DBus signals for layout updates
 	go func() {
-		rule := fmt.Sprintf("type='signal',sender='%s',path='%s',interface='com.canonical.dbusmenu'", busname, path)
+		rule := fmt.Sprintf("type='signal',sender='%s',path='%s',interface='com.canonical.dbusmenu'", client.busname, client.path)
 		client.conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, rule)
 
 		ch := make(chan *dbus.Signal, 10)
@@ -227,9 +232,9 @@ func LaunchMenu(x, y int) {
 		for signal := range ch {
 			switch signal.Name {
 			case "com.canonical.dbusmenu.LayoutUpdated":
-				log.Printf("Layout updated signal received")
+				log.Printf("Layout updated signal received for panel %d", parentId)
 				// Refresh layout
-				newLayout, err := client.GetLayout()
+				newLayout, err := client.GetLayoutForParent(parentId)
 				if err != nil {
 					log.Printf("error refreshing layout after signal: %v", err)
 				} else {
@@ -243,94 +248,25 @@ func LaunchMenu(x, y int) {
 					enc.Encode(updateMsg)
 				}
 			case "com.canonical.dbusmenu.ItemsPropertiesUpdated":
-				log.Printf("Items properties updated signal received")
-				// Could implement more granular updates here
+				log.Printf("Items properties updated signal received for panel %d", parentId)
+				newLayout, err := client.GetLayoutForParent(parentId)
+				if err != nil {
+					log.Printf("error refreshing layout after properties update: %v", err)
+				} else {
+					newMenuItems := FlattenLayout(newLayout)
+					updateMsg := menu.Message{
+						Type: menu.MsgMenuUpdate,
+						Payload: menu.MessagePayload{
+							Menu: newMenuItems,
+						},
+					}
+					enc.Encode(updateMsg)
+				}
 			}
 		}
 	}()
 
-	// Wait for panel to complete
 	kn.Wait()
-}
-
-func LaunchSubmenu(client *DBusMenuClient, x, y int, menuItems []menu.Item, parentId int32) {
-	maxHorizontalLength, maxVerticalLength := menu.MaxLengthLabel(menuItems)+4, len(menuItems)
-
-	submenuPanel := CreatePanel(x, y, maxHorizontalLength, maxVerticalLength)
-
-	sm := menu.GetManager()
-	sm.AddPanel(submenuPanel, x, y)
-
-	defer func() {
-		sm.HandlePanelExit(submenuPanel)
-	}()
-
-	enc := cbor.NewEncoder(submenuPanel.Writer())
-	msg := menu.Message{
-		Type: menu.MsgMenuUpdate,
-		Payload: menu.MessagePayload{
-			Menu: menuItems,
-		},
-	}
-	enc.Encode(msg) //initial payload
-
-	go func() {
-		dec := cbor.NewDecoder(submenuPanel.Reader())
-		for {
-			var msg menu.Message
-			if err := dec.Decode(&msg); err != nil {
-				if err == io.EOF {
-					break
-				}
-				log.Printf("error decoding message from submenu panel: %v", err)
-				continue
-			}
-
-			switch msg.Type {
-			case menu.MsgItemClicked:
-				if msg.Payload.ItemId != 0 {
-					log.Printf("Submenu item clicked: %d", msg.Payload.ItemId)
-					err := client.SendEvent(msg.Payload.ItemId, "clicked", "")
-					if err != nil {
-						log.Printf("error sending clicked event: %v", err)
-					}
-					sm.CloseAllSubmenus()
-					return
-				}
-			case menu.MsgItemHovered:
-				if msg.Payload.ItemId != 0 {
-					log.Printf("Submenu item hovered: %d", msg.Payload.ItemId)
-					err := client.SendEvent(msg.Payload.ItemId, "hovered", "")
-					if err != nil {
-						log.Printf("error sending hovered event: %v", err)
-					}
-				}
-			case menu.MsgSubmenuRequested:
-				if msg.Payload.ItemId != 0 {
-					log.Printf("Nested submenu requested: %d", msg.Payload.ItemId)
-					needUpdate, err := client.AboutToShow(msg.Payload.ItemId)
-					if err != nil {
-						log.Printf("error calling AboutToShow: %v", err)
-					}
-					if needUpdate {
-					}
-
-					nestedLayout, err := client.GetLayoutForParent(msg.Payload.ItemId)
-					if err != nil {
-						log.Printf("error getting nested submenu layout: %v", err)
-					} else if len(nestedLayout.Children) > 0 {
-						nestedItems := FlattenLayout(nestedLayout)
-						if len(nestedItems) > 0 {
-							nestedX, nestedY := x+msg.Payload.PixelX+10, y+msg.Payload.PixelY
-							go LaunchSubmenu(client, nestedX, nestedY, nestedItems, msg.Payload.ItemId)
-						}
-					}
-				}
-			}
-		}
-	}()
-
-	submenuPanel.Wait()
 }
 
 func printLayout(l Layout, indent int) {
