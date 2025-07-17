@@ -4,10 +4,15 @@ go 1.24.5
 
 replace git.sr.ht/~rockorager/vaxis => ./vaxis
 
+replace github.com/codelif/xdgicons => ../xdgicons
+
 require (
 	dario.cat/mergo v1.0.1
 	git.sr.ht/~rockorager/vaxis v0.14.0
 	github.com/Wifx/gonetworkmanager/v3 v3.2.0
+	github.com/codelif/katnip v0.0.0-20250709135727-124e0b6cf0be
+	github.com/codelif/xdgicons v0.3.0
+	github.com/fxamacker/cbor/v2 v2.8.0
 	github.com/godbus/dbus/v5 v5.1.0
 	github.com/itchyny/timefmt-go v0.1.6
 	github.com/jochenvg/go-udev v0.0.0-20240801134859-b65ed646224b
@@ -16,11 +21,8 @@ require (
 )
 
 require (
-	github.com/codelif/katnip v0.0.0-20250709135727-124e0b6cf0be // indirect
 	github.com/codelif/shmstream v0.0.0-20250707213419-52bb1dd21b7b // indirect
-	github.com/codelif/xdgicons v0.1.1 // indirect
 	github.com/containerd/console v1.0.3 // indirect
-	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/jkeiser/iter v0.0.0-20200628201005-c8aa0ae784d1 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
@@ -40,4 +42,5 @@ require (
 	golang.org/x/net v0.6.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.11.0 // indirect
+	gopkg.in/ini.v1 v1.67.0 // indirect
 )
