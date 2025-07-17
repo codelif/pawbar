@@ -48,11 +48,6 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 		return 1
 	}
 
-	defer func() {
-		err := recover()
-		log.Info("ERROR: %v\n", err)
-		vx.Close()
-	}()
 	// query foreground color and store (used for rendering icon SVGs later)
 	c := vx.QueryForeground()
 	rgb := c.Params()
