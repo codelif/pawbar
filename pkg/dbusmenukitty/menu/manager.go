@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/codelif/katnip"
+	"github.com/fxamacker/cbor/v2"
 )
 
 type MenuManager struct {
@@ -53,7 +54,13 @@ func (sm *MenuManager) CloseAllSubmenus() {
 
 	if len(sm.panels) > 1 {
 		for i := 1; i < len(sm.panels); i++ {
-			sm.panels[i].Stop()
+			closeMsg := Message{
+				Type:    MsgMenuClose,
+				Payload: MessagePayload{},
+			}
+			enc := cbor.NewEncoder(sm.panels[i].Writer())
+			enc.Encode(closeMsg)
+			// sm.panels[i].Stop()
 		}
 		sm.panels = sm.panels[:1]
 		sm.positions = sm.positions[:1]

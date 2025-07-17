@@ -145,6 +145,8 @@ func CreateMenuPanel(client *DBusMenuClient, x, y int, menuItems []menu.Item, pa
 	}
 	enc.Encode(msg)
 
+	activeSubmenus := make(map[int32]*katnip.Panel)
+
 	// Handle events from panel
 	go func() {
 		dec := cbor.NewDecoder(kn.Reader())
@@ -163,13 +165,19 @@ func CreateMenuPanel(client *DBusMenuClient, x, y int, menuItems []menu.Item, pa
 				if msg.Payload.ItemId != 0 {
 					log.Printf("Item clicked: %d", msg.Payload.ItemId)
 
-					// Close any open submenus first
-					sm.CloseAllSubmenus()
-
 					err := client.SendEvent(msg.Payload.ItemId, "clicked", "")
 					if err != nil {
 						log.Printf("error sending clicked event: %v", err)
 					}
+
+					// close on click
+					sm.CloseAllSubmenus()
+					closeMsg := menu.Message{
+						Type:    menu.MsgMenuClose,
+						Payload: menu.MessagePayload{},
+					}
+					enc.Encode(closeMsg)
+					return
 				}
 			case menu.MsgItemHovered:
 				if msg.Payload.ItemId != 0 {
@@ -179,9 +187,28 @@ func CreateMenuPanel(client *DBusMenuClient, x, y int, menuItems []menu.Item, pa
 						log.Printf("error sending hovered event: %v", err)
 					}
 				}
+			case menu.MsgSubmenuCancelRequested:
+				if msg.Payload.ItemId != 0 {
+					log.Printf("Submenu cancel requested: %d", msg.Payload.ItemId)
+
+					if submenuPanel, exists := activeSubmenus[msg.Payload.ItemId]; exists {
+						cbor.NewEncoder(submenuPanel.Writer()).Encode(menu.Message{Type: menu.MsgMenuClose})
+						// submenuPanel.Stop()
+						delete(activeSubmenus, msg.Payload.ItemId)
+					}
+
+					sm.CloseAllSubmenus()
+				}
 			case menu.MsgSubmenuRequested:
 				if msg.Payload.ItemId != 0 {
 					log.Printf("Submenu requested: %d", msg.Payload.ItemId)
+
+					for itemId, submenuPanel := range activeSubmenus {
+						cbor.NewEncoder(submenuPanel.Writer()).Encode(menu.Message{Type: menu.MsgMenuClose})
+						// submenuPanel.Stop()
+						delete(activeSubmenus, itemId)
+					}
+
 					needUpdate, err := client.AboutToShow(msg.Payload.ItemId)
 					if err != nil {
 						log.Printf("error calling AboutToShow: %v", err)

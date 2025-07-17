@@ -27,6 +27,8 @@ import (
 
 var fgColor color.Color
 
+const hoverActivationTimeout = 300 * time.Millisecond
+
 func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	dec := cbor.NewDecoder(rw)
 	enc := cbor.NewEncoder(rw)
@@ -64,6 +66,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	var menuItems []menu.Item
 	var hoverTimer *time.Timer
 	var hoverItemId int32 = 0
+	var mouseOnSurface bool = false
 
 	for {
 		select {
@@ -76,14 +79,14 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 				win.Clear()
 				w, h = win.Size()
 				log.Debug("dbusmenukitty: %d, %d\n", w, h)
-				draw(win, menuItems, mouseY, mousePressed)
+				draw(win, menuItems, mouseY, mouseOnSurface, mousePressed)
 				vx.Render()
 			case vaxis.Mouse:
 				l.Printf("%#v\n", ev)
 
 				switch ev.EventType {
 				case vaxis.EventLeave:
-					if lastMouseY != -1 {
+					if mouseOnSurface {
 						// Send unhover event for last item
 						msg := menu.Message{
 							Type: menu.MsgItemHovered,
@@ -92,19 +95,20 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 							},
 						}
 						enc.Encode(msg)
-						lastMouseY = -1
 					}
-					mouseY = -1
+					mouseOnSurface = false
 
-					if hoverTimer != nil {
-						hoverTimer.Stop()
-						hoverTimer = nil
-					}
+					// if hoverTimer != nil {
+					// 	hoverTimer.Stop()
+					// 	hoverTimer = nil
+					// }
 				case vaxis.EventMotion:
 					mousePixelX, mousePixelY = ev.XPixel, ev.YPixel
-					if mouseY == ev.Row {
+					if mouseY == ev.Row && mouseOnSurface {
 						continue
 					}
+
+					mouseOnSurface = true
 					mouseY = ev.Row
 
 					// Cancel any pending hover timer when moving to different item
@@ -142,7 +146,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 							// Start hover timer for submenu items
 							if currentItem.HasChildren && currentItem.Enabled {
 								hoverItemId = currentItem.Id
-								hoverTimer = time.AfterFunc(500*time.Millisecond, func() {
+								hoverTimer = time.AfterFunc(hoverActivationTimeout, func() {
 									msg := menu.Message{
 										Type: menu.MsgSubmenuRequested,
 										Payload: menu.MessagePayload{
@@ -201,7 +205,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 					continue
 				}
 
-				drawFast(win, menuItems, mouseY, mousePressed) // renders only text
+				drawFast(win, menuItems, mouseY, mouseOnSurface, mousePressed) // renders only text
 				vx.Render()
 			case vaxis.Key:
 				switch ev.EventType {
@@ -229,7 +233,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 							for mouseY > 0 && menuItems[mouseY].Type == menu.ItemSeparator {
 								mouseY--
 							}
-							drawFast(win, menuItems, mouseY, mousePressed)
+							drawFast(win, menuItems, mouseY, mouseOnSurface, mousePressed)
 							vx.Render()
 
 							// Send hover event
@@ -276,7 +280,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 							for mouseY < len(menuItems)-1 && menuItems[mouseY].Type == menu.ItemSeparator {
 								mouseY++
 							}
-							drawFast(win, menuItems, mouseY, mousePressed)
+							drawFast(win, menuItems, mouseY, mouseOnSurface, mousePressed)
 							vx.Render()
 
 							// Send hover event
@@ -334,6 +338,8 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 			}
 		case msg := <-msgQueue:
 			switch msg.Type {
+			case menu.MsgMenuClose:
+				return 0
 			case menu.MsgMenuUpdate:
 				menuItems = msg.Payload.Menu
 				maxHorizontalLength := menu.MaxLengthLabel(menuItems) + 4
@@ -341,7 +347,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 				log.Info("leaf: %d %d actual: %d %d\n", maxHorizontalLength, maxVerticalLength, w, h)
 
 				win.Clear()
-				draw(win, menuItems, mouseY, mousePressed)
+				draw(win, menuItems, mouseY, mouseOnSurface, mousePressed)
 				vx.Render()
 
 				if w != maxHorizontalLength || h != maxVerticalLength {
@@ -355,7 +361,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	return 1
 }
 
-func drawFast(win vaxis.Window, items []menu.Item, mouseY int, mousePressed bool) {
+func drawFast(win vaxis.Window, items []menu.Item, mouseY int, mouseOnSurface bool, mousePressed bool) {
 	arrowHeads := []rune{'◄', '►'}
 	w, _ := win.Size()
 
@@ -365,7 +371,7 @@ func drawFast(win vaxis.Window, items []menu.Item, mouseY int, mousePressed bool
 			prefix := "  "
 			suffix := prefix
 
-			if i == mouseY {
+			if i == mouseY && mouseOnSurface {
 				if mousePressed {
 					style.Background = vaxis.ColorBlue
 				} else {
@@ -393,7 +399,7 @@ func drawFast(win vaxis.Window, items []menu.Item, mouseY int, mousePressed bool
 	}
 }
 
-func draw(win vaxis.Window, items []menu.Item, mouseY int, mousePressed bool) {
+func draw(win vaxis.Window, items []menu.Item, mouseY int, mouseOnSurface bool, mousePressed bool) {
 	w, _ := win.Size()
 	arrowHeads := []rune{'◄', '►'}
 	for i, v := range items {
@@ -409,7 +415,7 @@ func draw(win vaxis.Window, items []menu.Item, mouseY int, mousePressed bool) {
 			prefix := "  "
 			suffix := prefix
 
-			if i == mouseY {
+			if i == mouseY && mouseOnSurface {
 				if mousePressed {
 					style.Background = vaxis.ColorBlue
 				} else {

@@ -28,6 +28,7 @@ const (
 	MsgItemHovered
 	MsgSubmenuRequested
 	MsgSubmenuCancelRequested
+	MsgMenuClose
 )
 
 type MessagePayload struct {
