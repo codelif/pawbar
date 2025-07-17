@@ -15,7 +15,7 @@ import (
 	"git.sr.ht/~rockorager/vaxis/log"
 	"github.com/codelif/katnip"
 	"github.com/codelif/pawbar/pkg/dbusmenukitty/menu"
-	"github.com/codelif/pawbar/pkg/gorsvg"
+	"github.com/codelif/gorsvg"
 	"github.com/codelif/xdgicons"
 	"github.com/codelif/xdgicons/missing"
 	"github.com/fxamacker/cbor/v2"

@@ -10,6 +10,7 @@ require (
 	dario.cat/mergo v1.0.1
 	git.sr.ht/~rockorager/vaxis v0.14.0
 	github.com/Wifx/gonetworkmanager/v3 v3.2.0
+	github.com/codelif/gorsvg v0.1.1
 	github.com/codelif/katnip v0.0.0-20250717050314-424507f1e469
 	github.com/codelif/xdgicons v0.3.0
 	github.com/fxamacker/cbor/v2 v2.8.0
@@ -17,6 +18,7 @@ require (
 	github.com/itchyny/timefmt-go v0.1.6
 	github.com/jochenvg/go-udev v0.0.0-20240801134859-b65ed646224b
 	github.com/shirou/gopsutil/v3 v3.24.5
+	golang.org/x/image v0.9.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -32,15 +34,10 @@ require (
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/soniakeys/quant v1.0.0 // indirect
-	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
-	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	golang.org/x/image v0.9.0 // indirect
-	golang.org/x/net v0.6.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.11.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
