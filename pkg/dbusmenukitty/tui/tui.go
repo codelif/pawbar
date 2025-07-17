@@ -28,9 +28,10 @@ var fgColor color.Color
 
 func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	dec := cbor.NewDecoder(rw)
+	enc := cbor.NewEncoder(rw)
 	l.SetOutput(io.Discard)
 
-	log.SetOutput(rw)
+	log.SetOutput(io.Discard)
 	log.SetLevel(log.LevelInfo)
 	msgQueue := make(chan menu.Message, 10)
 	go func() {
@@ -60,6 +61,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	win := vx.Window()
 	w, h := win.Size()
 	mouseY := -1
+	lastMouseY := -1
 	mousePressed := false
 	screenEvents := vx.Events()
 	var menuItems []menu.Item
@@ -82,12 +84,37 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 
 				switch ev.EventType {
 				case vaxis.EventLeave:
+					if lastMouseY != -1 {
+						// Send unhover event for last item
+						msg := menu.Message{
+							Type: menu.MsgItemHovered,
+							Payload: menu.MessagePayload{
+								ItemId: 0, // 0 means no item hovered
+							},
+						}
+						enc.Encode(msg)
+						lastMouseY = -1
+					}
 					mouseY = -1
 				case vaxis.EventMotion:
 					if mouseY == ev.Row {
 						continue
 					}
 					mouseY = ev.Row
+					
+					// Send hover event if row changed and is valid
+					if mouseY >= 0 && mouseY < len(menuItems) && menuItems[mouseY].Type != menu.ItemSeparator {
+						if lastMouseY != mouseY {
+							msg := menu.Message{
+								Type: menu.MsgItemHovered,
+								Payload: menu.MessagePayload{
+									ItemId: menuItems[mouseY].Id,
+								},
+							}
+							enc.Encode(msg)
+							lastMouseY = mouseY
+						}
+					}
 				case vaxis.EventPress:
 					if ev.Button != vaxis.MouseLeftButton {
 						continue
@@ -98,12 +125,109 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 						continue
 					}
 					mousePressed = false
+					
+					// Send click event if on valid item
+					if mouseY >= 0 && mouseY < len(menuItems) && menuItems[mouseY].Type != menu.ItemSeparator && menuItems[mouseY].Enabled {
+						item := menuItems[mouseY]
+						
+						if item.HasChildren {
+							// Send submenu request
+							msg := menu.Message{
+								Type: menu.MsgSubmenuRequested,
+								Payload: menu.MessagePayload{
+									ItemId: item.Id,
+								},
+							}
+							enc.Encode(msg)
+						} else {
+							// Send click event
+							msg := menu.Message{
+								Type: menu.MsgItemClicked,
+								Payload: menu.MessagePayload{
+									ItemId: item.Id,
+								},
+							}
+							enc.Encode(msg)
+						}
+					}
 				default:
 					continue
 				}
 
 				drawFast(win, menuItems, mouseY, mousePressed) // renders only text
 				vx.Render()
+			case vaxis.Key:
+				switch ev.EventType {
+				case vaxis.EventPress:
+					switch ev.Keycode {
+					case vaxis.KeyEsc:
+						return 0
+					case vaxis.KeyLeft:
+						return 0
+					case vaxis.KeyEnter:
+						if mouseY >= 0 && mouseY < len(menuItems) && menuItems[mouseY].Type != menu.ItemSeparator && menuItems[mouseY].Enabled {
+							item := menuItems[mouseY]
+							
+							if item.HasChildren {
+								msg := menu.Message{
+									Type: menu.MsgSubmenuRequested,
+									Payload: menu.MessagePayload{
+										ItemId: item.Id,
+									},
+								}
+								enc.Encode(msg)
+							} else {
+								msg := menu.Message{
+									Type: menu.MsgItemClicked,
+									Payload: menu.MessagePayload{
+										ItemId: item.Id,
+									},
+								}
+								enc.Encode(msg)
+							}
+						}
+					case vaxis.KeyUp:
+						if mouseY > 0 {
+							mouseY--
+							for mouseY > 0 && menuItems[mouseY].Type == menu.ItemSeparator {
+								mouseY--
+							}
+							drawFast(win, menuItems, mouseY, mousePressed)
+							vx.Render()
+							
+							if mouseY >= 0 && mouseY < len(menuItems) {
+								msg := menu.Message{
+									Type: menu.MsgItemHovered,
+									Payload: menu.MessagePayload{
+										ItemId: menuItems[mouseY].Id,
+									},
+								}
+								enc.Encode(msg)
+								lastMouseY = mouseY
+							}
+						}
+					case vaxis.KeyDown:
+						if mouseY < len(menuItems)-1 {
+							mouseY++
+							for mouseY < len(menuItems)-1 && menuItems[mouseY].Type == menu.ItemSeparator {
+								mouseY++
+							}
+							drawFast(win, menuItems, mouseY, mousePressed)
+							vx.Render()
+							
+							if mouseY >= 0 && mouseY < len(menuItems) {
+								msg := menu.Message{
+									Type: menu.MsgItemHovered,
+									Payload: menu.MessagePayload{
+										ItemId: menuItems[mouseY].Id,
+									},
+								}
+								enc.Encode(msg)
+								lastMouseY = mouseY
+							}
+						}
+					}
+				}
 			}
 		case msg := <-msgQueue:
 			switch msg.Type {
@@ -118,7 +242,6 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 				vx.Render()
 
 				if w != maxHorizontalLength || h != maxVerticalLength {
-					log.Info("i am here but I shouldn't be")
 					k.Resize(maxHorizontalLength, maxVerticalLength)
 					continue
 				}

@@ -24,10 +24,16 @@ type MessageType int
 const (
 	MsgMenuUpdate MessageType = iota
 	MsgMouseUpdate
+	MsgItemClicked
+	MsgItemHovered
+	MsgSubmenuRequested
 )
 
 type MessagePayload struct {
-	Menu []Item
+	Menu   []Item
+	ItemId int32
+	MouseX int
+	MouseY int
 }
 
 type Message struct {

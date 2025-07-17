@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"strings"
+	"time"
 
 	"github.com/codelif/katnip"
 	"github.com/codelif/pawbar/pkg/dbusmenukitty/menu"
@@ -23,39 +23,110 @@ type Layout struct {
 	Children   []Layout
 }
 
-func LaunchMenu(x, y int) {
+type DBusMenuClient struct {
+	conn    *dbus.Conn
+	obj     dbus.BusObject
+	busname string
+	path    string
+}
+
+func NewDBusMenuClient(busname, path string) (*DBusMenuClient, error) {
 	conn, err := dbus.ConnectSessionBus()
 	if err != nil {
-		log.Fatalf("error connecting to session bus")
+		return nil, fmt.Errorf("error connecting to session bus: %w", err)
 	}
-	defer conn.Close()
 
+	obj := conn.Object(busname, dbus.ObjectPath(path))
+	
+	return &DBusMenuClient{
+		conn:    conn,
+		obj:     obj,
+		busname: busname,
+		path:    path,
+	}, nil
+}
+
+func (c *DBusMenuClient) Close() {
+	if c.conn != nil {
+		c.conn.Close()
+	}
+}
+
+func (c *DBusMenuClient) GetLayout() (Layout, error) {
+	return c.GetLayoutForParent(0)
+}
+
+func (c *DBusMenuClient) GetLayoutForParent(parentId int32) (Layout, error) {
+	call := c.obj.Call("com.canonical.dbusmenu.GetLayout", 0, parentId, -1, []string{})
+	if call.Err != nil {
+		return Layout{}, fmt.Errorf("error calling GetLayout: %w", call.Err)
+	}
+
+	var revision uint32
+	var layout Layout
+	err := call.Store(&revision, &layout)
+	if err != nil {
+		return Layout{}, fmt.Errorf("error storing layout: %w", err)
+	}
+
+	return layout, nil
+}
+
+func (c *DBusMenuClient) SendEvent(id int32, eventType string, data interface{}) error {
+	timestamp := uint32(time.Now().Unix())
+	call := c.obj.Call("com.canonical.dbusmenu.Event", 0, id, eventType, dbus.MakeVariant(data), timestamp)
+	return call.Err
+}
+
+func (c *DBusMenuClient) AboutToShow(id int32) (bool, error) {
+	call := c.obj.Call("com.canonical.dbusmenu.AboutToShow", 0, id)
+	if call.Err != nil {
+		return false, call.Err
+	}
+	
+	var needUpdate bool
+	err := call.Store(&needUpdate)
+	return needUpdate, err
+}
+
+func LaunchMenu(x, y int) {
 	busname := "org.freedesktop.network-manager-applet"
 	path := "/org/ayatana/NotificationItem/nm_applet/Menu"
 
 	// busname = "org.blueman.Tray"
 	// path = "/org/blueman/sni/menu"
 
-	obj := conn.Object(busname, dbus.ObjectPath(path))
-	// obj = conn.Object(":1.25", "/org/ayatana/NotificationItem/nm_applet/Menu")
+	client, err := NewDBusMenuClient(busname, path)
+	if err != nil {
+		log.Fatalf("error creating dbus client: %v", err)
+	}
+	defer client.Close()
 
-	var s string
-	obj.StoreProperty("com.canonical.dbusmenu.Status", &s)
+	// Get status
+	var status string
+	client.obj.StoreProperty("com.canonical.dbusmenu.Status", &status)
+	fmt.Printf("Status: %s\n", status)
 
-	fmt.Printf("Status: %s\n", s)
+	// Get initial layout
+	layout, err := client.GetLayout()
+	if err != nil {
+		log.Fatalf("error getting layout: %v", err)
+	}
 
-	c := obj.Call("com.canonical.dbusmenu.GetLayout", 0, 0, -1, []string{})
-	var revision uint32
-	var layout Layout
-	c.Store(&revision, &layout)
-	fmt.Printf("Revision: %v\n", revision)
+	fmt.Printf("Layout retrieved\n")
 	printLayout(layout, 0)
-	// fmt.Printf("%+v\n", FlattenLayout(layout))
+	
 	menuItems := FlattenLayout(layout)
 	maxHorizontalLength, maxVerticalLength := menu.MaxLengthLabel(menuItems)+4, len(menuItems)
 	fmt.Printf("%d, %d\n", maxHorizontalLength, maxVerticalLength)
+	
 	kn := CreatePanel(x, y, maxHorizontalLength, maxVerticalLength)
+	
+	// Register with submenu manager
+	sm := menu.GetManager()
+	sm.AddPanel(kn, x, y)
 
+	// Send initial menu to panel
 	enc := cbor.NewEncoder(kn.Writer())
 	msg := menu.Message{
 		Type: menu.MsgMenuUpdate,
@@ -65,8 +136,201 @@ func LaunchMenu(x, y int) {
 	}
 	enc.Encode(msg)
 
-	io.Copy(os.Stdout, kn.Reader())
+	// Handle events from panel
+	go func() {
+		dec := cbor.NewDecoder(kn.Reader())
+		for {
+			var msg menu.Message
+			if err := dec.Decode(&msg); err != nil {
+				if err == io.EOF {
+					break
+				}
+				log.Printf("error decoding message from panel: %v", err)
+				continue
+			}
+
+			switch msg.Type {
+			case menu.MsgItemClicked:
+				if msg.Payload.ItemId != 0 {
+					log.Printf("Item clicked: %d", msg.Payload.ItemId)
+					
+					// Close any open submenus first
+					sm.CloseAllSubmenus()
+					
+					err := client.SendEvent(msg.Payload.ItemId, "clicked", "")
+					if err != nil {
+						log.Printf("error sending clicked event: %v", err)
+					}
+				}
+			case menu.MsgItemHovered:
+				if msg.Payload.ItemId != 0 {
+					log.Printf("Item hovered: %d", msg.Payload.ItemId)
+					err := client.SendEvent(msg.Payload.ItemId, "hovered", "")
+					if err != nil {
+						log.Printf("error sending hovered event: %v", err)
+					}
+				}
+			case menu.MsgSubmenuRequested:
+				if msg.Payload.ItemId != 0 {
+					log.Printf("Submenu requested: %d", msg.Payload.ItemId)
+					needUpdate, err := client.AboutToShow(msg.Payload.ItemId)
+					if err != nil {
+						log.Printf("error calling AboutToShow: %v", err)
+					}
+					if needUpdate {
+						// Refresh the layout if needed
+						newLayout, err := client.GetLayout()
+						if err != nil {
+							log.Printf("error refreshing layout: %v", err)
+						} else {
+							newMenuItems := FlattenLayout(newLayout)
+							updateMsg := menu.Message{
+								Type: menu.MsgMenuUpdate,
+								Payload: menu.MessagePayload{
+									Menu: newMenuItems,
+								},
+							}
+							enc.Encode(updateMsg)
+						}
+					}
+					
+					// Get submenu layout and spawn new panel
+					submenuLayout, err := client.GetLayoutForParent(msg.Payload.ItemId)
+					if err != nil {
+						log.Printf("error getting submenu layout: %v", err)
+					} else if len(submenuLayout.Children) > 0 {
+						submenuItems := FlattenLayout(submenuLayout)
+						if len(submenuItems) > 0 {
+							// Close any deeper submenus first
+							sm.CloseAllSubmenus()
+							
+							// Calculate position for submenu
+							submenuX, submenuY := sm.GetNextPosition()
+							
+							// Launch submenu panel
+							go LaunchSubmenu(client, submenuX, submenuY, submenuItems, msg.Payload.ItemId)
+						}
+					}
+				}
+			}
+		}
+	}()
+
+	// Listen for DBus signals for layout updates
+	go func() {
+		rule := fmt.Sprintf("type='signal',sender='%s',path='%s',interface='com.canonical.dbusmenu'", busname, path)
+		client.conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0, rule)
+		
+		ch := make(chan *dbus.Signal, 10)
+		client.conn.Signal(ch)
+		
+		for signal := range ch {
+			switch signal.Name {
+			case "com.canonical.dbusmenu.LayoutUpdated":
+				log.Printf("Layout updated signal received")
+				// Refresh layout
+				newLayout, err := client.GetLayout()
+				if err != nil {
+					log.Printf("error refreshing layout after signal: %v", err)
+				} else {
+					newMenuItems := FlattenLayout(newLayout)
+					updateMsg := menu.Message{
+						Type: menu.MsgMenuUpdate,
+						Payload: menu.MessagePayload{
+							Menu: newMenuItems,
+						},
+					}
+					enc.Encode(updateMsg)
+				}
+			case "com.canonical.dbusmenu.ItemsPropertiesUpdated":
+				log.Printf("Items properties updated signal received")
+				// Could implement more granular updates here
+			}
+		}
+	}()
+
+	// Wait for panel to complete
 	kn.Wait()
+}
+
+func LaunchSubmenu(client *DBusMenuClient, x, y int, menuItems []menu.Item, parentId int32) {
+	maxHorizontalLength, maxVerticalLength := menu.MaxLengthLabel(menuItems)+4, len(menuItems)
+	
+	submenuPanel := CreatePanel(x, y, maxHorizontalLength, maxVerticalLength)
+	
+	sm := menu.GetManager()
+	sm.AddPanel(submenuPanel, x, y)
+	
+	defer func() {
+		sm.HandlePanelExit(submenuPanel)
+	}()
+	
+	enc := cbor.NewEncoder(submenuPanel.Writer())
+	msg := menu.Message{
+		Type: menu.MsgMenuUpdate,
+		Payload: menu.MessagePayload{
+			Menu: menuItems,
+		},
+	}
+	enc.Encode(msg) //initial payload
+	
+	go func() {
+		dec := cbor.NewDecoder(submenuPanel.Reader())
+		for {
+			var msg menu.Message
+			if err := dec.Decode(&msg); err != nil {
+				if err == io.EOF {
+					break
+				}
+				log.Printf("error decoding message from submenu panel: %v", err)
+				continue
+			}
+
+			switch msg.Type {
+			case menu.MsgItemClicked:
+				if msg.Payload.ItemId != 0 {
+					log.Printf("Submenu item clicked: %d", msg.Payload.ItemId)
+					err := client.SendEvent(msg.Payload.ItemId, "clicked", "")
+					if err != nil {
+						log.Printf("error sending clicked event: %v", err)
+					}
+					sm.CloseAllSubmenus()
+					return
+				}
+			case menu.MsgItemHovered:
+				if msg.Payload.ItemId != 0 {
+					log.Printf("Submenu item hovered: %d", msg.Payload.ItemId)
+					err := client.SendEvent(msg.Payload.ItemId, "hovered", "")
+					if err != nil {
+						log.Printf("error sending hovered event: %v", err)
+					}
+				}
+			case menu.MsgSubmenuRequested:
+				if msg.Payload.ItemId != 0 {
+					log.Printf("Nested submenu requested: %d", msg.Payload.ItemId)
+					needUpdate, err := client.AboutToShow(msg.Payload.ItemId)
+					if err != nil {
+						log.Printf("error calling AboutToShow: %v", err)
+					}
+					if needUpdate {
+					}
+					
+					nestedLayout, err := client.GetLayoutForParent(msg.Payload.ItemId)
+					if err != nil {
+						log.Printf("error getting nested submenu layout: %v", err)
+					} else if len(nestedLayout.Children) > 0 {
+						nestedItems := FlattenLayout(nestedLayout)
+						if len(nestedItems) > 0 {
+							nestedX, nestedY := sm.GetNextPosition()
+							go LaunchSubmenu(client, nestedX, nestedY, nestedItems, msg.Payload.ItemId)
+						}
+					}
+				}
+			}
+		}
+	}()
+	
+	submenuPanel.Wait()
 }
 
 func printLayout(l Layout, indent int) {
