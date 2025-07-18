@@ -27,7 +27,7 @@ import (
 
 var fgColor color.Color
 
-const hoverActivationTimeout = 300 * time.Millisecond
+const hoverActivationTimeout = 50 * time.Millisecond
 
 func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	dec := cbor.NewDecoder(rw)
@@ -50,7 +50,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	if err != nil {
 		return 1
 	}
-
+  
 	// query foreground color and store (used for rendering icon SVGs later)
 	c := vx.QueryForeground()
 	rgb := c.Params()
@@ -67,7 +67,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	var hoverTimer *time.Timer
 	var hoverItemId int32 = 0
 	var mouseOnSurface bool = false
-
+  k.Show()
 	for {
 		select {
 		case ev := <-screenEvents:

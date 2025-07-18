@@ -380,8 +380,9 @@ func CreatePanel(x, y, w, h int) *katnip.Panel {
 		Layer:       katnip.LayerTop,
 		FocusPolicy: katnip.FocusOnDemand,
 		ConfigFile:  "NONE",
+    StartAsHidden: true,
 		KittyOverrides: []string{
-			"font_size=14",
+			"font_size=12",
 			"cursor_trail=0",
 			"paste_actions=replace-dangerous-control-codes",
 			"map kitty_mod+equal       no_op",
