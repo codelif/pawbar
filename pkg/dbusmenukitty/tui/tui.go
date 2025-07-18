@@ -50,7 +50,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	if err != nil {
 		return 1
 	}
-  
+
 	// query foreground color and store (used for rendering icon SVGs later)
 	c := vx.QueryForeground()
 	rgb := c.Params()
@@ -67,7 +67,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	var hoverTimer *time.Timer
 	var hoverItemId int32 = 0
 	var mouseOnSurface bool = false
-  k.Show()
+	k.Show()
 	for {
 		select {
 		case ev := <-screenEvents:
@@ -86,22 +86,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 
 				switch ev.EventType {
 				case vaxis.EventLeave:
-					if mouseOnSurface {
-						// Send unhover event for last item
-						msg := menu.Message{
-							Type: menu.MsgItemHovered,
-							Payload: menu.MessagePayload{
-								ItemId: 0, // 0 means no item hovered
-							},
-						}
-						enc.Encode(msg)
-					}
 					mouseOnSurface = false
-
-					// if hoverTimer != nil {
-					// 	hoverTimer.Stop()
-					// 	hoverTimer = nil
-					// }
 				case vaxis.EventMotion:
 					mousePixelX, mousePixelY = ev.XPixel, ev.YPixel
 					if mouseY == ev.Row && mouseOnSurface {
@@ -117,36 +102,38 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 						hoverTimer = nil
 					}
 
+					if lastMouseY != -1 && lastMouseY != mouseY && hoverItemId != 0 {
+						msg := menu.Message{
+							Type: menu.MsgSubmenuCancelRequested,
+							Payload: menu.MessagePayload{
+								ItemId: hoverItemId,
+							},
+						}
+						enc.Encode(msg)
+						hoverItemId = 0
+					}
+
 					// Send hover event if row changed and is valid
 					if mouseY >= 0 && mouseY < len(menuItems) && menuItems[mouseY].Type != menu.ItemSeparator {
-						if lastMouseY != mouseY {
-							currentItem := menuItems[mouseY]
+						currentItem := menuItems[mouseY]
 
-							// Send cancellation for previous submenu if moving to different item
-							if lastMouseY != -1 && lastMouseY != mouseY {
-								msg := menu.Message{
-									Type: menu.MsgSubmenuCancelRequested,
-									Payload: menu.MessagePayload{
-										ItemId: hoverItemId,
-									},
-								}
-								enc.Encode(msg)
-							}
+						// Send hover event
+						msg := menu.Message{
+							Type: menu.MsgItemHovered,
+							Payload: menu.MessagePayload{
+								ItemId: currentItem.Id,
+							},
+						}
+						enc.Encode(msg)
+						lastMouseY = mouseY
 
-							// Send hover event
-							msg := menu.Message{
-								Type: menu.MsgItemHovered,
-								Payload: menu.MessagePayload{
-									ItemId: currentItem.Id,
-								},
-							}
-							enc.Encode(msg)
-							lastMouseY = mouseY
-
-							// Start hover timer for submenu items
-							if currentItem.HasChildren && currentItem.Enabled {
-								hoverItemId = currentItem.Id
-								hoverTimer = time.AfterFunc(hoverActivationTimeout, func() {
+						// Start hover timer for submenu items (only if different from last)
+						if currentItem.HasChildren && currentItem.Enabled && currentItem.Id != hoverItemId {
+							hoverItemId = currentItem.Id
+							capturedItemId := hoverItemId
+							hoverTimer = time.AfterFunc(hoverActivationTimeout, func() {
+								// Check if this timer is still valid (not cancelled)
+								if hoverItemId == capturedItemId {
 									msg := menu.Message{
 										Type: menu.MsgSubmenuRequested,
 										Payload: menu.MessagePayload{
@@ -156,16 +143,11 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 										},
 									}
 									enc.Encode(msg)
-									hoverTimer = nil
-								})
-							}
+								}
+							})
 						}
 					} else {
 						// Hovering over separator or invalid area - cancel submenu
-						if hoverTimer != nil {
-							hoverTimer.Stop()
-							hoverTimer = nil
-						}
 						if hoverItemId != 0 {
 							msg := menu.Message{
 								Type: menu.MsgSubmenuCancelRequested,
@@ -176,6 +158,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 							enc.Encode(msg)
 							hoverItemId = 0
 						}
+						lastMouseY = -1
 					}
 				case vaxis.EventPress:
 					if ev.Button != vaxis.MouseLeftButton {
@@ -257,17 +240,21 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 								// Start hover timer for submenu items
 								if currentItem.HasChildren && currentItem.Enabled {
 									hoverItemId = currentItem.Id
-									hoverTimer = time.AfterFunc(500*time.Millisecond, func() {
-										msg := menu.Message{
-											Type: menu.MsgSubmenuRequested,
-											Payload: menu.MessagePayload{
-												ItemId: currentItem.Id,
-												PixelX: mousePixelX,
-												PixelY: mousePixelY,
-											},
+									capturedItemId := currentItem.Id
+									hoverTimer = time.AfterFunc(hoverActivationTimeout, func() {
+										// Check if this timer is still valid (not cancelled)
+										if hoverItemId == capturedItemId {
+											msg := menu.Message{
+												Type: menu.MsgSubmenuRequested,
+												Payload: menu.MessagePayload{
+													ItemId: currentItem.Id,
+													PixelX: mousePixelX,
+													PixelY: mousePixelY,
+												},
+											}
+											enc.Encode(msg)
+											hoverTimer = nil
 										}
-										enc.Encode(msg)
-										hoverTimer = nil
 									})
 								}
 							}
@@ -304,17 +291,21 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 								// Start hover timer for submenu items
 								if currentItem.HasChildren && currentItem.Enabled {
 									hoverItemId = currentItem.Id
-									hoverTimer = time.AfterFunc(500*time.Millisecond, func() {
-										msg := menu.Message{
-											Type: menu.MsgSubmenuRequested,
-											Payload: menu.MessagePayload{
-												ItemId: currentItem.Id,
-												PixelX: mousePixelX,
-												PixelY: mousePixelY,
-											},
+									capturedItemId := currentItem.Id
+									hoverTimer = time.AfterFunc(hoverActivationTimeout, func() {
+										// Check if this timer is still valid (not cancelled)
+										if hoverItemId == capturedItemId {
+											msg := menu.Message{
+												Type: menu.MsgSubmenuRequested,
+												Payload: menu.MessagePayload{
+													ItemId: currentItem.Id,
+													PixelX: mousePixelX,
+													PixelY: mousePixelY,
+												},
+											}
+											enc.Encode(msg)
+											hoverTimer = nil
 										}
-										enc.Encode(msg)
-										hoverTimer = nil
 									})
 								}
 							}
