@@ -8,6 +8,7 @@ import (
 
 type MenuState struct {
 	items          []menu.Item
+	mouseX         int
 	mouseY         int
 	mousePixelX    int
 	mousePixelY    int
@@ -16,10 +17,13 @@ type MenuState struct {
 	mouseOnSurface bool
 	hoverTimer     *time.Timer
 	hoverItemId    int32
+	ppc            menu.PPC
+	size           menu.Size
 }
 
 func NewMenuState() *MenuState {
 	return &MenuState{
+		mouseX:      -1,
 		mouseY:      -1,
 		mousePixelX: -1,
 		mousePixelY: -1,

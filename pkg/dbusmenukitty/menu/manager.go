@@ -13,9 +13,6 @@ type MenuManager struct {
 	mutex     sync.RWMutex
 }
 
-type Position struct {
-	X, Y int
-}
 
 var globalManager = &MenuManager{}
 

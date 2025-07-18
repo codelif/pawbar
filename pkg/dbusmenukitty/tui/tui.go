@@ -1,20 +1,22 @@
 package tui
 
 import (
+	"fmt"
 	"image/color"
 	"io"
 	"time"
+
+	l "log"
 
 	"git.sr.ht/~rockorager/vaxis"
 	"git.sr.ht/~rockorager/vaxis/log"
 	"github.com/codelif/katnip"
 	"github.com/codelif/pawbar/pkg/dbusmenukitty/menu"
 	"github.com/fxamacker/cbor/v2"
-	l "log"
 )
 
 const (
-	hoverActivationTimeout = 50 * time.Millisecond
+	hoverActivationTimeout = 200 * time.Millisecond
 	iconSize               = 32
 	iconCellWidth          = 2
 	iconCellHeight         = 1
@@ -28,6 +30,7 @@ var (
 )
 
 func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
+	fmt.Printf("\x1b[?25l") // hide cursor early
 	dec := cbor.NewDecoder(rw)
 	enc := cbor.NewEncoder(rw)
 
@@ -64,7 +67,20 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 
 	win := vx.Window()
 	renderer := NewRenderer(win)
-	w, h := win.Size()
+
+	{
+    winSize := vx.Size()
+		state.size = menu.Size{
+			Cols:    winSize.Cols,
+			Rows:    winSize.Rows,
+			XPixels: winSize.XPixel,
+			YPixels: winSize.YPixel,
+		}
+		state.ppc = menu.PPC{
+			X: float64(winSize.XPixel) / float64(winSize.Cols),
+			Y: float64(winSize.YPixel) / float64(winSize.Rows),
+		}
+	}
 
 	k.Show()
 
@@ -79,8 +95,19 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 				win = vx.Window()
 				renderer = NewRenderer(win)
 				win.Clear()
-				w, h = win.Size()
-				log.Debug("dbusmenukitty: %d, %d\n", w, h)
+				state.size = menu.Size{
+					Cols:    ev.Cols,
+					Rows:    ev.Rows,
+					XPixels: ev.XPixel,
+					YPixels: ev.YPixel,
+				}
+
+				state.ppc = menu.PPC{
+					X: float64(ev.XPixel) / float64(ev.Cols),
+					Y: float64(ev.YPixel) / float64(ev.Rows),
+				}
+
+				log.Debug("dbusmenukitty: %d, %d\n", state.size.Cols, state.size.Rows)
 				renderer.drawMenu(state.items, state, true)
 				vx.Render()
 
@@ -92,7 +119,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 
 				case vaxis.EventMotion:
 					state.mousePixelX, state.mousePixelY = ev.XPixel, ev.YPixel
-					messageHandler.handleMouseMotion(ev.Row)
+					messageHandler.handleMouseMotion(ev.Col, ev.Row)
 
 				case vaxis.EventPress:
 					if ev.Button == vaxis.MouseLeftButton {
@@ -153,13 +180,13 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 				maxHorizontalLength := menu.MaxLengthLabel(state.items) + 4
 				maxVerticalLength := len(state.items)
 
-				log.Info("leaf: %d %d actual: %d %d\n", maxHorizontalLength, maxVerticalLength, w, h)
+				log.Info("leaf: %d %d actual: %d %d\n", maxHorizontalLength, maxVerticalLength, state.size.Cols, state.size.Rows)
 
 				win.Clear()
 				renderer.drawMenu(state.items, state, true)
 				vx.Render()
 
-				if w != maxHorizontalLength || h != maxVerticalLength {
+				if state.size.Cols != maxHorizontalLength || state.size.Rows != maxVerticalLength {
 					log.Info("resizing window to fit menu")
 					k.Resize(maxHorizontalLength, maxVerticalLength)
 					continue

@@ -238,7 +238,8 @@ func CreateMenuPanel(client *DBusMenuClient, x, y int, menuItems []menu.Item, pa
 						submenuItems := FlattenLayout(submenuLayout)
 						if len(submenuItems) > 0 {
 							sm.CloseAllSubmenus()
-							submenuX, submenuY := x+msg.Payload.PixelX+10, y+msg.Payload.PixelY
+							submenuX := x + msg.Payload.X - int(msg.Payload.State.PPC.X*float64(menu.MaxLengthLabel(submenuItems)+4))
+							submenuY := y + int(float64(msg.Payload.Y)*msg.Payload.State.PPC.Y)
 							// Launch submenu panel recursively this time instead bruh
 							go CreateMenuPanel(client, submenuX, submenuY, submenuItems, msg.Payload.ItemId)
 						}
@@ -374,16 +375,17 @@ func init() {
 
 func CreatePanel(x, y, w, h int) *katnip.Panel {
 	conf := katnip.Config{
-		Position:      katnip.Vector{X: x, Y: y},
-		Size:          katnip.Vector{X: w, Y: h},
-		Edge:          katnip.EdgeNone,
-		Layer:         katnip.LayerTop,
-		FocusPolicy:   katnip.FocusOnDemand,
-		ConfigFile:    "NONE",
-		StartAsHidden: true,
+		Position:    katnip.Vector{X: x, Y: y},
+		Size:        katnip.Vector{X: w, Y: h},
+		Edge:        katnip.EdgeNone,
+		Layer:       katnip.LayerTop,
+		FocusPolicy: katnip.FocusOnDemand,
+		ConfigFile:  "NONE",
 		KittyOverrides: []string{
-			"font_size=12",
+			"font_size=16",
 			"cursor_trail=0",
+			"cursor_shape=beam",
+			"cursor=#000000",
 			"paste_actions=replace-dangerous-control-codes",
 			"map kitty_mod+equal       no_op",
 			"map kitty_mod+plus        no_op",

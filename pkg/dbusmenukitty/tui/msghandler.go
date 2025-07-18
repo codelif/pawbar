@@ -24,8 +24,18 @@ func (h *MessageHandler) sendMessage(msgType menu.MessageType, itemId int32, pix
 		Type: msgType,
 		Payload: menu.MessagePayload{
 			ItemId: itemId,
-			PixelX: pixelX,
-			PixelY: pixelY,
+			X:      pixelX,
+			Y:      pixelY,
+			State: menu.State{
+				Position: menu.Position{
+					X:  h.state.mouseX,
+					Y:  h.state.mouseY,
+					PX: h.state.mousePixelX,
+					PY: h.state.mousePixelY,
+				},
+				Size: h.state.size,
+				PPC:  h.state.ppc,
+			},
 		},
 	}
 	h.encoder.Encode(msg)
@@ -54,7 +64,7 @@ func (h *MessageHandler) handleItemHover(item *menu.Item) {
 					h.state.mouseY == capturedMouseY &&
 					h.state.mouseOnSurface {
 					h.sendMessage(menu.MsgSubmenuRequested, item.Id,
-						h.state.mousePixelX, h.state.mousePixelY)
+						0, h.state.mouseY)
 				}
 			})
 		}
@@ -78,7 +88,9 @@ func (h *MessageHandler) handleItemClick(item *menu.Item) {
 	h.sendMessage(menu.MsgItemClicked, item.Id, 0, 0)
 }
 
-func (h *MessageHandler) handleMouseMotion(row int) {
+func (h *MessageHandler) handleMouseMotion(col, row int) {
+	h.state.mouseX = col
+
 	// If mouse hasn't actually moved to a different row, ignore
 	if h.state.mouseY == row && h.state.mouseOnSurface {
 		return

@@ -31,13 +31,29 @@ const (
 	MsgMenuClose
 )
 
+type Size struct {
+	Rows, Cols, XPixels, YPixels int
+}
+
+type Position struct {
+	X, Y, PX, PY int
+}
+
+type PPC struct {
+	X, Y float64
+}
+
+type State struct {
+	Size     Size
+	Position Position
+	PPC      PPC
+}
+
 type MessagePayload struct {
 	Menu   []Item
 	ItemId int32
-	MouseX int
-	MouseY int
-	PixelX int
-	PixelY int
+	State  State
+	X, Y   int // for other things
 }
 
 type Message struct {
