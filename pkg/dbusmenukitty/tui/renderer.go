@@ -56,7 +56,6 @@ func (r *Renderer) getItemStyle(item *menu.Item, row int, state *MenuState) vaxi
 }
 
 func (r *Renderer) renderIcon(item *menu.Item, row int, defaultColor color.Color) (prefixAdd string) {
-
 	var img image.Image
 	var err error
 

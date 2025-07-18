@@ -374,13 +374,13 @@ func init() {
 
 func CreatePanel(x, y, w, h int) *katnip.Panel {
 	conf := katnip.Config{
-		Position:    katnip.Vector{X: x, Y: y},
-		Size:        katnip.Vector{X: w, Y: h},
-		Edge:        katnip.EdgeNone,
-		Layer:       katnip.LayerTop,
-		FocusPolicy: katnip.FocusOnDemand,
-		ConfigFile:  "NONE",
-    StartAsHidden: true,
+		Position:      katnip.Vector{X: x, Y: y},
+		Size:          katnip.Vector{X: w, Y: h},
+		Edge:          katnip.EdgeNone,
+		Layer:         katnip.LayerTop,
+		FocusPolicy:   katnip.FocusOnDemand,
+		ConfigFile:    "NONE",
+		StartAsHidden: true,
 		KittyOverrides: []string{
 			"font_size=12",
 			"cursor_trail=0",

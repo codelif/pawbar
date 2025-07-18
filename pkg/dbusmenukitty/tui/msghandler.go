@@ -2,6 +2,7 @@ package tui
 
 import (
 	"time"
+
 	"github.com/codelif/pawbar/pkg/dbusmenukitty/menu"
 	"github.com/fxamacker/cbor/v2"
 )
@@ -33,7 +34,7 @@ func (h *MessageHandler) sendMessage(msgType menu.MessageType, itemId int32, pix
 func (h *MessageHandler) handleItemHover(item *menu.Item) {
 	h.sendMessage(menu.MsgItemHovered, item.Id, 0, 0)
 	h.state.lastMouseY = h.state.mouseY
-	
+
 	// Only start timer for submenu items that don't already have an active timer
 	if item.HasChildren && item.Enabled {
 		// Only set new timer if this is a different item or no timer is active
@@ -42,17 +43,17 @@ func (h *MessageHandler) handleItemHover(item *menu.Item) {
 			if h.state.hoverItemId != 0 {
 				h.handleSubmenuCancel()
 			}
-			
+
 			h.state.hoverItemId = item.Id
 			capturedItemId := item.Id
 			capturedMouseY := h.state.mouseY
-			
+
 			h.state.hoverTimer = time.AfterFunc(hoverActivationTimeout, func() {
 				// Only proceed if we're still hovering the same item at same position
-				if h.state.hoverItemId == capturedItemId && 
-				   h.state.mouseY == capturedMouseY && 
-				   h.state.mouseOnSurface {
-					h.sendMessage(menu.MsgSubmenuRequested, item.Id, 
+				if h.state.hoverItemId == capturedItemId &&
+					h.state.mouseY == capturedMouseY &&
+					h.state.mouseOnSurface {
+					h.sendMessage(menu.MsgSubmenuRequested, item.Id,
 						h.state.mousePixelX, h.state.mousePixelY)
 				}
 			})
@@ -82,14 +83,14 @@ func (h *MessageHandler) handleMouseMotion(row int) {
 	if h.state.mouseY == row && h.state.mouseOnSurface {
 		return
 	}
-	
+
 	prevMouseY := h.state.mouseY
 	h.state.mouseOnSurface = true
 	h.state.mouseY = row
-	
+
 	// Cancel any pending timer (but keep hoverItemId for submenu tracking)
 	h.state.cancelHoverTimer()
-	
+
 	// If we moved to a different item, handle the transition
 	if prevMouseY != row {
 		// Handle hover for valid items
@@ -109,7 +110,7 @@ func (h *MessageHandler) handleKeyNavigation(keyPressed bool) {
 	if !keyPressed || !h.state.isValidItemIndex(h.state.mouseY) {
 		return
 	}
-	
+
 	h.state.cancelHoverTimer()
 	currentItem := &h.state.items[h.state.mouseY]
 	h.handleItemHover(currentItem)
