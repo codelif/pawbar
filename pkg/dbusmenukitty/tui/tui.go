@@ -1,41 +1,42 @@
 package tui
 
 import (
-	"bytes"
-	"fmt"
-	"image"
 	"image/color"
-	"image/png"
 	"io"
-	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
 	"git.sr.ht/~rockorager/vaxis/log"
-	"github.com/codelif/gorsvg"
 	"github.com/codelif/katnip"
 	"github.com/codelif/pawbar/pkg/dbusmenukitty/menu"
-	"github.com/codelif/xdgicons"
-	"github.com/codelif/xdgicons/missing"
 	"github.com/fxamacker/cbor/v2"
-	"golang.org/x/image/colornames"
-
 	l "log"
 )
 
-var fgColor color.Color
+const (
+	hoverActivationTimeout = 50 * time.Millisecond
+	iconSize               = 32
+	iconCellWidth          = 2
+	iconCellHeight         = 1
+	menuPadding            = 2
+	iconSpacing            = 2
+)
 
-const hoverActivationTimeout = 50 * time.Millisecond
+var (
+	fgColor    color.Color
+	arrowHeads = []rune{'◄', '►'}
+)
 
 func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	dec := cbor.NewDecoder(rw)
 	enc := cbor.NewEncoder(rw)
-	l.SetOutput(io.Discard)
 
+	// Disable logging
+	l.SetOutput(io.Discard)
 	log.SetOutput(io.Discard)
 	log.SetLevel(log.LevelInfo)
+
+	// Setup message queue
 	msgQueue := make(chan menu.Message, 10)
 	go func() {
 		var msg menu.Message
@@ -46,451 +47,124 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 		}
 	}()
 
+	// Initialize vaxis
 	vx, err := vaxis.New(vaxis.Options{EnableSGRPixels: true})
 	if err != nil {
 		return 1
 	}
 
-	// query foreground color and store (used for rendering icon SVGs later)
+	// Query and store foreground color for icon rendering
 	c := vx.QueryForeground()
 	rgb := c.Params()
 	fgColor = color.RGBA{rgb[0], rgb[1], rgb[2], 255}
 
+	// Initialize state and handlers
+	state := NewMenuState()
+	messageHandler := NewMessageHandler(enc, state)
+
 	win := vx.Window()
+	renderer := NewRenderer(win)
 	w, h := win.Size()
-	mouseY := -1
-	mousePixelX, mousePixelY := -1, -1
-	lastMouseY := -1
-	mousePressed := false
-	screenEvents := vx.Events()
-	var menuItems []menu.Item
-	var hoverTimer *time.Timer
-	var hoverItemId int32 = 0
-	var mouseOnSurface bool = false
+
 	k.Show()
+
 	for {
 		select {
-		case ev := <-screenEvents:
+		case ev := <-vx.Events():
 			switch ev := ev.(type) {
 			case vaxis.Redraw:
 				vx.Render()
+
 			case vaxis.Resize:
 				win = vx.Window()
+				renderer = NewRenderer(win)
 				win.Clear()
 				w, h = win.Size()
 				log.Debug("dbusmenukitty: %d, %d\n", w, h)
-				draw(win, menuItems, mouseY, mouseOnSurface, mousePressed)
+				renderer.drawMenu(state.items, state, true)
 				vx.Render()
+
 			case vaxis.Mouse:
 				l.Printf("%#v\n", ev)
-
 				switch ev.EventType {
 				case vaxis.EventLeave:
-					mouseOnSurface = false
+					state.mouseOnSurface = false
+
 				case vaxis.EventMotion:
-					mousePixelX, mousePixelY = ev.XPixel, ev.YPixel
-					if mouseY == ev.Row && mouseOnSurface {
-						continue
-					}
+					state.mousePixelX, state.mousePixelY = ev.XPixel, ev.YPixel
+					messageHandler.handleMouseMotion(ev.Row)
 
-					mouseOnSurface = true
-					mouseY = ev.Row
-
-					// Cancel any pending hover timer when moving to different item
-					if hoverTimer != nil {
-						hoverTimer.Stop()
-						hoverTimer = nil
-					}
-
-					if lastMouseY != -1 && lastMouseY != mouseY && hoverItemId != 0 {
-						msg := menu.Message{
-							Type: menu.MsgSubmenuCancelRequested,
-							Payload: menu.MessagePayload{
-								ItemId: hoverItemId,
-							},
-						}
-						enc.Encode(msg)
-						hoverItemId = 0
-					}
-
-					// Send hover event if row changed and is valid
-					if mouseY >= 0 && mouseY < len(menuItems) && menuItems[mouseY].Type != menu.ItemSeparator {
-						currentItem := menuItems[mouseY]
-
-						// Send hover event
-						msg := menu.Message{
-							Type: menu.MsgItemHovered,
-							Payload: menu.MessagePayload{
-								ItemId: currentItem.Id,
-							},
-						}
-						enc.Encode(msg)
-						lastMouseY = mouseY
-
-						// Start hover timer for submenu items (only if different from last)
-						if currentItem.HasChildren && currentItem.Enabled && currentItem.Id != hoverItemId {
-							hoverItemId = currentItem.Id
-							capturedItemId := hoverItemId
-							hoverTimer = time.AfterFunc(hoverActivationTimeout, func() {
-								// Check if this timer is still valid (not cancelled)
-								if hoverItemId == capturedItemId {
-									msg := menu.Message{
-										Type: menu.MsgSubmenuRequested,
-										Payload: menu.MessagePayload{
-											ItemId: currentItem.Id,
-											PixelX: mousePixelX,
-											PixelY: mousePixelY,
-										},
-									}
-									enc.Encode(msg)
-								}
-							})
-						}
-					} else {
-						// Hovering over separator or invalid area - cancel submenu
-						if hoverItemId != 0 {
-							msg := menu.Message{
-								Type: menu.MsgSubmenuCancelRequested,
-								Payload: menu.MessagePayload{
-									ItemId: hoverItemId,
-								},
-							}
-							enc.Encode(msg)
-							hoverItemId = 0
-						}
-						lastMouseY = -1
-					}
 				case vaxis.EventPress:
-					if ev.Button != vaxis.MouseLeftButton {
-						continue
+					if ev.Button == vaxis.MouseLeftButton {
+						state.mousePressed = true
 					}
-					mousePressed = true
+
 				case vaxis.EventRelease:
-					if ev.Button != vaxis.MouseLeftButton {
-						continue
-					}
-					mousePressed = false
-
-					// Send click event if on valid item
-					if mouseY >= 0 && mouseY < len(menuItems) && menuItems[mouseY].Type != menu.ItemSeparator && menuItems[mouseY].Enabled {
-						item := menuItems[mouseY]
-
-						// Send click event for both regular items and items with children
-						msg := menu.Message{
-							Type: menu.MsgItemClicked,
-							Payload: menu.MessagePayload{
-								ItemId: item.Id,
-							},
+					if ev.Button == vaxis.MouseLeftButton {
+						state.mousePressed = false
+						if state.isSelectableItem(state.mouseY) {
+							messageHandler.handleItemClick(&state.items[state.mouseY])
 						}
-						enc.Encode(msg)
 					}
-				default:
-					continue
 				}
 
-				drawFast(win, menuItems, mouseY, mouseOnSurface, mousePressed) // renders only text
+				renderer.drawMenu(state.items, state, false) // Fast draw (text only)
 				vx.Render()
+
 			case vaxis.Key:
-				switch ev.EventType {
-				case vaxis.EventPress:
+				if ev.EventType == vaxis.EventPress {
 					switch ev.Keycode {
-					case vaxis.KeyEsc:
+					case vaxis.KeyEsc, vaxis.KeyLeft:
 						return 0
-					case vaxis.KeyLeft:
-						return 0
+
 					case vaxis.KeyEnter:
-						if mouseY >= 0 && mouseY < len(menuItems) && menuItems[mouseY].Type != menu.ItemSeparator && menuItems[mouseY].Enabled {
-							item := menuItems[mouseY]
-
-							msg := menu.Message{
-								Type: menu.MsgItemClicked,
-								Payload: menu.MessagePayload{
-									ItemId: item.Id,
-								},
-							}
-							enc.Encode(msg)
+						if state.isSelectableItem(state.mouseY) {
+							messageHandler.handleItemClick(&state.items[state.mouseY])
 						}
+
 					case vaxis.KeyUp:
-						if mouseY > 0 {
-							mouseY--
-							for mouseY > 0 && menuItems[mouseY].Type == menu.ItemSeparator {
-								mouseY--
-							}
-							drawFast(win, menuItems, mouseY, mouseOnSurface, mousePressed)
-							vx.Render()
+						state.navigateUp()
+						messageHandler.handleKeyNavigation(true)
+						renderer.drawMenu(state.items, state, false)
+						vx.Render()
 
-							// Send hover event
-							if mouseY >= 0 && mouseY < len(menuItems) {
-								// Cancel previous hover timer
-								if hoverTimer != nil {
-									hoverTimer.Stop()
-									hoverTimer = nil
-								}
-
-								currentItem := menuItems[mouseY]
-								msg := menu.Message{
-									Type: menu.MsgItemHovered,
-									Payload: menu.MessagePayload{
-										ItemId: currentItem.Id,
-									},
-								}
-								enc.Encode(msg)
-								lastMouseY = mouseY
-
-								// Start hover timer for submenu items
-								if currentItem.HasChildren && currentItem.Enabled {
-									hoverItemId = currentItem.Id
-									capturedItemId := currentItem.Id
-									hoverTimer = time.AfterFunc(hoverActivationTimeout, func() {
-										// Check if this timer is still valid (not cancelled)
-										if hoverItemId == capturedItemId {
-											msg := menu.Message{
-												Type: menu.MsgSubmenuRequested,
-												Payload: menu.MessagePayload{
-													ItemId: currentItem.Id,
-													PixelX: mousePixelX,
-													PixelY: mousePixelY,
-												},
-											}
-											enc.Encode(msg)
-											hoverTimer = nil
-										}
-									})
-								}
-							}
-						}
 					case vaxis.KeyDown:
-						// Navigate down
-						if mouseY < len(menuItems)-1 {
-							mouseY++
-							// Skip separators
-							for mouseY < len(menuItems)-1 && menuItems[mouseY].Type == menu.ItemSeparator {
-								mouseY++
-							}
-							drawFast(win, menuItems, mouseY, mouseOnSurface, mousePressed)
-							vx.Render()
+						state.navigateDown()
+						messageHandler.handleKeyNavigation(true)
+						renderer.drawMenu(state.items, state, false)
+						vx.Render()
 
-							// Send hover event
-							if mouseY >= 0 && mouseY < len(menuItems) {
-								// Cancel previous hover timer
-								if hoverTimer != nil {
-									hoverTimer.Stop()
-									hoverTimer = nil
-								}
-
-								currentItem := menuItems[mouseY]
-								msg := menu.Message{
-									Type: menu.MsgItemHovered,
-									Payload: menu.MessagePayload{
-										ItemId: currentItem.Id,
-									},
-								}
-								enc.Encode(msg)
-								lastMouseY = mouseY
-
-								// Start hover timer for submenu items
-								if currentItem.HasChildren && currentItem.Enabled {
-									hoverItemId = currentItem.Id
-									capturedItemId := currentItem.Id
-									hoverTimer = time.AfterFunc(hoverActivationTimeout, func() {
-										// Check if this timer is still valid (not cancelled)
-										if hoverItemId == capturedItemId {
-											msg := menu.Message{
-												Type: menu.MsgSubmenuRequested,
-												Payload: menu.MessagePayload{
-													ItemId: currentItem.Id,
-													PixelX: mousePixelX,
-													PixelY: mousePixelY,
-												},
-											}
-											enc.Encode(msg)
-											hoverTimer = nil
-										}
-									})
-								}
-							}
-						}
 					case vaxis.KeyRight:
-						// Open submenu if current item has children
-						if mouseY >= 0 && mouseY < len(menuItems) && menuItems[mouseY].HasChildren && menuItems[mouseY].Enabled {
-							item := menuItems[mouseY]
-							msg := menu.Message{
-								Type: menu.MsgSubmenuRequested,
-								Payload: menu.MessagePayload{
-									ItemId: item.Id,
-									PixelX: mousePixelX,
-									PixelY: mousePixelY,
-								},
-							}
-							enc.Encode(msg)
+						if item := state.getCurrentItem(); item != nil && item.HasChildren && item.Enabled {
+							messageHandler.sendMessage(menu.MsgSubmenuRequested, item.Id,
+								state.mousePixelX, state.mousePixelY)
 						}
 					}
 				}
 			}
+
 		case msg := <-msgQueue:
 			switch msg.Type {
 			case menu.MsgMenuClose:
 				return 0
+
 			case menu.MsgMenuUpdate:
-				menuItems = msg.Payload.Menu
-				maxHorizontalLength := menu.MaxLengthLabel(menuItems) + 4
-				maxVerticalLength := len(menuItems)
+				state.items = msg.Payload.Menu
+				maxHorizontalLength := menu.MaxLengthLabel(state.items) + 4
+				maxVerticalLength := len(state.items)
+
 				log.Info("leaf: %d %d actual: %d %d\n", maxHorizontalLength, maxVerticalLength, w, h)
 
 				win.Clear()
-				draw(win, menuItems, mouseY, mouseOnSurface, mousePressed)
+				renderer.drawMenu(state.items, state, true)
 				vx.Render()
 
 				if w != maxHorizontalLength || h != maxVerticalLength {
-					log.Info("i am here but I shouldn't be")
+					log.Info("resizing window to fit menu")
 					k.Resize(maxHorizontalLength, maxVerticalLength)
 					continue
 				}
 			}
 		}
 	}
-	return 1
-}
-
-func drawFast(win vaxis.Window, items []menu.Item, mouseY int, mouseOnSurface bool, mousePressed bool) {
-	arrowHeads := []rune{'◄', '►'}
-	w, _ := win.Size()
-
-	for i, v := range items {
-		if v.Type != menu.ItemSeparator {
-			var style vaxis.Style
-			prefix := "  "
-			suffix := prefix
-
-			if i == mouseY && mouseOnSurface {
-				if mousePressed {
-					style.Background = vaxis.ColorBlue
-				} else {
-					style.Background = vaxis.ColorGray
-				}
-			}
-
-			if !v.Enabled {
-				style.Background = 0
-				style.Attribute |= vaxis.AttrDim
-			}
-			if v.HasChildren {
-				prefix = string(arrowHeads[0]) + string(prefix[1])
-			}
-
-			if v.IconData != nil {
-				prefix += "  "
-			} else if v.IconName != "" {
-				prefix += "  "
-			}
-
-			win.Println(i, vaxis.Segment{Text: strings.Repeat(" ", w), Style: style})
-			win.Println(i, vaxis.Segment{Text: prefix + v.Label.Display + suffix, Style: style})
-		}
-	}
-}
-
-func draw(win vaxis.Window, items []menu.Item, mouseY int, mouseOnSurface bool, mousePressed bool) {
-	w, _ := win.Size()
-	arrowHeads := []rune{'◄', '►'}
-	for i, v := range items {
-		if v.Type == menu.ItemSeparator {
-			w, _ := win.Size()
-			win.Println(i, vaxis.Segment{
-				Text:  strings.Repeat("─", w),
-				Style: vaxis.Style{Attribute: vaxis.AttrDim},
-			})
-		} else {
-			var style vaxis.Style
-			defaultColor := fgColor
-			prefix := "  "
-			suffix := prefix
-
-			if i == mouseY && mouseOnSurface {
-				if mousePressed {
-					style.Background = vaxis.ColorBlue
-				} else {
-					style.Background = vaxis.ColorGray
-				}
-			}
-
-			if !v.Enabled {
-				style.Background = 0
-				style.Attribute |= vaxis.AttrDim
-				defaultColor = colornames.Gray
-			}
-			if v.HasChildren {
-				prefix = string(arrowHeads[0]) + string(prefix[1])
-			}
-
-			if v.IconData != nil {
-				img, err := png.Decode(bytes.NewReader(v.IconData))
-				if err != nil {
-					log.Trace("png decode error:", err)
-					img = missing.GenerateMissingIconBroken(32, defaultColor)
-				}
-
-				kimg := win.Vx.NewKittyGraphic(img)
-				kimg.Resize(2, 1)
-				iw, ih := kimg.CellSize()
-				log.Trace("kitty image size: %d, %d", iw, ih)
-				kimg.Draw(win.New(2, i, iw, ih))
-				prefix += "  "
-			} else if v.IconName != "" {
-				img, err := renderIcon(v.Icon, defaultColor)
-				if err != nil {
-					img = missing.GenerateMissingIcon(32, defaultColor)
-				}
-
-				kimg := win.Vx.NewKittyGraphic(img)
-				kimg.Resize(2, 1)
-				iw, ih := kimg.CellSize()
-				log.Trace("kitty image size: %d, %d", iw, ih)
-				kimg.Draw(win.New(2, i, iw, ih))
-				prefix += "  "
-			}
-			win.Println(i, vaxis.Segment{Text: strings.Repeat(" ", w), Style: style})
-			win.Println(i, vaxis.Segment{Text: prefix + v.Label.Display + suffix, Style: style})
-		}
-	}
-}
-
-func renderIcon(icon xdgicons.Icon, c color.Color) (img image.Image, err error) {
-	l.Printf("%v\n", icon)
-	if icon.Path == "" {
-		return nil, fmt.Errorf("no file path")
-	}
-	isSymbolic := strings.HasSuffix(icon.Name, "-symbolic")
-
-	ext := strings.ToLower(filepath.Ext(icon.Path))
-	switch ext {
-	case ".svg":
-		px := 48
-		f, err := os.Open(icon.Path)
-		if err != nil {
-			return nil, fmt.Errorf("error opening png file: %w", err)
-		}
-
-		if isSymbolic {
-			img, err = gorsvg.DecodeWithColor(f, px, px, c)
-		} else {
-			img, err = gorsvg.Decode(f, px, px)
-		}
-		if err != nil {
-			return nil, fmt.Errorf("error rendering svg: %w", err)
-		}
-	case ".png":
-		f, err := os.Open(icon.Path)
-		if err != nil {
-			return nil, fmt.Errorf("error opening png file: %w", err)
-		}
-		img, err = png.Decode(f)
-		if err != nil {
-			return nil, fmt.Errorf("error decoding png: %w", err)
-		}
-	default:
-		return nil, fmt.Errorf("no supported image files")
-	}
-
-	return img, nil
 }
