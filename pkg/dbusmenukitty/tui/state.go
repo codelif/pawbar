@@ -2,7 +2,6 @@ package tui
 
 import (
 	"time"
-
 	"github.com/codelif/pawbar/pkg/dbusmenukitty/menu"
 )
 
@@ -24,6 +23,7 @@ func NewMenuState() *MenuState {
 		mousePixelX: -1,
 		mousePixelY: -1,
 		lastMouseY:  -1,
+		hoverItemId: 0,
 	}
 }
 
@@ -32,6 +32,7 @@ func (m *MenuState) cancelHoverTimer() {
 		m.hoverTimer.Stop()
 		m.hoverTimer = nil
 	}
+	// Don't clear hoverItemId here - it's needed to track active submenus
 }
 
 func (m *MenuState) isValidItemIndex(index int) bool {
@@ -42,6 +43,7 @@ func (m *MenuState) isSelectableItem(index int) bool {
 	return m.isValidItemIndex(index) &&
 		m.items[index].Type != menu.ItemSeparator &&
 		m.items[index].Enabled
+    // !m.items[index].HasChildren
 }
 
 func (m *MenuState) getCurrentItem() *menu.Item {
@@ -52,6 +54,9 @@ func (m *MenuState) getCurrentItem() *menu.Item {
 }
 
 func (m *MenuState) navigateUp() {
+	// Cancel any pending hover when navigating
+	m.cancelHoverTimer()
+	
 	if m.mouseY > 0 {
 		m.mouseY--
 		// Skip separators
@@ -62,6 +67,9 @@ func (m *MenuState) navigateUp() {
 }
 
 func (m *MenuState) navigateDown() {
+	// Cancel any pending hover when navigating
+	m.cancelHoverTimer()
+	
 	if m.mouseY < len(m.items)-1 {
 		m.mouseY++
 		// Skip separators
