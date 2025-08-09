@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/codelif/pawbar/internal/services"
+	"github.com/codelif/pulseaudio"
 )
 
 func Register() (*PulseService, bool) {
@@ -23,6 +24,13 @@ type PulseService struct {
 	running   bool
 	exit      chan bool
 	listeners []chan<- SinkEvent
+	client    *pulseaudio.Client
+}
+
+type SinkEvent struct {
+	Sink   string
+	Volume float64
+	Muted  bool
 }
 
 func (p *PulseService) Name() string { return "pulse" }
@@ -39,12 +47,13 @@ func (p *PulseService) Start() error {
 		return nil
 	}
 
-	err := init_pulse()
+	client, err := pulseaudio.NewClient("")
 	if err != nil {
 		return err
 	}
+	p.client = client
 
-	events, err := monitor()
+	events, err := client.Events()
 	if err != nil {
 		return err
 	}
@@ -56,17 +65,47 @@ func (p *PulseService) Start() error {
 		for p.running {
 			select {
 			case e := <-events:
-				for _, ch := range p.listeners {
-					ch <- e
+				if e.Op == pulseaudio.EvChange && (e.Facility == pulseaudio.EvSink || e.Facility == pulseaudio.EvSource) {
+					sink, err := p.GetDefaultSinkInfo()
+					if err != nil {
+						continue
+					}
+					for _, ch := range p.listeners {
+						ch <- sink
+					}
 				}
 			case <-p.exit:
 				p.running = false
-				break
 			}
 		}
 	}()
 
 	return nil
+}
+
+func (p *PulseService) GetDefaultSink() (pulseaudio.Sink, error) {
+	if !p.running {
+		return pulseaudio.Sink{}, fmt.Errorf("pulse service not running")
+	}
+	serverInfo, err := p.client.ServerInfo()
+	if err != nil {
+		return pulseaudio.Sink{}, err
+	}
+
+	sinks, err := p.client.Sinks()
+	if err != nil {
+		return pulseaudio.Sink{}, err
+	}
+
+	for _, sink := range sinks {
+		if sink.Name != serverInfo.DefaultSink {
+			continue
+		}
+
+		return sink, nil
+	}
+
+	return pulseaudio.Sink{}, fmt.Errorf("default sink '%s' not found", serverInfo.DefaultSink)
 }
 
 func (p *PulseService) Stop() error {
@@ -84,32 +123,33 @@ func (p *PulseService) Stop() error {
 	return nil
 }
 
-func (p *PulseService) GetSinkInfo(sink string) (SinkInfo, error) {
+func (p *PulseService) GetDefaultSinkInfo() (SinkEvent, error) {
 	if !p.running {
-		return SinkInfo{}, fmt.Errorf("pulse service not running")
+		return SinkEvent{}, fmt.Errorf("pulse service not running")
 	}
 
-	return getSinkInfo(sink)
-}
-
-func (p *PulseService) GetDefaultSink() (string, error) {
-	if !p.running {
-		return "", fmt.Errorf("pulse service not running")
+	sink, err := p.GetDefaultSink()
+	if err != nil {
+		return SinkEvent{}, err
 	}
 
-	return getDefaultSink()
+	return SinkEvent{
+		Sink:   sink.Name,
+		Volume: float64(float32(sink.Cvolume[0])/0xffff) * 100,
+		Muted:  sink.Muted,
+	}, nil
 }
 
 func (p *PulseService) SetSinkVolume(sink string, volume float64) error {
 	if !p.running {
 		return fmt.Errorf("pulse service not running")
 	}
-	return setVolume(sink, volume)
+	return p.SetSinkVolume(sink, volume)
 }
 
 func (p *PulseService) SetSinkMute(sink string, mute bool) error {
 	if !p.running {
 		return fmt.Errorf("pulse service not running")
 	}
-	return setMute(sink, mute)
+	return p.SetSinkMute(sink, mute)
 }

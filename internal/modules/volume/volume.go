@@ -44,19 +44,15 @@ func (mod *VolumeModule) Run() (<-chan bool, chan<- modules.Event, error) {
 		return nil, nil, err
 	}
 
-	sinkName, err := svc.GetDefaultSink()
-	if err != nil {
-		return nil, nil, err
-	}
-	info, err := svc.GetSinkInfo(sinkName)
+	sink, err := svc.GetDefaultSinkInfo()
 	if err != nil {
 		return nil, nil, err
 	}
 
 	mod.svc = svc
-	mod.sink = sinkName
-	mod.Volume = info.Volume
-	mod.Muted = info.Muted
+	mod.sink = sink.Sink
+	mod.Volume = sink.Volume
+	mod.Muted = sink.Muted
 
 	mod.receive = make(chan bool)
 	mod.send = make(chan modules.Event)

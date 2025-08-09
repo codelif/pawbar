@@ -23,6 +23,7 @@ require (
 )
 
 require (
+	github.com/codelif/pulseaudio v1.0.0 // indirect
 	github.com/codelif/shmstream v0.0.0-20250707213419-52bb1dd21b7b // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
