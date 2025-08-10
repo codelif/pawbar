@@ -84,9 +84,6 @@ func (mod *VolumeModule) Run() (<-chan bool, chan<- modules.Event, error) {
 				}
 
 			case e := <-mod.events:
-				if e.Sink != mod.sink {
-					continue
-				}
 				mod.Volume = e.Volume
 				mod.Muted = e.Muted
 				mod.receive <- true
