@@ -9,7 +9,7 @@ require (
 	git.sr.ht/~rockorager/vaxis v0.14.0
 	github.com/Wifx/gonetworkmanager/v3 v3.2.0
 	github.com/codelif/gorsvg v0.1.1
-	github.com/codelif/katnip v0.0.0-20250717050314-424507f1e469
+	github.com/codelif/katnip v0.0.1
 	github.com/codelif/xdgicons v0.3.1
 	github.com/fxamacker/cbor/v2 v2.8.0
 	github.com/godbus/dbus/v5 v5.1.0
