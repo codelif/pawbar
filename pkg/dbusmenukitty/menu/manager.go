@@ -13,7 +13,6 @@ type MenuManager struct {
 	mutex     sync.RWMutex
 }
 
-
 var globalManager = &MenuManager{}
 
 func GetManager() *MenuManager {
@@ -57,11 +56,29 @@ func (sm *MenuManager) CloseAllSubmenus() {
 			}
 			enc := cbor.NewEncoder(sm.panels[i].Writer())
 			enc.Encode(closeMsg)
-			// sm.panels[i].Stop()
+			sm.panels[i].Stop()
 		}
 		sm.panels = sm.panels[:1]
 		sm.positions = sm.positions[:1]
 	}
+}
+
+func (sm *MenuManager) CloseAllMenus() {
+
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	for _, p := range sm.panels {
+		closeMsg := Message{
+			Type:    MsgMenuClose,
+			Payload: MessagePayload{},
+		}
+		enc := cbor.NewEncoder(p.Writer())
+		enc.Encode(closeMsg)
+		p.Stop()
+	}
+	sm.panels = nil
+	sm.positions = nil
 }
 
 func (sm *MenuManager) GetNextPosition() (int, int) {

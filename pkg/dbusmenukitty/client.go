@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/codelif/katnip"
+	"github.com/codelif/pawbar/internal/utils"
 	"github.com/codelif/pawbar/pkg/dbusmenukitty/menu"
 	"github.com/codelif/pawbar/pkg/dbusmenukitty/tui"
 	"github.com/codelif/xdgicons"
@@ -105,7 +106,7 @@ func LaunchMenu(x, y int) {
 	// Get status
 	var status string
 	client.obj.StoreProperty("com.canonical.dbusmenu.Status", &status)
-	fmt.Printf("Status: %s\n", status)
+	utils.Logger.Printf("Status: %s\n", status)
 
 	// Get initial layout
 	layout, err := client.GetLayout()
@@ -113,8 +114,8 @@ func LaunchMenu(x, y int) {
 		log.Fatalf("error getting layout: %v", err)
 	}
 
-	fmt.Printf("Layout retrieved\n")
-	printLayout(layout, 0)
+	utils.Logger.Printf("Layout retrieved\n")
+	// printLayout(layout, 0)
 
 	menuItems := FlattenLayout(layout)
 
@@ -123,7 +124,7 @@ func LaunchMenu(x, y int) {
 
 func CreateMenuPanel(client *DBusMenuClient, x, y int, menuItems []menu.Item, parentId int32) {
 	maxHorizontalLength, maxVerticalLength := menu.MaxLengthLabel(menuItems)+4, len(menuItems)
-	fmt.Printf("%d, %d\n", maxHorizontalLength, maxVerticalLength)
+	utils.Logger.Printf("%d, %d\n", maxHorizontalLength, maxVerticalLength)
 
 	kn := CreatePanel(x, y, maxHorizontalLength, maxVerticalLength)
 
@@ -156,22 +157,15 @@ func CreateMenuPanel(client *DBusMenuClient, x, y int, menuItems []menu.Item, pa
 				if err == io.EOF {
 					break
 				}
-				log.Printf("error decoding message from panel: %v", err)
+				utils.Logger.Printf("error decoding message from panel: %v", err)
 				continue
 			}
 
 			switch msg.Type {
 			case menu.MsgItemClicked:
-				if msg.Payload.ItemId != 0 {
-					log.Printf("Item clicked: %d", msg.Payload.ItemId)
-
-					err := client.SendEvent(msg.Payload.ItemId, "clicked", "")
-					if err != nil {
-						log.Printf("error sending clicked event: %v", err)
-					}
-
-					// close on click
-					sm.CloseAllSubmenus()
+				if msg.Payload.ItemId == -1 {
+					utils.Logger.Printf("Clicked outside: %d", msg.Payload.ItemId)
+					sm.CloseAllMenus()
 					closeMsg := menu.Message{
 						Type:    menu.MsgMenuClose,
 						Payload: menu.MessagePayload{},
@@ -179,17 +173,34 @@ func CreateMenuPanel(client *DBusMenuClient, x, y int, menuItems []menu.Item, pa
 					enc.Encode(closeMsg)
 					return
 				}
+				if msg.Payload.ItemId != 0 {
+					utils.Logger.Printf("Item clicked: %d", msg.Payload.ItemId)
+
+					err := client.SendEvent(msg.Payload.ItemId, "clicked", "")
+					if err != nil {
+						utils.Logger.Printf("error sending clicked event: %v", err)
+					}
+
+					sm.CloseAllMenus()
+					closeMsg := menu.Message{
+						Type:    menu.MsgMenuClose,
+						Payload: menu.MessagePayload{},
+					}
+					enc.Encode(closeMsg)
+					return
+				}
+
 			case menu.MsgItemHovered:
 				if msg.Payload.ItemId != 0 {
-					log.Printf("Item hovered: %d", msg.Payload.ItemId)
+					utils.Logger.Printf("Item hovered: %d", msg.Payload.ItemId)
 					err := client.SendEvent(msg.Payload.ItemId, "hovered", "")
 					if err != nil {
-						log.Printf("error sending hovered event: %v", err)
+						utils.Logger.Printf("error sending hovered event: %v", err)
 					}
 				}
 			case menu.MsgSubmenuCancelRequested:
 				if msg.Payload.ItemId != 0 {
-					log.Printf("Submenu cancel requested: %d", msg.Payload.ItemId)
+					utils.Logger.Printf("Submenu cancel requested: %d", msg.Payload.ItemId)
 
 					if submenuPanel, exists := activeSubmenus[msg.Payload.ItemId]; exists {
 						cbor.NewEncoder(submenuPanel.Writer()).Encode(menu.Message{Type: menu.MsgMenuClose})
@@ -201,7 +212,7 @@ func CreateMenuPanel(client *DBusMenuClient, x, y int, menuItems []menu.Item, pa
 				}
 			case menu.MsgSubmenuRequested:
 				if msg.Payload.ItemId != 0 {
-					log.Printf("Submenu requested: %d", msg.Payload.ItemId)
+					utils.Logger.Printf("Submenu requested: %d", msg.Payload.ItemId)
 
 					for itemId, submenuPanel := range activeSubmenus {
 						cbor.NewEncoder(submenuPanel.Writer()).Encode(menu.Message{Type: menu.MsgMenuClose})
@@ -211,13 +222,13 @@ func CreateMenuPanel(client *DBusMenuClient, x, y int, menuItems []menu.Item, pa
 
 					needUpdate, err := client.AboutToShow(msg.Payload.ItemId)
 					if err != nil {
-						log.Printf("error calling AboutToShow: %v", err)
+						utils.Logger.Printf("error calling AboutToShow: %v", err)
 					}
 					if needUpdate {
 						// Refresh the layout if needed
 						newLayout, err := client.GetLayoutForParent(parentId)
 						if err != nil {
-							log.Printf("error refreshing layout: %v", err)
+							utils.Logger.Printf("error refreshing layout: %v", err)
 						} else {
 							newMenuItems := FlattenLayout(newLayout)
 							updateMsg := menu.Message{
@@ -233,13 +244,13 @@ func CreateMenuPanel(client *DBusMenuClient, x, y int, menuItems []menu.Item, pa
 					// Get submenu layout and spawn new panel
 					submenuLayout, err := client.GetLayoutForParent(msg.Payload.ItemId)
 					if err != nil {
-						log.Printf("error getting submenu layout: %v", err)
+						utils.Logger.Printf("error getting submenu layout: %v", err)
 					} else if len(submenuLayout.Children) > 0 {
 						submenuItems := FlattenLayout(submenuLayout)
 						if len(submenuItems) > 0 {
 							sm.CloseAllSubmenus()
-							submenuX := x + msg.Payload.X - int(msg.Payload.State.PPC.X*float64(menu.MaxLengthLabel(submenuItems)+4))
-							submenuY := y + int(float64(msg.Payload.Y)*msg.Payload.State.PPC.Y)
+							submenuX := x + msg.Payload.X - int((msg.Payload.State.PPC.X*float64(menu.MaxLengthLabel(submenuItems)+4))/2)
+							submenuY := y + int((float64(msg.Payload.Y)*msg.Payload.State.PPC.Y)/2)
 							// Launch submenu panel recursively this time instead bruh
 							go CreateMenuPanel(client, submenuX, submenuY, submenuItems, msg.Payload.ItemId)
 						}
@@ -260,11 +271,11 @@ func CreateMenuPanel(client *DBusMenuClient, x, y int, menuItems []menu.Item, pa
 		for signal := range ch {
 			switch signal.Name {
 			case "com.canonical.dbusmenu.LayoutUpdated":
-				log.Printf("Layout updated signal received for panel %d", parentId)
+				utils.Logger.Printf("Layout updated signal received for panel %d", parentId)
 				// Refresh layout
 				newLayout, err := client.GetLayoutForParent(parentId)
 				if err != nil {
-					log.Printf("error refreshing layout after signal: %v", err)
+					utils.Logger.Printf("error refreshing layout after signal: %v", err)
 				} else {
 					newMenuItems := FlattenLayout(newLayout)
 					updateMsg := menu.Message{
@@ -276,10 +287,10 @@ func CreateMenuPanel(client *DBusMenuClient, x, y int, menuItems []menu.Item, pa
 					enc.Encode(updateMsg)
 				}
 			case "com.canonical.dbusmenu.ItemsPropertiesUpdated":
-				log.Printf("Items properties updated signal received for panel %d", parentId)
+				utils.Logger.Printf("Items properties updated signal received for panel %d", parentId)
 				newLayout, err := client.GetLayoutForParent(parentId)
 				if err != nil {
-					log.Printf("error refreshing layout after properties update: %v", err)
+					utils.Logger.Printf("error refreshing layout after properties update: %v", err)
 				} else {
 					newMenuItems := FlattenLayout(newLayout)
 					updateMsg := menu.Message{
@@ -340,7 +351,7 @@ func FlattenLayout(parent Layout) (items []menu.Item) {
 			if strings.HasSuffix(item.IconName, "-symbolic") {
 				icon, _ = iconLookup.Lookup(item.IconName)
 			} else {
-				icon, _ = iconLookup.FindBestIcon([]string{item.IconName + "-symbolic", item.IconName}, 48, 1)
+				icon, _ = iconLookup.FindBestIcon([]string{item.IconName + "-symbolic", item.IconName}, 48, 2)
 			}
 			item.Icon = icon
 		}
@@ -375,14 +386,15 @@ func init() {
 
 func CreatePanel(x, y, w, h int) *katnip.Panel {
 	conf := katnip.Config{
-		Position:    katnip.Vector{X: x, Y: y},
-		Size:        katnip.Vector{X: w, Y: h},
-		Edge:        katnip.EdgeNone,
-		Layer:       katnip.LayerTop,
-		FocusPolicy: katnip.FocusOnDemand,
+		Position: katnip.Vector{X: x, Y: y},
+		Size:     katnip.Vector{X: w, Y: h},
+		Edge:     katnip.EdgeNone,
+		Layer:    katnip.LayerTop,
+		// FocusPolicy: katnip.FocusOnDemand,
+		FocusPolicy: katnip.FocusExclusive,
 		ConfigFile:  "NONE",
 		KittyOverrides: []string{
-			"font_size=16",
+			"font_size=12",
 			"cursor_trail=0",
 			"cursor_shape=beam",
 			"cursor=#000000",
@@ -403,6 +415,7 @@ func CreatePanel(x, y, w, h int) *katnip.Panel {
 	}
 
 	kn := katnip.NewPanel("leaf", conf)
+	utils.Logger.Printf(kn.Cmd.String())
 	kn.Start()
 
 	return kn
