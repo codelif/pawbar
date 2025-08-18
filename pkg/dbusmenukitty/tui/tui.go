@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"fmt"
 	"image/color"
 	"io"
 	"time"
@@ -30,14 +29,19 @@ var (
 )
 
 func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
-	fmt.Printf("\x1b[?25l") // hide cursor early
+	// device := "/dev/pts/8"
+	// Fd, err := os.OpenFile(device, os.O_WRONLY, 0o620)
+	// if err == nil {
+	// 	log.SetOutput(Fd)
+	// 	log.SetLevel(log.LevelTrace)
+	// }
 	dec := cbor.NewDecoder(rw)
 	enc := cbor.NewEncoder(rw)
 
 	// Disable logging
 	l.SetOutput(io.Discard)
-	log.SetOutput(io.Discard)
-	log.SetLevel(log.LevelInfo)
+	// log.SetOutput(io.Discard)
+	// log.SetLevel(log.LevelInfo)
 
 	// Setup message queue
 	msgQueue := make(chan menu.Message, 10)
@@ -69,7 +73,7 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 	renderer := NewRenderer(win)
 
 	{
-    winSize := vx.Size()
+		winSize := vx.Size()
 		state.size = menu.Size{
 			Cols:    winSize.Cols,
 			Rows:    winSize.Rows,
@@ -113,12 +117,12 @@ func Leaf(k *katnip.Kitty, rw io.ReadWriter) int {
 
 			case vaxis.Mouse:
 				l.Printf("%#v\n", ev)
+				state.mousePixelX, state.mousePixelY = ev.XPixel, ev.YPixel
 				switch ev.EventType {
 				case vaxis.EventLeave:
 					state.mouseOnSurface = false
 
 				case vaxis.EventMotion:
-					state.mousePixelX, state.mousePixelY = ev.XPixel, ev.YPixel
 					messageHandler.handleMouseMotion(ev.Col, ev.Row)
 
 				case vaxis.EventPress:
