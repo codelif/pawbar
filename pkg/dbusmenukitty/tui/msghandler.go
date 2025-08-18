@@ -85,12 +85,20 @@ func (h *MessageHandler) handleSubmenuCancel() {
 }
 
 func (h *MessageHandler) handleItemClick(item *menu.Item) {
-	h.sendMessage(menu.MsgItemClicked, item.Id, 0, 0)
+  id := item.Id
+  if !h.state.mouseOnSurface {
+    id = -1
+  }
+	h.sendMessage(menu.MsgItemClicked, id, 0, 0)
 }
 
 func (h *MessageHandler) handleMouseMotion(col, row int) {
-	h.state.mouseX = col
+  if h.state.mousePixelX < 0 || h.state.mousePixelY < 0 {
+    return
+  }
 
+
+	h.state.mouseX = col
 	// If mouse hasn't actually moved to a different row, ignore
 	if h.state.mouseY == row && h.state.mouseOnSurface {
 		return
