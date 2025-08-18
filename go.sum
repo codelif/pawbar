@@ -10,6 +10,8 @@ github.com/codelif/pulseaudio v1.0.0 h1:8sAAfTvx5rO3URb7poyVwHxdazohzEK9pG6bo4oD
 github.com/codelif/pulseaudio v1.0.0/go.mod h1:XLFQbmGVWnfNJ4lcxftFdm+CwlZRgEAjCgyW96XIeZw=
 github.com/codelif/shmstream v0.0.0-20250707213419-52bb1dd21b7b h1:eB+mqYl5zhNd2URmfgph1qLXm8GoQr8DZZZARl0ZPgs=
 github.com/codelif/shmstream v0.0.0-20250707213419-52bb1dd21b7b/go.mod h1:egLjfn0XvTi8zbz4O2E3EPFMfpQoxh0KK6vbcL5BBgw=
+github.com/codelif/xdgicons v0.3.1 h1:MUGcxlmxPKhnlkm22lrlq6j52/znmbt6nVzlVRh/56k=
+github.com/codelif/xdgicons v0.3.1/go.mod h1:jCO1b/IxJF2cMbf9tRmesPqYZqx6IJOAFnXxXAJC6hg=
 github.com/containerd/console v1.0.3 h1:lIr7SlA5PxZyMV30bDW0MGbiOPXwc63yRuCP0ARubLw=
 github.com/containerd/console v1.0.3/go.mod h1:7LqA/THxQ86k76b8c/EMSiaJ3h1eZkMkXar0TQ1gf3U=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
