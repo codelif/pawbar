@@ -65,7 +65,6 @@ func mainLoop(kitty *katnip.Kitty, rw io.ReadWriter) int {
 		if err != nil {
 			utils.Logger.Printf("unexpected error: %v\n", err)
 		}
-		return
 	}()
 
 	win := vx.Window()
