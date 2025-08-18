@@ -47,8 +47,8 @@ func (m *MenuState) isValidItemIndex(index int) bool {
 func (m *MenuState) isSelectableItem(index int) bool {
 	return m.isValidItemIndex(index) &&
 		m.items[index].Type != menu.ItemSeparator &&
-		m.items[index].Enabled
-	// !m.items[index].HasChildren
+		m.items[index].Enabled ||
+		!m.mouseOnSurface
 }
 
 func (m *MenuState) getCurrentItem() *menu.Item {
