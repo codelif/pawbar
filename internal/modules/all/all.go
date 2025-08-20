@@ -10,6 +10,7 @@ import (
 	_ "github.com/codelif/pawbar/internal/modules/cpu"
 	_ "github.com/codelif/pawbar/internal/modules/custom"
 	_ "github.com/codelif/pawbar/internal/modules/disk"
+	_ "github.com/codelif/pawbar/internal/modules/idleInhibitor"
 	_ "github.com/codelif/pawbar/internal/modules/locale"
 	_ "github.com/codelif/pawbar/internal/modules/mpris"
 	_ "github.com/codelif/pawbar/internal/modules/ram"
