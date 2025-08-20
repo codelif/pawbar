@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,14 +11,7 @@ import (
 	"github.com/codelif/pawbar/internal/modules"
 	"github.com/codelif/pawbar/internal/services/hypr"
 	"github.com/codelif/pawbar/internal/services/i3"
-	"gopkg.in/yaml.v3"
 )
-
-func init() {
-	config.Register("ws", func(n *yaml.Node) (modules.Module, error) {
-		return &Module{}, nil
-	})
-}
 
 type Workspace struct {
 	ID      int
@@ -26,6 +20,15 @@ type Workspace struct {
 	Urgent  bool
 	Special bool
 }
+
+type Format int
+
+func (f *Format) toggle() { *f ^= 1 }
+
+const (
+	FormatAll Format = iota
+	FormatCurr
+)
 
 type backend interface {
 	List() []Workspace
@@ -38,6 +41,10 @@ type Module struct {
 	receive chan bool
 	send    chan modules.Event
 	bname   string
+	format  Format
+
+	opts        Options
+	initialOpts Options
 }
 
 func New() modules.Module { return &Module{} }
@@ -54,6 +61,7 @@ func (mod *Module) Run() (<-chan bool, chan<- modules.Event, error) {
 
 	mod.receive = make(chan bool)
 	mod.send = make(chan modules.Event)
+	mod.initialOpts = mod.opts
 
 	go func() {
 		render := mod.b.Events()
@@ -62,7 +70,32 @@ func (mod *Module) Run() (<-chan bool, chan<- modules.Event, error) {
 			case e := <-mod.send:
 				switch ev := e.VaxisEvent.(type) {
 				case vaxis.Mouse:
-					mod.handleMouseEvent(e, ev)
+					if ev.EventType != vaxis.EventPress {
+						break
+					}
+					btn := config.ButtonName(ev)
+
+					if btn == "left" {
+						go mod.b.Goto(e.Cell.Metadata)
+					}
+					if btn == "right" {
+						mod.format.toggle()
+						mod.receive <- true
+					}
+
+					if mod.opts.OnClick.Dispatch(btn, &mod.initialOpts, &mod.opts) {
+						mod.receive <- true
+					}
+
+				case modules.FocusIn:
+					if mod.opts.OnClick.HoverIn(&mod.opts) {
+						mod.receive <- true
+					}
+
+				case modules.FocusOut:
+					if mod.opts.OnClick.HoverOut(&mod.opts) {
+						mod.receive <- true
+					}
 				}
 			case <-render:
 				mod.receive <- true
@@ -71,17 +104,6 @@ func (mod *Module) Run() (<-chan bool, chan<- modules.Event, error) {
 	}()
 
 	return mod.receive, mod.send, nil
-}
-
-func (mod *Module) handleMouseEvent(e modules.Event, ev vaxis.Mouse) {
-	if ev.EventType != vaxis.EventPress {
-		return
-	}
-
-	switch ev.Button {
-	case vaxis.MouseLeftButton:
-		go mod.b.Goto(e.Cell.Metadata)
-	}
 }
 
 func (mod *Module) selectBackend() error {
@@ -107,49 +129,72 @@ func (mod *Module) selectBackend() error {
 }
 
 func (mod *Module) Render() []modules.EventCell {
-	ws := mod.b.List()
+	data := struct{ WSID string }{}
+	format := mod.opts.Format
 
-	var r []modules.EventCell
+	var toRender []Workspace
+	switch mod.format {
+	case FormatAll:
+		toRender = mod.b.List()
 
-	for _, w := range ws {
-		wsName := w.Name
-		if w.Special {
-			if !w.Active {
-				continue
+	case FormatCurr:
+		for _, w := range mod.b.List() {
+			if w.Active {
+				toRender = []Workspace{w}
+				break
 			}
-			wsName = "S"
 		}
 
-		style := vaxis.Style{}
-		mouseShape := vaxis.MouseShapeClickable
+	default:
+		toRender = mod.b.List()
+	}
 
+	var cells []modules.EventCell
+	for _, w := range toRender {
+		wsName := w.Name
+		if w.Special {
+			wsName = "S"
+		}
 		var meta string
 		if mod.bname == "hypr" {
 			meta = strconv.Itoa(w.ID)
 		} else {
 			meta = wsName
 		}
-
-		if w.Special {
-			style = SPECIAL
-			mouseShape = vaxis.MouseShapeDefault
-		} else if w.Active {
-			style = ACTIVE
-			mouseShape = vaxis.MouseShapeDefault
-		} else if w.Urgent {
-			style = URGENT
+		style := vaxis.Style{
+			Foreground: mod.opts.Fg.Go(),
+			Background: mod.opts.Bg.Go(),
+		}
+		switch {
+		case w.Special:
+			style.Foreground = mod.opts.Special.Fg.Go()
+			style.Background = mod.opts.Special.Bg.Go()
+		case w.Active:
+			style.Foreground = mod.opts.Active.Fg.Go()
+			style.Background = mod.opts.Active.Bg.Go()
+		case w.Urgent:
+			style.Foreground = mod.opts.Urgent.Fg.Go()
+			style.Background = mod.opts.Urgent.Bg.Go()
+		}
+		data.WSID = " " + wsName + " "
+		var buf bytes.Buffer
+		if err := format.Execute(&buf, data); err != nil {
+			continue
 		}
 
-		for _, ch := range vaxis.Characters(" " + wsName + " ") {
-			r = append(r, modules.EventCell{C: vaxis.Cell{Character: ch, Style: style}, Metadata: meta, Mod: mod, MouseShape: mouseShape})
+		// split into cells
+		for _, ch := range vaxis.Characters(buf.String()) {
+			cells = append(cells, modules.EventCell{
+				C: vaxis.Cell{
+					Character: ch,
+					Style:     style,
+				},
+				Metadata:   meta,
+				Mod:        mod,
+				MouseShape: vaxis.MouseShapeClickable,
+			})
 		}
 	}
 
-	return r
+	return cells
 }
-
-var (
-	SPECIAL = vaxis.Style{Foreground: modules.ACTIVE, Background: modules.SPECIAL}
-	ACTIVE  = vaxis.Style{Foreground: modules.BLACK, Background: modules.ACTIVE}
-	URGENT  = vaxis.Style{Foreground: modules.BLACK, Background: modules.URGENT}
-)
