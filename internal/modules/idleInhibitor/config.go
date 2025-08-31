@@ -32,8 +32,8 @@ type MouseOptions struct {
 }
 
 func defaultOptions() Options {
-	f, _ := config.NewTemplate("")
-	fn, _ := config.NewTemplate("")
+	fn, _ := config.NewTemplate("")
+	f, _ := config.NewTemplate("")
 	return Options{
 		Inhibit: inhibitOptions{
 			Format: config.Format{Template: fn},
