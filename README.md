@@ -20,7 +20,7 @@ Though fair caution it installs to `/usr/local/bin`
 ## Usage
 Run bar by calling the bar script after using the `install.sh` script:
 ```sh
-bar
+pawbar
 ```
 
 
