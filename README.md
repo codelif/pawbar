@@ -26,19 +26,24 @@ bar
 
 By default the bar is configured with only a clock and a battery. You can add modules by editing `$HOME/.config/pawbar/pawbar.yaml`.
 
-It has 13 modules :
- - `clock`: A simple date-time module (format changable on click)
- - `wifi`: A simple wifi conenction indicator (for now, without interactive menu)
- - `bluetooth`: A simple bluetooth conenction indicator (for now, without interactive menu)
- - `battery`: A battery module with dynamic icons and colors
+It has 16 modules (all customisable upto a certain extent,for now):
  - `backlight`: A screen brightness indicator (interactable)
- - `volume`: A Volume level indicator (interactable)
- - `ram`: RAM usage (format changable on click)
- - `cpu`: CPU usage
+ - `battery`: A battery module with dynamic icons and colors
+ - `bluetooth`: A simple bluetooth conenction indicator (for now, without interactive menu)
+ - `clock`: A simple date-time module (format changable on click)
+ - `cpu`: CPU usage 
+ - `custom`: perform custom tasks, e.g. running at script, opening an app etc.
  - `disk`: Disk usage (format changable on click)
+ - `idleInhibitor`: toggle screen off/lock actions as allowed/inhibited.
  - `locale`: Current locale
- - `ws`: A dynamic workspace switcher (hyprland/i3/sway) with (with mouse events) (change workspace on click)
+ - `mpris`: mpris player, with play/pause (interactable),artist,title.
+ - `ram`: RAM usage (format changable on click)
  - `title`: A window class & title display ((hyprland/i3/sway)
+ - `tray`: tray using nm-applet (with menu)
+ - `volume`: A Volume level indicator (interactable)
+ - `wifi`: A simple wifi conenction indicator (without menu, interatable on clicks)
+ - `ws`: A dynamic workspace switcher (hyprland/i3/sway) with (with mouse events) (change workspace on click)
+
  - `space`: A single space
  - `sep`: A full height vertical bar and a space on either side
 
@@ -59,10 +64,12 @@ right:
 ## Roadmap
  - [x] Running
  - [ ] Modules and Services:
-     - [ ] wifi (with menu)
      - [ ] bluetooth (with menu)
-     - [ ] tray
+     - [ ] tray (more functional)
      - [ ] workspace and title for more WMs
+     - [ ] power profiles
+     - [ ] session controls (e.g. suspend)
+     - [ ] calender addition to module(clock)
      - [ ] Suggest more
  - [ ] Extended module config
  - [ ] Extended bar config
