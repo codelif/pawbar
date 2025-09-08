@@ -50,8 +50,8 @@ It has 16 modules (all customisable upto a certain extent,for now):
 A typical(my) config looks like:
 ```yaml
 left:
-  - hyprws
-  - hyprtitle
+  - ws
+  - title
 
 right:
   - battery
