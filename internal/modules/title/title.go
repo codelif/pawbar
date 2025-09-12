@@ -129,7 +129,7 @@ func (mod *Module) Render() []modules.EventCell {
 		}
 	}
 
-	if win.Title != "" {
+	if win.Title != "" && win.Class != "" {
 		style := vaxis.Style{
 			Foreground: mod.opts.Title.Fg.Go(),
 			Background: mod.opts.Title.Bg.Go(),
