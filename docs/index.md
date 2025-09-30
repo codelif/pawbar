@@ -3,23 +3,29 @@
 layout: home
 
 hero:
-  name: "pawbar"
-  text: "Kat vibes for your desktop"
-  tagline: My great project tagline
+  name: pawbar
+  text: Kat vibes for your desktop
+  tagline: kitten-panel based desktop status bar
   actions:
     - theme: brand
-      text: Markdown Examples
-      link: /markdown-examples
+      text: Install
+      link: /docs/getting-started
     - theme: alt
-      text: API Examples
-      link: /api-examples
+      text: Configure
+      link: /docs/config
+  image:
+    src: /pawbar.svg
+    alt: pawbar
 
 features:
-  - title: Feature A
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature B
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature C
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
+  - title: Wait, it's all kitty? Always has been!
+    details: The whole bar is a floating kitty window! Along with other floating kitty windows!
+    icon: 📟
+  - title: All your essential modules and more!
+    details: "Built-in SNI tray with menus (yes its still all kitty, no gtk anywhere), battery, audio, backlight, Bluetooth, CPU/RAM/Disk, etc. Along with support for many Window Managers."
+    icon: "🧰"
+  - title: "Clean, templated YAML config"
+    details: "Go-template formatting, rich color parsing (hex/rgb/names), cursor shapes, and easy defaults/overrides with extensible icons"
+    icon: "🎨"
 ---
 
