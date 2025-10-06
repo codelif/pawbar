@@ -8,6 +8,20 @@ Due to the existence of modern terminal standards (especially in kitty), a tiny 
 
 
 ## Installing
+> [!IMPORTANT]
+> You need to checkout the submodules before building `pawbar`, you can do one of the following:
+> - Clone the repository with
+>   ```
+>   git clone --recurse-submodules https://github.com/codelif/pawbar.git
+>   cd pawbar
+>   ```
+> 
+> - Clone normally and checkout manually:
+>   ```
+>   git clone https://github.com/codelif/pawbar.git
+>   cd pawbar
+>   git submodule update --remote --init
+>   ```
 A basic install script is there (you need to compile pawbar before running the script): 
 ```sh
 go build ./cmd/pawbar
