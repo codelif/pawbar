@@ -1,5 +1,5 @@
 [submodule "vaxis"]
 	path = vaxis
-	url = git@git.sr.ht:~codelif/vaxis
+	url = https://git.sr.ht/~codelif/vaxis
 	branch = main
 	update = rebase
