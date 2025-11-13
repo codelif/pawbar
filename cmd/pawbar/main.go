@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"io"
 	"log"
 	"os"
@@ -80,8 +81,12 @@ func mainLoop(kitty *katnip.Kitty, rw io.ReadWriter) int {
 
 	modev, l, m, r := modules.Init(l, m, r)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	screenEvents := vx.Events()
 	userSignals := setupUserSignals()
+	resumeCh := watchResume(ctx)
 
 	var prevHoverMod modules.Module
 	var prevHoverCell modules.EventCell
@@ -181,6 +186,13 @@ func mainLoop(kitty *katnip.Kitty, rw io.ReadWriter) int {
 			vx.Render()
 		case s := <-userSignals:
 			utils.Logger.Printf("full render: %s", canonicalSignalName(s))
+			win = vx.Window()
+			w, h = win.Size()
+			tui.Resize(w, h)
+			tui.FullRender(win)
+			vx.Render()
+		case <-resumeCh:
+			utils.Logger.Printf("full render: waking from suspend")
 			win = vx.Window()
 			w, h = win.Size()
 			tui.Resize(w, h)
