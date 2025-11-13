@@ -36,12 +36,31 @@ export default defineConfig({
         link: '/docs/getting-started',
       },
       {
+        text: 'Configuration',
+        link: '/docs/configuration',
+      },
+      {
         text: 'Modules',
         collapsed: false,
-        base: '/docs/modules/',
+        base: '/docs/modules',
+        link: '/',
         items: [
-          { text: 'Clock', link: 'clock' },
-          { text: '' }
+          { text: 'Backlight', link: '#backlight' }, 
+          { text: 'Battery', link: '#battery' }, 
+          { text: 'Bluetooth', link: '#bluetooth' }, 
+          { text: 'Clock', link: '#clock' }, 
+          { text: 'CPU', link: '#cpu' }, 
+          { text: 'Custom', link: '#custom' }, 
+          { text: 'Disk', link: '#disk' }, 
+          { text: 'Idle Inhibitor', link: '#idleInhibitor' }, 
+          { text: 'Locale', link: '#locale' }, 
+          { text: 'Mpris', link: '#mpris' }, 
+          { text: 'RAM', link: '#ram' }, 
+          { text: 'Window Title', link: '#title' }, 
+          { text: 'Tray', link: '#tray' }, 
+          { text: 'Volume', link: '#volume' }, 
+          { text: 'Wi-Fi', link: '#wifi' }, 
+          { text: 'Workspace', link: '#ws' }, 
         ]
       }
     ],

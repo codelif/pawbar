@@ -8,11 +8,11 @@ hero:
   tagline: kitten-panel based desktop status bar
   actions:
     - theme: brand
-      text: Install
+      text: Getting Started
       link: /docs/getting-started
     - theme: alt
       text: Configure
-      link: /docs/config
+      link: /docs/configuration
   image:
     src: /pawbar.svg
     alt: pawbar

@@ -16,7 +16,7 @@ The following dependencies are required at compile time:
 
 Clone and compile `pawbar`
 ```sh
-git clone https://github.com/codelif/pawbar
+git clone --recurse-submodules https://github.com/codelif/pawbar
 cd pawbar
 go build ./cmd/pawbar
 ```
@@ -24,4 +24,50 @@ go build ./cmd/pawbar
 Install using the installation script:
 ```sh
 ./install.sh
+```
+
+# Configuration
+
+`pawbar` is configured using a configuration file.
+
+
+Configuration file is placed at `$HOME/.config/pawbar/pawbar.yaml`
+
+Simplest configuration file can be:
+```yaml
+right:
+  - clock
+```
+
+It sets a right anchored `clock` module with default configuration
+
+A useful default configuration can be:
+```yaml
+bar:
+  truncate_priority: 
+    - middle
+    - right
+    - left
+left:
+  - ws
+  - title
+middle:
+  - clock:
+      format: "%a %H:%M" 
+      tick: 1m
+      onmouse:
+        hover:
+          config:
+            format: "%a %H:%M:%S"
+            tick: 1s
+            fg: indianred
+right:
+  - volume:
+      onmouse:
+        left:
+          run: "pavucontrol"
+  - sep
+  - backlight
+  - sep
+  - battery
 ```
