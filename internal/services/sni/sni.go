@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/codelif/pawbar/internal/services"
-	"github.com/codelif/pawbar/internal/utils"
+	"github.com/nekorg/pawbar/internal/services"
+	"github.com/nekorg/pawbar/internal/utils"
 	"github.com/godbus/dbus/v5"
 	"github.com/godbus/dbus/v5/introspect"
 	"github.com/godbus/dbus/v5/prop"

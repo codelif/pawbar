@@ -8,11 +8,11 @@ import (
 
 	"git.sr.ht/~rockorager/vaxis"
 	"github.com/codelif/katnip"
-	"github.com/codelif/pawbar/internal/config"
-	"github.com/codelif/pawbar/internal/modules"
-	_ "github.com/codelif/pawbar/internal/modules/all"
-	"github.com/codelif/pawbar/internal/tui"
-	"github.com/codelif/pawbar/internal/utils"
+	"github.com/nekorg/pawbar/internal/config"
+	"github.com/nekorg/pawbar/internal/modules"
+	_ "github.com/nekorg/pawbar/internal/modules/all"
+	"github.com/nekorg/pawbar/internal/tui"
+	"github.com/nekorg/pawbar/internal/utils"
 )
 
 func init() {

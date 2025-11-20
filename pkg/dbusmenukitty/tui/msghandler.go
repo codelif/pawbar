@@ -3,7 +3,7 @@ package tui
 import (
 	"time"
 
-	"github.com/codelif/pawbar/pkg/dbusmenukitty/menu"
+	"github.com/nekorg/pawbar/pkg/dbusmenukitty/menu"
 	"github.com/fxamacker/cbor/v2"
 )
 

@@ -1,6 +1,6 @@
 package services
 
-import "github.com/codelif/pawbar/internal/utils"
+import "github.com/nekorg/pawbar/internal/utils"
 
 type Service interface {
 	Start() error

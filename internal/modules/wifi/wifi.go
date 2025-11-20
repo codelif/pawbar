@@ -7,9 +7,9 @@ import (
 
 	"git.sr.ht/~rockorager/vaxis"
 	nm "github.com/Wifx/gonetworkmanager/v3"
-	"github.com/codelif/pawbar/internal/config"
-	"github.com/codelif/pawbar/internal/modules"
-	"github.com/codelif/pawbar/internal/utils"
+	"github.com/nekorg/pawbar/internal/config"
+	"github.com/nekorg/pawbar/internal/modules"
+	"github.com/nekorg/pawbar/internal/utils"
 	"github.com/godbus/dbus/v5"
 )
 

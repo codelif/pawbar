@@ -9,8 +9,8 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/codelif/pawbar/internal/services"
-	"github.com/codelif/pawbar/internal/utils"
+	"github.com/nekorg/pawbar/internal/services"
+	"github.com/nekorg/pawbar/internal/utils"
 )
 
 const (

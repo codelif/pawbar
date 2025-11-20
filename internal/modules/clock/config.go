@@ -3,8 +3,8 @@ package clock
 import (
 	"time"
 
-	"github.com/codelif/pawbar/internal/config"
-	"github.com/codelif/pawbar/internal/modules"
+	"github.com/nekorg/pawbar/internal/config"
+	"github.com/nekorg/pawbar/internal/modules"
 )
 
 // Example config:

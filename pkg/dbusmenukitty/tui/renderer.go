@@ -14,7 +14,7 @@ import (
 	"git.sr.ht/~rockorager/vaxis"
 	"git.sr.ht/~rockorager/vaxis/log"
 	"github.com/codelif/gorsvg"
-	"github.com/codelif/pawbar/pkg/dbusmenukitty/menu"
+	"github.com/nekorg/pawbar/pkg/dbusmenukitty/menu"
 	"github.com/codelif/xdgicons"
 	"github.com/codelif/xdgicons/missing"
 	"golang.org/x/image/colornames"

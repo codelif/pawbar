@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/codelif/pawbar/internal/utils"
+	"github.com/nekorg/pawbar/internal/utils"
 	"github.com/godbus/dbus/v5"
 )
 

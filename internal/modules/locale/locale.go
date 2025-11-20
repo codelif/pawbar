@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
-	"github.com/codelif/pawbar/internal/config"
-	"github.com/codelif/pawbar/internal/modules"
+	"github.com/nekorg/pawbar/internal/config"
+	"github.com/nekorg/pawbar/internal/modules"
 )
 
 func New() modules.Module {

@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"github.com/codelif/pawbar/pkg/dbusmenukitty"
+	"github.com/nekorg/pawbar/pkg/dbusmenukitty"
 )
 
 func main() {

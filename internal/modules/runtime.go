@@ -1,6 +1,6 @@
 package modules
 
-import "github.com/codelif/pawbar/internal/utils"
+import "github.com/nekorg/pawbar/internal/utils"
 
 func Init(left, middle, right []Module) (
 	chan Module, // modev

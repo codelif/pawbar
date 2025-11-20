@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/codelif/katnip"
-	"github.com/codelif/pawbar/internal/utils"
-	"github.com/codelif/pawbar/pkg/dbusmenukitty/menu"
-	"github.com/codelif/pawbar/pkg/dbusmenukitty/tui"
+	"github.com/nekorg/pawbar/internal/utils"
+	"github.com/nekorg/pawbar/pkg/dbusmenukitty/menu"
+	"github.com/nekorg/pawbar/pkg/dbusmenukitty/tui"
 	"github.com/codelif/xdgicons"
 	"github.com/fxamacker/cbor/v2"
 	"github.com/godbus/dbus/v5"

@@ -3,7 +3,7 @@ package title
 import (
 	"strings"
 
-	"github.com/codelif/pawbar/internal/services/hypr"
+	"github.com/nekorg/pawbar/internal/services/hypr"
 )
 
 type hyprBackend struct {

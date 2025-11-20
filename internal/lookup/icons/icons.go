@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/codelif/pawbar/internal/utils"
+	"github.com/nekorg/pawbar/internal/utils"
 )
 
 var table = map[string]string{

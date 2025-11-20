@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"git.sr.ht/~rockorager/vaxis"
-	"github.com/codelif/pawbar/internal/lookup/colors"
-	"github.com/codelif/pawbar/internal/lookup/icons"
-	"github.com/codelif/pawbar/internal/lookup/units"
-	"github.com/codelif/pawbar/internal/modules"
+	"github.com/nekorg/pawbar/internal/lookup/colors"
+	"github.com/nekorg/pawbar/internal/lookup/icons"
+	"github.com/nekorg/pawbar/internal/lookup/units"
+	"github.com/nekorg/pawbar/internal/modules"
 	"gopkg.in/yaml.v3"
 )
 

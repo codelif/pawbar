@@ -9,7 +9,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/codelif/pawbar/internal/services"
+	"github.com/nekorg/pawbar/internal/services"
 )
 
 func Register() (*Service, bool) {

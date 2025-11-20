@@ -1,4 +1,4 @@
-module github.com/codelif/pawbar
+module github.com/nekorg/pawbar
 
 go 1.24.5
 

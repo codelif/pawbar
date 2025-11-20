@@ -3,8 +3,8 @@ package config
 import (
 	"os"
 
-	"github.com/codelif/pawbar/internal/modules"
-	"github.com/codelif/pawbar/internal/utils"
+	"github.com/nekorg/pawbar/internal/modules"
+	"github.com/nekorg/pawbar/internal/utils"
 	"gopkg.in/yaml.v3"
 )
 

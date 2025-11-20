@@ -1,8 +1,8 @@
 package title
 
 import (
-	"github.com/codelif/pawbar/internal/services/i3"
-	"github.com/codelif/pawbar/internal/utils"
+	"github.com/nekorg/pawbar/internal/services/i3"
+	"github.com/nekorg/pawbar/internal/utils"
 )
 
 type i3Backend struct {

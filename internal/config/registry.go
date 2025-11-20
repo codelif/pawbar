@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"dario.cat/mergo"
-	"github.com/codelif/pawbar/internal/modules"
+	"github.com/nekorg/pawbar/internal/modules"
 	"gopkg.in/yaml.v3"
 )
 

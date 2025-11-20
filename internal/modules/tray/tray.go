@@ -5,10 +5,10 @@ import (
 	"strconv"
 
 	"git.sr.ht/~rockorager/vaxis"
-	"github.com/codelif/pawbar/internal/config"
-	"github.com/codelif/pawbar/internal/modules"
-	"github.com/codelif/pawbar/internal/services/sni"
-	"github.com/codelif/pawbar/pkg/dbusmenukitty"
+	"github.com/nekorg/pawbar/internal/config"
+	"github.com/nekorg/pawbar/internal/modules"
+	"github.com/nekorg/pawbar/internal/services/sni"
+	"github.com/nekorg/pawbar/pkg/dbusmenukitty"
 	"gopkg.in/yaml.v3"
 )
 

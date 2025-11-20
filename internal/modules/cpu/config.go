@@ -4,9 +4,9 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/codelif/pawbar/internal/config"
-	"github.com/codelif/pawbar/internal/lookup/colors"
-	"github.com/codelif/pawbar/internal/modules"
+	"github.com/nekorg/pawbar/internal/config"
+	"github.com/nekorg/pawbar/internal/lookup/colors"
+	"github.com/nekorg/pawbar/internal/modules"
 )
 
 // Dev NOTE:
