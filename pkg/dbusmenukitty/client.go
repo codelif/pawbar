@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/codelif/katnip"
+	"github.com/nekorg/katnip"
 	"github.com/nekorg/pawbar/internal/utils"
 	"github.com/nekorg/pawbar/pkg/dbusmenukitty/menu"
 	"github.com/nekorg/pawbar/pkg/dbusmenukitty/tui"

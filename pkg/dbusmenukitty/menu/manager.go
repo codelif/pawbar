@@ -3,7 +3,7 @@ package menu
 import (
 	"sync"
 
-	"github.com/codelif/katnip"
+	"github.com/nekorg/katnip"
 	"github.com/fxamacker/cbor/v2"
 )
 

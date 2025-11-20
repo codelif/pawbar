@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"git.sr.ht/~rockorager/vaxis"
-	"github.com/codelif/katnip"
+	"github.com/nekorg/katnip"
 	"github.com/nekorg/pawbar/internal/config"
 	"github.com/nekorg/pawbar/internal/modules"
 	_ "github.com/nekorg/pawbar/internal/modules/all"

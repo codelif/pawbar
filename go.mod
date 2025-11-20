@@ -9,19 +9,19 @@ require (
 	git.sr.ht/~rockorager/vaxis v0.14.0
 	github.com/Wifx/gonetworkmanager/v3 v3.2.0
 	github.com/codelif/gorsvg v0.1.1
-	github.com/codelif/katnip v0.0.1
+	github.com/codelif/pulseaudio v1.0.0
 	github.com/codelif/xdgicons v0.3.1
 	github.com/fxamacker/cbor/v2 v2.8.0
 	github.com/godbus/dbus/v5 v5.1.0
 	github.com/itchyny/timefmt-go v0.1.6
 	github.com/jochenvg/go-udev v0.0.0-20240801134859-b65ed646224b
+	github.com/nekorg/katnip v0.1.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	golang.org/x/image v0.9.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
-	github.com/codelif/pulseaudio v1.0.0 // indirect
 	github.com/codelif/shmstream v0.0.0-20250707213419-52bb1dd21b7b // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect

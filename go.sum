@@ -4,10 +4,6 @@ github.com/Wifx/gonetworkmanager/v3 v3.2.0 h1:qYBNHTSCRg+cwXRFlAYrlAGyPid9MPy9vd
 github.com/Wifx/gonetworkmanager/v3 v3.2.0/go.mod h1:JPAftRDTjp5o37GNOYytCzerFU8ZjudV/jC/g41kvHE=
 github.com/codelif/gorsvg v0.1.1 h1:EoG/viWQbtL9fabCvPZgsixIz2ffOGydEj1vq0Yfa5s=
 github.com/codelif/gorsvg v0.1.1/go.mod h1:cXVdsYlvdqygLesNWkXOaleeeL1RhBJfDcSmghY7TJQ=
-github.com/codelif/katnip v0.0.0-20250717050314-424507f1e469 h1:dGlL/mfKWGi5r/6+V4qwL3nrUKhj6dt8QSLVvSwdKlM=
-github.com/codelif/katnip v0.0.0-20250717050314-424507f1e469/go.mod h1:PlcijSx8JdNS2PozDT9kNiBo+3r26jngVTzxioPyDsI=
-github.com/codelif/katnip v0.0.1 h1:pa9mhHcRO0LgtHkIfaG6JyukKjqwSU6mccEdRaUfNTs=
-github.com/codelif/katnip v0.0.1/go.mod h1:PlcijSx8JdNS2PozDT9kNiBo+3r26jngVTzxioPyDsI=
 github.com/codelif/pulseaudio v1.0.0 h1:8sAAfTvx5rO3URb7poyVwHxdazohzEK9pG6bo4oDwhU=
 github.com/codelif/pulseaudio v1.0.0/go.mod h1:XLFQbmGVWnfNJ4lcxftFdm+CwlZRgEAjCgyW96XIeZw=
 github.com/codelif/shmstream v0.0.0-20250707213419-52bb1dd21b7b h1:eB+mqYl5zhNd2URmfgph1qLXm8GoQr8DZZZARl0ZPgs=
@@ -40,6 +36,8 @@ github.com/mattn/go-runewidth v0.0.16 h1:E5ScNMtiwvlvB5paMFdw9p4kSQzbXFikJ5SQO6T
 github.com/mattn/go-runewidth v0.0.16/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
 github.com/mattn/go-sixel v0.0.5 h1:55w2FR5ncuhKhXrM5ly1eiqMQfZsnAHIpYNGZX03Cv8=
 github.com/mattn/go-sixel v0.0.5/go.mod h1:h2Sss+DiUEHy0pUqcIB6PFXo5Cy8sTQEFr3a9/5ZLNw=
+github.com/nekorg/katnip v0.1.0 h1:RubYTqGhDM35DLj1ysowzeW5m5U4tzV0cpJ/h5vKmtM=
+github.com/nekorg/katnip v0.1.0/go.mod h1:nPnO86SRUWpyXK/EuUQKqqZkSCoLkM3uGFK8BTScCR0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c h1:ncq/mPwQF4JjgDlrVEn3C11VoGHZN7m8qihwgMEtzYw=

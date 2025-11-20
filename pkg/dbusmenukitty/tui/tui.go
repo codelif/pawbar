@@ -9,7 +9,7 @@ import (
 
 	"git.sr.ht/~rockorager/vaxis"
 	"git.sr.ht/~rockorager/vaxis/log"
-	"github.com/codelif/katnip"
+	"github.com/nekorg/katnip"
 	"github.com/nekorg/pawbar/pkg/dbusmenukitty/menu"
 	"github.com/fxamacker/cbor/v2"
 )
